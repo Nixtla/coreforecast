@@ -10,6 +10,8 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g")
 
 if(APPLE)
     set(CMAKE_SHARED_LIBRARY_SUFFIX ".so")
+elseif(MSVC)
+    set_target_properties(coreforecast PROPERTIES OUTPUT_NAME "libcoreforecast")
 endif()
 
 if(UNIX)
