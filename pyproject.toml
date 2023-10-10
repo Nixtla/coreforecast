@@ -1,12 +1,34 @@
 [project]
 name = "coreforecast"
-license = {file = "LICENSE"}
 version = "0.0.1"
 requires-python = ">=3.7"
 dependencies = [
     "importlib_resources ; python_version < '3.10'",
     "numpy",
 ]
+license = {file = "LICENSE"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+description = "Fast implementations of common forecasting routines"
+authors = [
+    {name = "José Morales", email = "jmoralz92@gmail.com"},
+]
+readme = "README.md"
+keywords = ["forecasting", "time-series"]
+
+[project.urls]
+homepage = "https://nixtla.github.io/coreforecast"
+documentation = "https://nixtla.github.io/coreforecast"
+repository = "https://github.com/Nixtla/coreforecast"
 
 [build-system]
 requires = ["scikit-build-core"]
