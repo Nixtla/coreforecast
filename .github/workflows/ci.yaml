@@ -35,7 +35,7 @@ jobs:
           cache-environment: true
 
       - name: Install the library
-        run: pip install --no-build-isolation .
+        run: pip install --no-build-isolation -v .
 
       - name: Run tests
         run: pytest

@@ -11,7 +11,7 @@ else:
     extension = "so"
 
 _LIB = ctypes.CDLL(
-    files("coreforecast").joinpath("lib", f"libcoreforecast.{extension}")
+    str(files("coreforecast").joinpath("lib", f"libcoreforecast.{extension}"))
 )
 
 
