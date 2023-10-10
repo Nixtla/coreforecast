@@ -3,6 +3,7 @@ channels:
   - conda-forge
 dependencies:
   - black
+  - build
   - clang-format
   - cmake
   - make
