@@ -27,14 +27,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v3
-        with:
-          python-version: 3.8
-
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.16.2
         env:
           CIBW_BUILD: cp38-${{ matrix.platform-id }}
+          CIBW_ARCHS: all
 
       - uses: actions/upload-artifact@v3
         with:
