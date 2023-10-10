@@ -5,12 +5,12 @@
 #include "coreforecast.h"
 
 inline float CommonScalerTransform(float data, double scale, double offset) {
-  return (static_cast<double>(data) - offset) / scale;
+  return static_cast<float>((data - offset) / scale);
 }
 
 inline float CommonScalerInverseTransform(float data, double scale,
                                           double offset) {
-  return static_cast<double>(data) * scale + offset;
+  return static_cast<float>(data * scale + offset);
 }
 
 inline int FirstNotNaN(const float *data, int n) {
