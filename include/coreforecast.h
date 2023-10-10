@@ -2,13 +2,13 @@
 
 #include <cstdint>
 
-#ifdef _MSVC_VER
-#define EXPORT __declspec(dllexport)
+#ifdef _MSC_VER
+#define DLL_EXPORT __declspec(dllexport)
 #else
-#define EXPORT
+#define DLL_EXPORT
 #endif
 
-#define C_EXPORT extern "C" EXPORT
+#define C_EXPORT extern "C" DLL_EXPORT
 
 typedef void *GroupedArrayHandle;
 
