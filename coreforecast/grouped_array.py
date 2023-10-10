@@ -6,12 +6,14 @@ from importlib_resources import files
 
 
 if platform.system() in ("Windows", "Microsoft"):
+    prefix = "Release"
     extension = "dll"
 else:
+    prefix = ""
     extension = "so"
 
 _LIB = ctypes.CDLL(
-    str(files("coreforecast").joinpath("lib", f"libcoreforecast.{extension}"))
+    str(files("coreforecast").joinpath("lib", prefix, f"libcoreforecast.{extension}"))
 )
 
 
