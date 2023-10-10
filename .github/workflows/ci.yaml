@@ -35,9 +35,7 @@ jobs:
           cache-environment: true
 
       - name: Install the library
-        run: |
-          python -m build --wheel --outdir dist --no-isolation
-          pip install dist/*.whl
+        run: pip install --no-build-isolation .
 
       - name: Run tests
         run: pytest

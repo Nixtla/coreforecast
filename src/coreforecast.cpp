@@ -1,5 +1,5 @@
 #include <algorithm>
-#include <math.h>
+#include <cmath>
 #include <numeric>
 
 #include "coreforecast.h"

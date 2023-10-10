@@ -2,7 +2,6 @@ name: coreforecast
 channels:
   - conda-forge
 dependencies:
-  - build
   - cmake
   - ninja
   - numpy
