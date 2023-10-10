@@ -6,8 +6,8 @@ dependencies:
   - build
   - clang-format
   - cmake
-  - make
   - mypy
+  - ninja
   - numpy
   - pytest
   - scikit-build-core

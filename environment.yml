@@ -4,7 +4,7 @@ channels:
 dependencies:
   - build
   - cmake
-  - make
+  - ninja
   - numpy
   - pytest
   - scikit-build-core
