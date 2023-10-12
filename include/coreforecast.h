@@ -22,22 +22,22 @@ DLL_EXPORT int GroupedArray_CreateFromArrays(const void *data, int32_t n_data,
 DLL_EXPORT int GroupedArray_Delete(GroupedArrayHandle handle, int data_type);
 
 DLL_EXPORT int GroupedArray_MinMaxScalerStats(GroupedArrayHandle handle,
-                                              int data_type, double *out);
+                                              int data_type, void *out);
 
 DLL_EXPORT int GroupedArray_StandardScalerStats(GroupedArrayHandle handle,
-                                                int data_type, double *out);
+                                                int data_type, void *out);
 
 DLL_EXPORT int GroupedArray_RobustScalerIqrStats(GroupedArrayHandle handle,
-                                                 int data_type, double *out);
+                                                 int data_type, void *out);
 
 DLL_EXPORT int GroupedArray_RobustScalerMadStats(GroupedArrayHandle handle,
-                                                 int data_type, double *out);
+                                                 int data_type, void *out);
 
 DLL_EXPORT int GroupedArray_ScalerTransform(GroupedArrayHandle handle,
-                                            const double *stats, int data_type,
+                                            const void *stats, int data_type,
                                             void *out);
 
 DLL_EXPORT int GroupedArray_ScalerInverseTransform(GroupedArrayHandle handle,
-                                                   const double *stats,
+                                                   const void *stats,
                                                    int data_type, void *out);
 }

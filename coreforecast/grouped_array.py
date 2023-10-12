@@ -25,8 +25,8 @@ _LIB = ctypes.CDLL(
 )
 
 
-def _data_as_ptr(arr: np.ndarray, dtype):
-    return arr.ctypes.data_as(ctypes.POINTER(dtype))
+def _data_as_void_ptr(arr: np.ndarray):
+    return arr.ctypes.data_as(ctypes.POINTER(ctypes.c_void_p))
 
 
 class GroupedArray:
@@ -44,9 +44,9 @@ class GroupedArray:
         self.indptr = indptr
         self._handle = ctypes.c_void_p()
         _LIB.GroupedArray_CreateFromArrays(
-            _data_as_ptr(data, ctypes.c_float),
+            _data_as_void_ptr(data),
             ctypes.c_int32(data.size),
-            _data_as_ptr(indptr, ctypes.c_int32),
+            _data_as_void_ptr(indptr),
             ctypes.c_int32(indptr.size),
             self.dtype,
             ctypes.byref(self._handle),
@@ -62,12 +62,12 @@ class GroupedArray:
         return self.data[self.indptr[i] : self.indptr[i + 1]]
 
     def scaler_fit(self, stats_fn_name: str) -> np.ndarray:
-        stats = np.empty((len(self), 2), dtype=np.float64)
+        stats = np.empty((len(self), 2), dtype=self.data.dtype)
         stats_fn = _LIB[stats_fn_name]
         stats_fn(
             self._handle,
             self.dtype,
-            _data_as_ptr(stats, ctypes.c_double),
+            _data_as_void_ptr(stats),
         )
         return stats
 
@@ -75,9 +75,9 @@ class GroupedArray:
         out = np.full_like(self.data, np.nan)
         _LIB.GroupedArray_ScalerTransform(
             self._handle,
-            _data_as_ptr(stats, ctypes.c_double),
+            _data_as_void_ptr(stats),
             self.dtype,
-            _data_as_ptr(out, ctypes.c_float),
+            _data_as_void_ptr(out),
         )
         return out
 
@@ -85,8 +85,8 @@ class GroupedArray:
         out = np.empty_like(self.data)
         _LIB.GroupedArray_ScalerInverseTransform(
             self._handle,
-            _data_as_ptr(stats, ctypes.c_double),
+            _data_as_void_ptr(stats),
             self.dtype,
-            _data_as_ptr(out, ctypes.c_float),
+            _data_as_void_ptr(out),
         )
         return out
