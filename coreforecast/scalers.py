@@ -13,6 +13,9 @@ class BaseLocalScaler:
     def transform(self, ga: GroupedArray) -> np.ndarray:
         return ga.scaler_transform(self.stats_)
 
+    def fit_transform(self, ga: GroupedArray) -> np.ndarray:
+        return self.fit(ga).transform(ga)
+
     def inverse_transform(self, ga: GroupedArray) -> np.ndarray:
         return ga.scaler_inverse_transform(self.stats_)
 
@@ -25,9 +28,9 @@ class LocalStandardScaler(BaseLocalScaler):
     stats_fn_name = "GroupedArray_StandardScalerStats"
 
 
-class LocalRobustScalerIqr(BaseLocalScaler):
-    stats_fn_name = "GroupedArray_RobustScalerIqrStats"
-
-
-class LocalRobustScalerMad(BaseLocalScaler):
-    stats_fn_name = "GroupedArray_RobustScalerMadStats"
+class LocalRobustScaler(BaseLocalScaler):
+    def __init__(self, scale: str):
+        if scale == "iqr":
+            self.stats_fn_name = "GroupedArray_RobustScalerIqrStats"
+        else:
+            self.stats_fn_name = "GroupedArray_RobustScalerMadStats"

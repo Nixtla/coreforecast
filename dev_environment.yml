@@ -10,4 +10,6 @@ dependencies:
   - ninja
   - numpy
   - pytest
+  - pytest-benchmark
   - scikit-build-core
+  - utilsforecast>=0.0.7
