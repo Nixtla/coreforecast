@@ -1,11 +1,5 @@
 import numpy as np
 import pytest
-from utilsforecast.target_transforms import (
-    LocalStandardScaler as UtilsStandardScaler,
-    LocalMinMaxScaler as UtilsMinMaxScaler,
-    LocalRobustScaler as UtilsRobustScaler,
-)
-
 from coreforecast.grouped_array import GroupedArray
 from coreforecast.scalers import (
     LocalMinMaxScaler,
@@ -67,12 +61,6 @@ scaler2core = {
     "robust-iqr": LocalRobustScaler("iqr"),
     "robust-mad": LocalRobustScaler("mad"),
 }
-scaler2utils = {
-    "standard": UtilsStandardScaler(),
-    "minmax": UtilsMinMaxScaler(),
-    "robust-iqr": UtilsRobustScaler("iqr"),
-    "robust-mad": UtilsRobustScaler("mad"),
-}
 scalers = list(scaler2fns.keys())
 
 
@@ -121,6 +109,19 @@ def test_correctness(data, indptr, scaler_name, dtype):
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 @pytest.mark.parametrize("lib", ["core", "utils"])
 def test_performance(benchmark, data, indptr, scaler_name, dtype, lib):
+    from utilsforecast.target_transforms import (
+        LocalStandardScaler as UtilsStandardScaler,
+        LocalMinMaxScaler as UtilsMinMaxScaler,
+        LocalRobustScaler as UtilsRobustScaler,
+    )
+
+    scaler2utils = {
+        "standard": UtilsStandardScaler(),
+        "minmax": UtilsMinMaxScaler(),
+        "robust-iqr": UtilsRobustScaler("iqr"),
+        "robust-mad": UtilsRobustScaler("mad"),
+    }
+
     ga = GroupedArray(data.astype(dtype), indptr)
     if lib == "core":
         scaler = scaler2core[scaler_name]
