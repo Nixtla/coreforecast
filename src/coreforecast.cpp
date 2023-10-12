@@ -52,14 +52,18 @@ template <typename T> inline double Quantile(T *data, float p, int n) {
   double i_plus_g = p * (n - 1);
   int i = static_cast<int>(i_plus_g);
   double g = i_plus_g - i;
-  return data[i] + g * (data[i + 1] - data[i]);
+  std::nth_element(data, data + i, data + n);
+  if (g > 0.0) {
+    std::nth_element(data, data + i + 1, data + n);
+    return data[i] + g * (data[i + 1] - data[i]);
+  }
+  return data[i];
 }
 
 template <typename T>
 inline void RobustScalerIqrStats(const T *data, int n, double *stats) {
   T *buffer = new T[n];
   std::copy(data, data + n, buffer);
-  std::sort(buffer, buffer + n);
   double median = Quantile(buffer, 0.5F, n);
   double q1 = Quantile(buffer, 0.25F, n);
   double q3 = Quantile(buffer, 0.75F, n);
@@ -72,12 +76,10 @@ template <typename T>
 inline void RobustScalerMadStats(const T *data, int n, double *stats) {
   T *buffer = new T[n];
   std::copy(data, data + n, buffer);
-  std::sort(buffer, buffer + n);
   const T median = static_cast<T>(Quantile(buffer, 0.5F, n));
   for (int i = 0; i < n; ++i) {
     buffer[i] = std::abs(buffer[i] - median);
   }
-  std::sort(buffer, buffer + n);
   double mad = Quantile(buffer, 0.5F, n);
   stats[0] = median;
   stats[1] = mad;

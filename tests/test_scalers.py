@@ -16,7 +16,7 @@ from coreforecast.scalers import (
 
 @pytest.fixture
 def indptr():
-    lengths = np.random.randint(low=1_000, high=2_000, size=1_000)
+    lengths = np.random.randint(low=1_000, high=2_000, size=5_000)
     return np.append(0, lengths.cumsum()).astype(np.int32)
 
 
