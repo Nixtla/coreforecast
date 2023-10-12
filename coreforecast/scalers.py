@@ -13,9 +13,6 @@ class BaseLocalScaler:
     def transform(self, ga: GroupedArray) -> np.ndarray:
         return ga.scaler_transform(self.stats_)
 
-    def fit_transform(self, ga: GroupedArray) -> np.ndarray:
-        return self.fit(ga).transform(ga)
-
     def inverse_transform(self, ga: GroupedArray) -> np.ndarray:
         return ga.scaler_inverse_transform(self.stats_)
 

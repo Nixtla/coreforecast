@@ -46,7 +46,7 @@ class GroupedArray:
         _LIB.GroupedArray_CreateFromArrays(
             _data_as_void_ptr(data),
             ctypes.c_int32(data.size),
-            _data_as_void_ptr(indptr),
+            indptr.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
             ctypes.c_int32(indptr.size),
             self.dtype,
             ctypes.byref(self._handle),
@@ -62,7 +62,7 @@ class GroupedArray:
         return self.data[self.indptr[i] : self.indptr[i + 1]]
 
     def scaler_fit(self, stats_fn_name: str) -> np.ndarray:
-        stats = np.empty((len(self), 2), dtype=self.data.dtype)
+        stats = np.full((len(self), 2), np.nan, dtype=self.data.dtype)
         stats_fn = _LIB[stats_fn_name]
         stats_fn(
             self._handle,

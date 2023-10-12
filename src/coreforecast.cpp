@@ -53,11 +53,12 @@ template <typename T> inline T Quantile(T *data, T p, int n) {
   int i = static_cast<int>(i_plus_g);
   T g = i_plus_g - i;
   std::nth_element(data, data + i, data + n);
+  T out = data[i];
   if (g > 0.0) {
     std::nth_element(data, data + i + 1, data + n);
-    return data[i] + g * (data[i + 1] - data[i]);
+    out += g * (data[i + 1] - out);
   }
-  return data[i];
+  return out;
 }
 
 template <typename T>

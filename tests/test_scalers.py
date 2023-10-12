@@ -79,7 +79,17 @@ scalers = list(scaler2fns.keys())
 @pytest.mark.parametrize("scaler_name", scalers)
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 def test_correctness(data, indptr, scaler_name, dtype):
-    ga = GroupedArray(data.astype(dtype), indptr)
+    # introduce some nans at the starts of groups
+    data = data.astype(dtype, copy=True)
+    sizes = np.diff(indptr)
+    gt10 = np.where(sizes > 10)[0]
+    assert gt10.size > 5
+    for i in range(5):
+        group = gt10[i]
+        data[indptr[group] : indptr[group] + 10] = np.nan
+    ga = GroupedArray(data, indptr)
+
+    # setup scaler
     scaler = scaler2core[scaler_name]
     stats_fn = scaler2fns[scaler_name]
     scaler.fit(ga)
@@ -116,4 +126,4 @@ def test_performance(benchmark, data, indptr, scaler_name, dtype, lib):
         scaler = scaler2core[scaler_name]
     else:
         scaler = scaler2utils[scaler_name]
-    benchmark(lambda: scaler.fit_transform(ga))
+    benchmark(lambda: scaler.fit(ga))
