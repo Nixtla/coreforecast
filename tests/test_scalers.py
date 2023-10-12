@@ -41,7 +41,7 @@ def robust_scaler_iqr_stats(x):
 
 def robust_scaler_mad_stats(x):
     median = np.nanmedian(x)
-    mad = np.median(np.abs(x - median))
+    mad = np.nanmedian(np.abs(x - median))
     return median, mad
 
 
