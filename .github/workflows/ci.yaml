@@ -73,7 +73,7 @@ jobs:
           path: dist
 
       - name: Install the library
-        run: pip install dist/*
+        run: pip install --no-index --find-links dist coreforecast
 
       - name: Run tests
         run: pytest --benchmark-group-by=param:scaler_name --benchmark-sort=fullname
