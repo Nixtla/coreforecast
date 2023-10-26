@@ -62,9 +62,8 @@ class GroupedArray:
         return self.data[self.indptr[i] : self.indptr[i + 1]]
 
     def scaler_fit(self, stats_fn_name: str) -> np.ndarray:
-        stats = np.full((len(self), 2), np.nan, dtype=self.data.dtype)
-        stats_fn = _LIB[stats_fn_name]
-        stats_fn(
+        stats = np.full_like(self.data, np.nan, shape=(len(self), 2))
+        _LIB[stats_fn_name](
             self._handle,
             self.dtype,
             _data_as_void_ptr(stats),
@@ -87,6 +86,34 @@ class GroupedArray:
             self._handle,
             _data_as_void_ptr(stats),
             self.dtype,
+            _data_as_void_ptr(out),
+        )
+        return out
+
+    def rolling_transform(
+        self, tfm_name: str, lag: int, window_size: int, min_samples: int
+    ) -> np.ndarray:
+        out = np.full_like(self.data, np.nan)
+        _LIB[f"GroupedArray_{tfm_name}Transform"](
+            self._handle,
+            self.dtype,
+            ctypes.c_int(lag),
+            ctypes.c_int(window_size),
+            ctypes.c_int(min_samples),
+            _data_as_void_ptr(out),
+        )
+        return out
+
+    def rolling_update(
+        self, tfm_name: str, lag: int, window_size: int, min_samples: int
+    ) -> np.ndarray:
+        out = np.empty_like(self.data, shape=len(self))
+        _LIB[f"GroupedArray_{tfm_name}Update"](
+            self._handle,
+            self.dtype,
+            ctypes.c_int(lag),
+            ctypes.c_int(window_size),
+            ctypes.c_int(min_samples),
             _data_as_void_ptr(out),
         )
         return out

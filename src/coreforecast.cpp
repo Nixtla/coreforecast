@@ -87,19 +87,84 @@ inline void RobustScalerMadStats(const T *data, int n, T *stats) {
   delete[] buffer;
 }
 
+template <typename T>
+inline void RollingMeanTransform(const T *data, int n, T *out, int window_size,
+                                 int min_samples) {
+  T accum = static_cast<T>(0.0);
+  int upper_limit = std::min(window_size, n);
+  for (int i = 0; i < upper_limit; ++i) {
+    accum += data[i];
+    if (i + 1 >= min_samples)
+      out[i] = accum / (i + 1);
+  }
+
+  for (int i = window_size; i < n; ++i) {
+    accum += data[i] - data[i - window_size];
+    out[i] = accum / window_size;
+  }
+}
+
+template <typename T>
+inline void SeasonalRollingMeanTransform(const T *data, int n, T *out,
+                                         int season_length, int window_size,
+                                         int min_samples) {
+  int buff_size = n / season_length + (n % season_length > 0);
+  T *season_data = new T[buff_size];
+  T *season_out = new T[buff_size];
+  std::fill_n(season_out, buff_size, std::numeric_limits<T>::quiet_NaN());
+  for (int i = 0; i < season_length; ++i) {
+    int season_n = n / season_length + (i < n % season_length);
+    for (int j = 0; j < season_n; ++j) {
+      season_data[j] = data[i + j * season_length];
+    }
+    RollingMeanTransform(season_data, season_n, season_out, window_size,
+                         min_samples);
+    for (int j = 0; j < season_n; ++j) {
+      out[i + j * season_length] = season_out[j];
+    }
+  }
+  delete[] season_data;
+  delete[] season_out;
+}
+
+template <typename T>
+inline void RollingMeanUpdate(const T *data, int n, T *out, int window_size,
+                              int min_samples) {
+  if (n < min_samples) {
+    *out = std::numeric_limits<T>::quiet_NaN();
+    return;
+  }
+  int n_samples = std::min(window_size, n);
+  T accum = std::accumulate(data + n - n_samples, data + n, 0.0);
+  *out = accum / n_samples;
+}
+
+template <typename T>
+inline void ExpandingMeanTransform(const T *data, int n, T *out, T *agg) {
+  T accum = static_cast<T>(0.0);
+  for (int i = 0; i < n; ++i) {
+    accum += data[i];
+    out[i] = accum / (i + 1);
+  }
+  *agg = static_cast<T>(n);
+}
+
 template <class T> class GroupedArray {
 private:
   const T *data_;
   int32_t n_data_;
-  int32_t *indptr_;
+  const int32_t *indptr_;
   int32_t n_groups_;
 
 public:
-  GroupedArray(const T *data, int32_t n_data, int32_t *indptr, int32_t n_indptr)
+  GroupedArray(const T *data, int32_t n_data, const int32_t *indptr,
+               int32_t n_indptr)
       : data_(data), n_data_(n_data), indptr_(indptr), n_groups_(n_indptr - 1) {
   }
   ~GroupedArray() {}
-  template <typename Func> void ComputeStats(Func f, T *out) const {
+  template <typename Func, typename... Args>
+  void Reduce(Func f, int n_out, T *out, int lag,
+              Args &&...args) const noexcept {
     for (int i = 0; i < n_groups_; ++i) {
       int32_t start = indptr_[i];
       int32_t end = indptr_[i + 1];
@@ -107,20 +172,56 @@ public:
       int start_idx = FirstNotNaN(data_ + start, n);
       if (start_idx == n)
         continue;
-      f(data_ + start + start_idx, n - start_idx, out + 2 * i);
+      f(data_ + start + start_idx + lag, n - start_idx - lag, out + n_out * i,
+        std::forward<Args>(args)...);
     }
   }
 
   template <typename Func>
-  void ScalerTransform(Func f, const T *stats, T *out) const {
+  void ScalerTransform(Func f, const T *stats, T *out) const noexcept {
     for (int i = 0; i < n_groups_; ++i) {
       int32_t start = indptr_[i];
       int32_t end = indptr_[i + 1];
       T offset = stats[2 * i];
       T scale = stats[2 * i + 1];
+      if (std::abs(scale) < std::numeric_limits<T>::epsilon()) {
+        scale = static_cast<T>(1.0);
+      }
       for (int32_t j = start; j < end; ++j) {
         out[j] = f(data_[j], scale, offset);
       }
+    }
+  }
+
+  template <typename Func, typename... Args>
+  void Transform(Func f, int lag, T *out, Args &&...args) const noexcept {
+    for (int i = 0; i < n_groups_; ++i) {
+      int32_t start = indptr_[i];
+      int32_t end = indptr_[i + 1];
+      int32_t n = end - start;
+      int start_idx = FirstNotNaN(data_ + start, n);
+      if (start_idx == n) {
+        continue;
+      }
+      start += start_idx;
+      f(data_ + start, n - start_idx - lag, out + start + lag,
+        std::forward<Args>(args)...);
+    }
+  }
+
+  template <typename Func>
+  void TransformAndReduce(Func f, int lag, T *out, int n_agg,
+                          T *agg) const noexcept {
+    for (int i = 0; i < n_groups_; ++i) {
+      int32_t start = indptr_[i];
+      int32_t end = indptr_[i + 1];
+      int32_t n = end - start;
+      int start_idx = FirstNotNaN(data_ + start, n);
+      if (start_idx == n) {
+        continue;
+      }
+      start += start_idx;
+      f(data_ + start, n - start_idx - lag, out + start + lag, agg + i * n_agg);
     }
   }
 };
@@ -151,10 +252,10 @@ int GroupedArray_MinMaxScalerStats(GroupedArrayHandle handle, int data_type,
                                    void *out) {
   if (data_type == DTYPE_FLOAT32) {
     auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->ComputeStats(MinMaxScalerStats<float>, static_cast<float *>(out));
+    ga->Reduce(MinMaxScalerStats<float>, 2, static_cast<float *>(out), 0);
   } else {
     auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->ComputeStats(MinMaxScalerStats<double>, static_cast<double *>(out));
+    ga->Reduce(MinMaxScalerStats<double>, 2, static_cast<double *>(out), 0);
   }
   return 0;
 }
@@ -163,10 +264,10 @@ int GroupedArray_StandardScalerStats(GroupedArrayHandle handle, int data_type,
                                      void *out) {
   if (data_type == DTYPE_FLOAT32) {
     auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->ComputeStats(StandardScalerStats<float>, static_cast<float *>(out));
+    ga->Reduce(StandardScalerStats<float>, 2, static_cast<float *>(out), 0);
   } else {
     auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->ComputeStats(StandardScalerStats<double>, static_cast<double *>(out));
+    ga->Reduce(StandardScalerStats<double>, 2, static_cast<double *>(out), 0);
   }
   return 0;
 }
@@ -175,10 +276,10 @@ int GroupedArray_RobustScalerIqrStats(GroupedArrayHandle handle, int data_type,
                                       void *out) {
   if (data_type == DTYPE_FLOAT32) {
     auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->ComputeStats(RobustScalerIqrStats<float>, static_cast<float *>(out));
+    ga->Reduce(RobustScalerIqrStats<float>, 2, static_cast<float *>(out), 0);
   } else {
     auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->ComputeStats(RobustScalerIqrStats<double>, static_cast<double *>(out));
+    ga->Reduce(RobustScalerIqrStats<double>, 2, static_cast<double *>(out), 0);
   }
   return 0;
 }
@@ -187,10 +288,10 @@ int GroupedArray_RobustScalerMadStats(GroupedArrayHandle handle, int data_type,
                                       void *out) {
   if (data_type == DTYPE_FLOAT32) {
     auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->ComputeStats(RobustScalerMadStats<float>, static_cast<float *>(out));
+    ga->Reduce(RobustScalerMadStats<float>, 2, static_cast<float *>(out), 0);
   } else {
     auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->ComputeStats(RobustScalerMadStats<double>, static_cast<double *>(out));
+    ga->Reduce(RobustScalerMadStats<double>, 2, static_cast<double *>(out), 0);
   }
   return 0;
 }
@@ -224,6 +325,72 @@ int GroupedArray_ScalerInverseTransform(GroupedArrayHandle handle,
     ga->ScalerTransform(CommonScalerInverseTransform<double>,
                         static_cast<const double *>(stats),
                         static_cast<double *>(out));
+  }
+  return 0;
+}
+
+int GroupedArray_RollingMeanTransform(GroupedArrayHandle handle, int data_type,
+                                      int lag, int window_size, int min_samples,
+                                      void *out) {
+  if (data_type == DTYPE_FLOAT32) {
+    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+    ga->Transform(RollingMeanTransform<float>, lag, static_cast<float *>(out),
+                  window_size, min_samples);
+  } else {
+    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+    ga->Transform(RollingMeanTransform<double>, lag, static_cast<double *>(out),
+                  window_size, min_samples);
+  }
+  return 0;
+}
+
+int GroupedArray_RollingMeanUpdate(GroupedArrayHandle handle, int data_type,
+                                   int lag, int window_size, int min_samples,
+                                   void *out) {
+  if (data_type == DTYPE_FLOAT32) {
+    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+    ga->Reduce(RollingMeanUpdate<float>, 1, static_cast<float *>(out), lag,
+               window_size, min_samples);
+  } else {
+    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+    ga->Reduce(RollingMeanUpdate<double>, 1, static_cast<double *>(out), lag,
+               window_size, min_samples);
+  }
+  return 0;
+}
+
+int GroupedArray_ExpandingMeanTransform(GroupedArrayHandle handle,
+                                        int data_type, int lag, void *out,
+                                        void *agg) {
+  if (data_type == DTYPE_FLOAT32) {
+    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+    ga->TransformAndReduce(ExpandingMeanTransform<float>, lag,
+                           static_cast<float *>(out), 1,
+                           static_cast<float *>(agg));
+  } else {
+    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+    ga->TransformAndReduce(ExpandingMeanTransform<double>, lag,
+                           static_cast<double *>(out), 1,
+                           static_cast<double *>(agg));
+  }
+  return 0;
+}
+
+int GroupedArray_SeasonalRollingMeanTransform(GroupedArrayHandle handle,
+                                              int data_type, int lag,
+                                              int season_length,
+                                              int window_size, int min_samples,
+                                              void *out) {
+  if (data_type == DTYPE_FLOAT32) {
+    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+    ga->Transform(SeasonalRollingMeanTransform<float>, lag,
+                  static_cast<float *>(out), season_length, window_size,
+                  min_samples);
+  } else {
+    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+    ga->Transform(SeasonalRollingMeanTransform<double>, lag,
+                  static_cast<double *>(out), season_length, window_size,
+                  min_samples);
   }
   return 0;
 }

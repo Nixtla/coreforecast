@@ -40,4 +40,22 @@ DLL_EXPORT int GroupedArray_ScalerTransform(GroupedArrayHandle handle,
 DLL_EXPORT int GroupedArray_ScalerInverseTransform(GroupedArrayHandle handle,
                                                    const void *stats,
                                                    int data_type, void *out);
+
+DLL_EXPORT int GroupedArray_RollingMeanTransform(GroupedArrayHandle handle,
+                                                 int data_type, int lag,
+                                                 int window_size,
+                                                 int min_samples, void *out);
+
+DLL_EXPORT int GroupedArray_ExpandingMeanTransform(GroupedArrayHandle handle,
+                                                   int data_type, int lag,
+                                                   void *out, void *agg);
+
+DLL_EXPORT int GroupedArray_RollingMeanUpdate(GroupedArrayHandle handle,
+                                              int data_type, int lag,
+                                              int window_size, int min_samples,
+                                              void *out);
+
+DLL_EXPORT int GroupedArray_SeasonalRollingMeanTransform(
+    GroupedArrayHandle handle, int data_type, int lag, int season_length,
+    int window_size, int min_samples, void *out);
 }
