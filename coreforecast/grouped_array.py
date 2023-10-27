@@ -30,7 +30,7 @@ def _data_as_void_ptr(arr: np.ndarray):
 
 
 class GroupedArray:
-    def __init__(self, data: np.ndarray, indptr: np.ndarray):
+    def __init__(self, data: np.ndarray, indptr: np.ndarray, num_threads: int = 1):
         if data.dtype == np.float32:
             self.dtype = DTYPE_FLOAT32
         elif data.dtype == np.float64:
@@ -43,11 +43,12 @@ class GroupedArray:
             indptr = indptr.astype(np.int32)
         self.indptr = indptr
         self._handle = ctypes.c_void_p()
-        _LIB.GroupedArray_CreateFromArrays(
+        _LIB.GroupedArray_Create(
             _data_as_void_ptr(data),
             ctypes.c_int32(data.size),
             indptr.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
-            ctypes.c_int32(indptr.size),
+            ctypes.c_int(indptr.size),
+            ctypes.c_int(num_threads),
             self.dtype,
             ctypes.byref(self._handle),
         )
@@ -90,11 +91,21 @@ class GroupedArray:
         )
         return out
 
+    def lag_transform(self, lag: int) -> np.ndarray:
+        out = np.empty_like(self.data)
+        _LIB.GroupedArray_LagTransform(
+            self._handle,
+            self.dtype,
+            ctypes.c_int(lag),
+            _data_as_void_ptr(out),
+        )
+        return out
+
     def rolling_transform(
         self, tfm_name: str, lag: int, window_size: int, min_samples: int
     ) -> np.ndarray:
         out = np.full_like(self.data, np.nan)
-        _LIB[f"GroupedArray_{tfm_name}Transform"](
+        _LIB[f"GroupedArray_Rolling{tfm_name}Transform"](
             self._handle,
             self.dtype,
             ctypes.c_int(lag),
@@ -108,10 +119,49 @@ class GroupedArray:
         self, tfm_name: str, lag: int, window_size: int, min_samples: int
     ) -> np.ndarray:
         out = np.empty_like(self.data, shape=len(self))
-        _LIB[f"GroupedArray_{tfm_name}Update"](
+        _LIB[f"GroupedArray_Rolling{tfm_name}Update"](
             self._handle,
             self.dtype,
             ctypes.c_int(lag),
+            ctypes.c_int(window_size),
+            ctypes.c_int(min_samples),
+            _data_as_void_ptr(out),
+        )
+        return out
+
+    def seasonal_rolling_transform(
+        self,
+        tfm_name: str,
+        lag: int,
+        season_length: int,
+        window_size: int,
+        min_samples: int,
+    ) -> np.ndarray:
+        out = np.full_like(self.data, np.nan)
+        _LIB[f"GroupedArray_SeasonalRolling{tfm_name}Transform"](
+            self._handle,
+            self.dtype,
+            ctypes.c_int(lag),
+            ctypes.c_int(season_length),
+            ctypes.c_int(window_size),
+            ctypes.c_int(min_samples),
+            _data_as_void_ptr(out),
+        )
+
+    def seasonal_rolling_update(
+        self,
+        tfm_name: str,
+        lag: int,
+        season_length: int,
+        window_size: int,
+        min_samples: int,
+    ) -> np.ndarray:
+        out = np.empty_like(self.data, shape=len(self))
+        _LIB[f"GroupedArray_SeasonalRolling{tfm_name}Update"](
+            self._handle,
+            self.dtype,
+            ctypes.c_int(lag),
+            ctypes.c_int(season_length),
             ctypes.c_int(window_size),
             ctypes.c_int(min_samples),
             _data_as_void_ptr(out),
