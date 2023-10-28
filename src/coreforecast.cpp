@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cmath>
+#include <memory>
 #include <numeric>
 
 #include "coreforecast.h"
@@ -109,8 +110,9 @@ inline void RollingMeanTransform(const T *data, int n, T *out, int window_size,
 }
 
 template <typename T>
-inline void RollingStdTransform(const T *data, int n, T *out, T *agg,
-                                int window_size, int min_samples) {
+inline void RollingStdTransformWithStats(const T *data, int n, T *out, T *agg,
+                                         bool save_stats, int window_size,
+                                         int min_samples) {
   T prev_avg = static_cast<T>(0.0);
   T curr_avg = data[0];
   T m2 = static_cast<T>(0.0);
@@ -127,50 +129,42 @@ inline void RollingStdTransform(const T *data, int n, T *out, T *agg,
     prev_avg = curr_avg;
     curr_avg = prev_avg + delta / window_size;
     m2 += delta * (data[i] - curr_avg + data[i - window_size] - prev_avg);
+    // avoid possible loss of precision
+    m2 = std::max(m2, static_cast<T>(0.0));
     out[i] = sqrt(m2 / (window_size - 1));
   }
-  agg[0] = curr_avg;
-  agg[1] = m2;
+  if (save_stats) {
+    agg[0] = n;
+    agg[1] = curr_avg;
+    agg[2] = m2;
+  }
 }
 
 template <typename T>
-inline void RollingStdUpdate(const T *data, int n, T *out, T *agg,
-                             int window_size, int min_samples) {
-  T prev_avg = agg[0];
-  if (n < window_size) {
-    *agg[0] = prev_avg + (data[n - 1] - prev_avg) / n;
-    *agg[1] = (data[n - 1] - prev_avg) * (data[n - 1] - *agg[0]);
-  } else {
-    T old = data[n - window_size - 1];
-    *agg[0] = prev_avg + (data[n - 1] - old) / window_size;
-    *agg[1] = (data[n - 1] - old) * (data[n - 1] - *agg[0] + old - prev_avg);
-  }
-  // possible loss of precision
-  *agg[1] = std::max(*agg[1], static_cast<T>(0.0));
-  if (n < min_samples) {
-    *out = std::numeric_limits<T>::quiet_NaN();
-  } else {
-    *out = sqrt(*agg[1] / (window_size - 1));
-  }
+inline void RollingStdTransform(const T *data, int n, T *out, int window_size,
+                                int min_samples) {
+  T tmp;
+  RollingStdTransformWithStats(data, n, out, &tmp, false, window_size,
+                               min_samples);
 }
 
 template <typename Func, typename T>
-inline void RollingCompTransform(const T *data, int n, T *out, Func comp,
+inline void RollingCompTransform(Func Comp, const T *data, int n, T *out,
                                  int window_size, int min_samples) {
   int upper_limit = std::min(window_size, n);
   T pivot = data[0];
   for (int i = 0; i < upper_limit; ++i) {
-    if (comp(data[i], pivot)) {
+    if (Comp(data[i], pivot)) {
       pivot = data[i];
     }
     if (i + 1 >= min_samples) {
-      out[i] = data[i];
+      out[i] = pivot;
     }
   }
   for (int i = window_size; i < n; ++i) {
     pivot = data[i];
     for (int j = 0; j < window_size; ++j) {
-      if (comp(data[i - j], pivot)) {
+      if (Comp(data[i - j], pivot)) {
         pivot = data[i - j];
       }
     }
@@ -178,26 +172,26 @@ inline void RollingCompTransform(const T *data, int n, T *out, Func comp,
   }
 }
 
-template <typename T> struct LessThanCompFunctor {
+template <typename T> struct RollingMinTransform {
   void operator()(const T *data, int n, T *out, int window_size,
                   int min_samples) {
-    RollingCompTransform(data, n, out, std::less<T>(), window_size,
+    RollingCompTransform(std::less<T>(), data, n, out, window_size,
                          min_samples);
   }
 };
 
-template <typename T> struct GreaterThanCompFuctor {
+template <typename T> struct RollingMaxTransform {
   void operator()(const T *data, int n, T *out, int window_size,
                   int min_samples) const {
-    RollingCompTransform(data, n, out, std::greater<T>(), window_size,
+    RollingCompTransform(std::greater<T>(), data, n, out, window_size,
                          min_samples);
   }
 };
 
-template <typename T>
-inline void SeasonalRollingMeanTransform(const T *data, int n, T *out,
-                                         int season_length, int window_size,
-                                         int min_samples) {
+template <typename Func, typename T>
+inline void SeasonalRollingTransform(Func RollingTfm, const T *data, int n,
+                                     T *out, int season_length, int window_size,
+                                     int min_samples) {
   int buff_size = n / season_length + (n % season_length > 0);
   T *season_data = new T[buff_size];
   T *season_out = new T[buff_size];
@@ -207,8 +201,7 @@ inline void SeasonalRollingMeanTransform(const T *data, int n, T *out,
     for (int j = 0; j < season_n; ++j) {
       season_data[j] = data[i + j * season_length];
     }
-    RollingMeanTransform(season_data, season_n, season_out, window_size,
-                         min_samples);
+    RollingTfm(season_data, season_n, season_out, window_size, min_samples);
     for (int j = 0; j < season_n; ++j) {
       out[i + j * season_length] = season_out[j];
     }
@@ -217,35 +210,134 @@ inline void SeasonalRollingMeanTransform(const T *data, int n, T *out,
   delete[] season_out;
 }
 
-template <typename T>
-inline void RollingMeanUpdate(const T *data, int n, T *out, int window_size,
-                              int min_samples) {
+template <typename T> struct SeasonalRollingMeanTransform {
+  void operator()(const T *data, int n, T *out, int season_length,
+                  int window_size, int min_samples) {
+    SeasonalRollingTransform(RollingMeanTransform<T>, data, n, out,
+                             season_length, window_size, min_samples);
+  }
+};
+
+template <typename T> struct SeasonalRollingStdTransform {
+  void operator()(const T *data, int n, T *out, int season_length,
+                  int window_size, int min_samples) {
+    SeasonalRollingTransform(RollingStdTransform<T>, data, n, out,
+                             season_length, window_size, min_samples);
+  }
+};
+
+template <typename T> struct SeasonalRollingMinTransform {
+  void operator()(const T *data, int n, T *out, int season_length,
+                  int window_size, int min_samples) {
+    SeasonalRollingTransform(RollingMinTransform<T>(), data, n, out,
+                             season_length, window_size, min_samples);
+  }
+};
+
+template <typename T> struct SeasonalRollingMaxTransform {
+  void operator()(const T *data, int n, T *out, int season_length,
+                  int window_size, int min_samples) {
+    SeasonalRollingTransform(RollingMaxTransform<T>(), data, n, out,
+                             season_length, window_size, min_samples);
+  }
+};
+
+template <typename Func, typename T>
+inline void RollingUpdate(Func RollingTfm, const T *data, int n, T *out,
+                          int window_size, int min_samples) {
   if (n < min_samples) {
     *out = std::numeric_limits<T>::quiet_NaN();
     return;
   }
   int n_samples = std::min(window_size, n);
-  T accum = std::accumulate(data + n - n_samples, data + n, 0.0);
-  *out = accum / n_samples;
+  T *buffer = new T[n_samples];
+  RollingTfm(data + n - n_samples, n_samples, buffer, window_size, min_samples);
+  *out = buffer[n_samples - 1];
+  delete[] buffer;
 }
 
-template <typename T>
-inline void SeasonalRollingMeanUpdate(const T *data, int n, T *out,
-                                      int season_length, int window_size,
-                                      int min_samples) {
+template <typename T> struct RollingMeanUpdate {
+  void operator()(const T *data, int n, T *out, int window_size,
+                  int min_samples) {
+    RollingUpdate(RollingMeanTransform<T>, data, n, out, window_size,
+                  min_samples);
+  }
+};
+
+template <typename T> struct RollingStdUpdate {
+  void operator()(const T *data, int n, T *out, int window_size,
+                  int min_samples) {
+    RollingUpdate(RollingStdTransform<T>, data, n, out, window_size,
+                  min_samples);
+  }
+};
+
+template <typename T> struct RollingMinUpdate {
+  void operator()(const T *data, int n, T *out, int window_size,
+                  int min_samples) {
+    RollingUpdate(RollingMinTransform<T>(), data, n, out, window_size,
+                  min_samples);
+  }
+};
+
+template <typename T> struct RollingMaxUpdate {
+  void operator()(const T *data, int n, T *out, int window_size,
+                  int min_samples) {
+    RollingUpdate(RollingMaxTransform<T>(), data, n, out, window_size,
+                  min_samples);
+  }
+};
+
+template <typename Func, typename T>
+inline void SeasonalRollingUpdate(Func RollingUpdate, const T *data, int n,
+                                  T *out, int season_length, int window_size,
+                                  int min_samples) {
   int season = n % season_length;
   int season_n = n / season_length + (season > 0);
   if (season_n < min_samples) {
     *out = std::numeric_limits<T>::quiet_NaN();
     return;
   }
-  int n_copy = std::min(window_size, season_n);
-  T *season_data = new T[n_copy];
-  for (int i = 0; i < n_copy; ++i) {
-    season_data[i] = data[n - (n_copy - i) * season_length];
+  int n_samples = std::min(window_size, season_n);
+  T *season_data = new T[n_samples];
+  for (int i = 0; i < n_samples; ++i) {
+    season_data[i] = data[n - 1 - (n_samples - 1 - i) * season_length];
   }
-  RollingMeanUpdate(season_data, n_copy, out, window_size, min_samples);
+  RollingUpdate(season_data, n_samples, out, window_size, min_samples);
+  delete[] season_data;
 }
+
+template <typename T> struct SeasonalRollingMeanUpdate {
+  void operator()(const T *data, int n, T *out, int season_length,
+                  int window_size, int min_samples) {
+    SeasonalRollingUpdate(RollingMeanUpdate<T>(), data, n, out, season_length,
+                          window_size, min_samples);
+  }
+};
+
+template <typename T> struct SeasonalRollingStdUpdate {
+  void operator()(const T *data, int n, T *out, int season_length,
+                  int window_size, int min_samples) {
+    SeasonalRollingUpdate(RollingStdUpdate<T>(), data, n, out, season_length,
+                          window_size, min_samples);
+  }
+};
+
+template <typename T> struct SeasonalRollingMinUpdate {
+  void operator()(const T *data, int n, T *out, int season_length,
+                  int window_size, int min_samples) {
+    SeasonalRollingUpdate(RollingMinUpdate<T>(), data, n, out, season_length,
+                          window_size, min_samples);
+  }
+};
+
+template <typename T> struct SeasonalRollingMaxUpdate {
+  void operator()(const T *data, int n, T *out, int season_length,
+                  int window_size, int min_samples) {
+    SeasonalRollingUpdate(RollingMaxUpdate<T>(), data, n, out, season_length,
+                          window_size, min_samples);
+  }
+};
 
 template <typename T>
 inline void ExpandingMeanTransform(const T *data, int n, T *out, T *agg) {
@@ -256,6 +348,23 @@ inline void ExpandingMeanTransform(const T *data, int n, T *out, T *agg) {
   }
   *agg = static_cast<T>(n);
 }
+
+template <typename T>
+inline void ExpandingStdTransform(const T *data, int n, T *out, T *agg) {
+  RollingStdTransformWithStats(data, n, out, agg, true, n, 1);
+}
+
+template <typename T> struct ExpandingMinTransform {
+  void operator()(const T *data, int n, T *out) {
+    RollingCompTransform(std::less<T>(), data, n, out, n, 1);
+  }
+};
+
+template <typename T> struct ExpandingMaxTransform {
+  void operator()(const T *data, int n, T *out) {
+    RollingCompTransform(std::greater<T>(), data, n, out, n, 1);
+  }
+};
 
 template <class T> class GroupedArray {
 private:
@@ -324,9 +433,9 @@ public:
     }
   }
 
-  template <typename Func>
-  void TransformAndReduce(Func f, int lag, T *out, int n_agg,
-                          T *agg) const noexcept {
+  template <typename Func, typename... Args>
+  void TransformAndReduce(Func f, int lag, T *out, int n_agg, T *agg,
+                          Args &&...args) const noexcept {
 #pragma omp parallel for schedule(static) num_threads(num_threads_)
     for (int i = 0; i < n_groups_; ++i) {
       indptr_t start = indptr_[i];
@@ -337,7 +446,8 @@ public:
         continue;
       }
       start += start_idx;
-      f(data_ + start, n - start_idx - lag, out + start + lag, agg + i * n_agg);
+      f(data_ + start, n - start_idx - lag, out + start + lag, agg + i * n_agg,
+        std::forward<Args>(args)...);
     }
   }
 };
@@ -472,17 +582,252 @@ int GroupedArray_RollingMeanTransform(GroupedArrayHandle handle, int data_type,
   return 0;
 }
 
+int GroupedArray_RollingStdTransform(GroupedArrayHandle handle, int data_type,
+                                     int lag, int window_size, int min_samples,
+                                     void *out) {
+  if (data_type == DTYPE_FLOAT32) {
+    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+    ga->Transform(RollingStdTransform<float>, lag, static_cast<float *>(out),
+                  window_size, min_samples);
+  } else {
+    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+    ga->Transform(RollingStdTransform<double>, lag, static_cast<double *>(out),
+                  window_size, min_samples);
+  }
+  return 0;
+}
+
+int GroupedArray_RollingMinTransform(GroupedArrayHandle handle, int data_type,
+                                     int lag, int window_size, int min_samples,
+                                     void *out) {
+  if (data_type == DTYPE_FLOAT32) {
+    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+    ga->Transform(RollingMinTransform<float>(), lag, static_cast<float *>(out),
+                  window_size, min_samples);
+  } else {
+    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+    ga->Transform(RollingMinTransform<double>(), lag,
+                  static_cast<double *>(out), window_size, min_samples);
+  }
+  return 0;
+}
+
+int GroupedArray_RollingMaxTransform(GroupedArrayHandle handle, int data_type,
+                                     int lag, int window_size, int min_samples,
+                                     void *out) {
+  if (data_type == DTYPE_FLOAT32) {
+    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+    ga->Transform(RollingMaxTransform<float>(), lag, static_cast<float *>(out),
+                  window_size, min_samples);
+  } else {
+    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+    ga->Transform(RollingMaxTransform<double>(), lag,
+                  static_cast<double *>(out), window_size, min_samples);
+  }
+  return 0;
+}
+
 int GroupedArray_RollingMeanUpdate(GroupedArrayHandle handle, int data_type,
                                    int lag, int window_size, int min_samples,
                                    void *out) {
   if (data_type == DTYPE_FLOAT32) {
     auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Reduce(RollingMeanUpdate<float>, 1, static_cast<float *>(out), lag,
+    ga->Reduce(RollingMeanUpdate<float>(), 1, static_cast<float *>(out), lag,
                window_size, min_samples);
   } else {
     auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Reduce(RollingMeanUpdate<double>, 1, static_cast<double *>(out), lag,
+    ga->Reduce(RollingMeanUpdate<double>(), 1, static_cast<double *>(out), lag,
                window_size, min_samples);
+  }
+  return 0;
+}
+
+int GroupedArray_RollingStdUpdate(GroupedArrayHandle handle, int data_type,
+                                  int lag, int window_size, int min_samples,
+                                  void *out) {
+  if (data_type == DTYPE_FLOAT32) {
+    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+    ga->Reduce(RollingStdUpdate<float>(), 1, static_cast<float *>(out), lag,
+               window_size, min_samples);
+  } else {
+    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+    ga->Reduce(RollingStdUpdate<double>(), 1, static_cast<double *>(out), lag,
+               window_size, min_samples);
+  }
+  return 0;
+}
+
+int GroupedArray_RollingMinUpdate(GroupedArrayHandle handle, int data_type,
+                                  int lag, int window_size, int min_samples,
+                                  void *out) {
+  if (data_type == DTYPE_FLOAT32) {
+    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+    ga->Reduce(RollingMinUpdate<float>(), 1, static_cast<float *>(out), lag,
+               window_size, min_samples);
+  } else {
+    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+    ga->Reduce(RollingMinUpdate<double>(), 1, static_cast<double *>(out), lag,
+               window_size, min_samples);
+  }
+  return 0;
+}
+
+int GroupedArray_RollingMaxUpdate(GroupedArrayHandle handle, int data_type,
+                                  int lag, int window_size, int min_samples,
+                                  void *out) {
+  if (data_type == DTYPE_FLOAT32) {
+    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+    ga->Reduce(RollingMaxUpdate<float>(), 1, static_cast<float *>(out), lag,
+               window_size, min_samples);
+  } else {
+    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+    ga->Reduce(RollingMaxUpdate<double>(), 1, static_cast<double *>(out), lag,
+               window_size, min_samples);
+  }
+  return 0;
+}
+
+int GroupedArray_SeasonalRollingMeanTransform(GroupedArrayHandle handle,
+                                              int data_type, int lag,
+                                              int season_length,
+                                              int window_size, int min_samples,
+                                              void *out) {
+  if (data_type == DTYPE_FLOAT32) {
+    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+    ga->Transform(SeasonalRollingMeanTransform<float>(), lag,
+                  static_cast<float *>(out), season_length, window_size,
+                  min_samples);
+  } else {
+    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+    ga->Transform(SeasonalRollingMeanTransform<double>(), lag,
+                  static_cast<double *>(out), season_length, window_size,
+                  min_samples);
+  }
+  return 0;
+}
+
+int GroupedArray_SeasonalRollingStdTransform(GroupedArrayHandle handle,
+                                             int data_type, int lag,
+                                             int season_length, int window_size,
+                                             int min_samples, void *out) {
+  if (data_type == DTYPE_FLOAT32) {
+    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+    ga->Transform(SeasonalRollingStdTransform<float>(), lag,
+                  static_cast<float *>(out), season_length, window_size,
+                  min_samples);
+  } else {
+    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+    ga->Transform(SeasonalRollingStdTransform<double>(), lag,
+                  static_cast<double *>(out), season_length, window_size,
+                  min_samples);
+  }
+  return 0;
+}
+
+int GroupedArray_SeasonalRollingMinTransform(GroupedArrayHandle handle,
+                                             int data_type, int lag,
+                                             int season_length, int window_size,
+                                             int min_samples, void *out) {
+  if (data_type == DTYPE_FLOAT32) {
+    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+    ga->Transform(SeasonalRollingMinTransform<float>(), lag,
+                  static_cast<float *>(out), season_length, window_size,
+                  min_samples);
+  } else {
+    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+    ga->Transform(SeasonalRollingMinTransform<double>(), lag,
+                  static_cast<double *>(out), season_length, window_size,
+                  min_samples);
+  }
+  return 0;
+}
+
+int GroupedArray_SeasonalRollingMaxTransform(GroupedArrayHandle handle,
+                                             int data_type, int lag,
+                                             int season_length, int window_size,
+                                             int min_samples, void *out) {
+  if (data_type == DTYPE_FLOAT32) {
+    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+    ga->Transform(SeasonalRollingMaxTransform<float>(), lag,
+                  static_cast<float *>(out), season_length, window_size,
+                  min_samples);
+  } else {
+    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+    ga->Transform(SeasonalRollingMaxTransform<double>(), lag,
+                  static_cast<double *>(out), season_length, window_size,
+                  min_samples);
+  }
+  return 0;
+}
+
+int GroupedArray_SeasonalRollingMeanUpdate(GroupedArrayHandle handle,
+                                           int data_type, int lag,
+                                           int season_length, int window_size,
+                                           int min_samples, void *out) {
+
+  if (data_type == DTYPE_FLOAT32) {
+    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+    ga->Reduce(SeasonalRollingMeanUpdate<float>(), 1, static_cast<float *>(out),
+               lag, season_length, window_size, min_samples);
+  } else {
+    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+    ga->Reduce(SeasonalRollingMeanUpdate<double>(), 1,
+               static_cast<double *>(out), lag, season_length, window_size,
+               min_samples);
+  }
+  return 0;
+}
+
+int GroupedArray_SeasonalRollingStdUpdate(GroupedArrayHandle handle,
+                                          int data_type, int lag,
+                                          int season_length, int window_size,
+                                          int min_samples, void *out) {
+
+  if (data_type == DTYPE_FLOAT32) {
+    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+    ga->Reduce(SeasonalRollingStdUpdate<float>(), 1, static_cast<float *>(out),
+               lag, season_length, window_size, min_samples);
+  } else {
+    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+    ga->Reduce(SeasonalRollingStdUpdate<double>(), 1,
+               static_cast<double *>(out), lag, season_length, window_size,
+               min_samples);
+  }
+  return 0;
+}
+
+int GroupedArray_SeasonalRollingMinUpdate(GroupedArrayHandle handle,
+                                          int data_type, int lag,
+                                          int season_length, int window_size,
+                                          int min_samples, void *out) {
+
+  if (data_type == DTYPE_FLOAT32) {
+    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+    ga->Reduce(SeasonalRollingMinUpdate<float>(), 1, static_cast<float *>(out),
+               lag, season_length, window_size, min_samples);
+  } else {
+    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+    ga->Reduce(SeasonalRollingMinUpdate<double>(), 1,
+               static_cast<double *>(out), lag, season_length, window_size,
+               min_samples);
+  }
+  return 0;
+}
+
+int GroupedArray_SeasonalRollingMaxUpdate(GroupedArrayHandle handle,
+                                          int data_type, int lag,
+                                          int season_length, int window_size,
+                                          int min_samples, void *out) {
+
+  if (data_type == DTYPE_FLOAT32) {
+    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+    ga->Reduce(SeasonalRollingMaxUpdate<float>(), 1, static_cast<float *>(out),
+               lag, season_length, window_size, min_samples);
+  } else {
+    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+    ga->Reduce(SeasonalRollingMaxUpdate<double>(), 1,
+               static_cast<double *>(out), lag, season_length, window_size,
+               min_samples);
   }
   return 0;
 }
@@ -504,66 +849,47 @@ int GroupedArray_ExpandingMeanTransform(GroupedArrayHandle handle,
   return 0;
 }
 
-int GroupedArray_SeasonalRollingMeanTransform(GroupedArrayHandle handle,
-                                              int data_type, int lag,
-                                              int season_length,
-                                              int window_size, int min_samples,
-                                              void *out) {
+int GroupedArray_ExpandingStdTransform(GroupedArrayHandle handle, int data_type,
+                                       int lag, void *out, void *agg) {
   if (data_type == DTYPE_FLOAT32) {
     auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Transform(SeasonalRollingMeanTransform<float>, lag,
-                  static_cast<float *>(out), season_length, window_size,
-                  min_samples);
+    ga->TransformAndReduce(ExpandingStdTransform<float>, lag,
+                           static_cast<float *>(out), 3,
+                           static_cast<float *>(agg));
   } else {
     auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Transform(SeasonalRollingMeanTransform<double>, lag,
-                  static_cast<double *>(out), season_length, window_size,
-                  min_samples);
+    ga->TransformAndReduce(ExpandingStdTransform<double>, lag,
+                           static_cast<double *>(out), 3,
+                           static_cast<double *>(agg));
   }
   return 0;
 }
 
-int GroupedArray_SeasonalRollingMeanUpdate(GroupedArrayHandle handle,
-                                           int data_type, int lag,
-                                           int season_length, int window_size,
-                                           int min_samples, void *out) {
-
+int GroupedArray_ExpandingMinTransform(GroupedArrayHandle handle, int data_type,
+                                       int lag, void *out) {
   if (data_type == DTYPE_FLOAT32) {
     auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Reduce(SeasonalRollingMeanUpdate<float>, 1, static_cast<float *>(out),
-               lag, season_length, window_size, min_samples);
+    ga->Transform(ExpandingMinTransform<float>(), lag,
+                  static_cast<float *>(out));
   } else {
     auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Reduce(SeasonalRollingMeanUpdate<double>, 1, static_cast<double *>(out),
-               lag, season_length, window_size, min_samples);
+    ga->Transform(ExpandingMinTransform<double>(), lag,
+                  static_cast<double *>(out));
   }
   return 0;
 }
 
-int GroupedArray_RollingMinTransform(GroupedArrayHandle handle, int data_type,
-                                     int lag, int window_size, int min_samples,
-                                     void *out) {
+int GroupedArray_ExpandingMaxTransform(GroupedArrayHandle handle, int data_type,
+                                       int lag, void *out) {
   if (data_type == DTYPE_FLOAT32) {
     auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Transform(LessThanCompFunctor<float>(), lag, static_cast<float *>(out),
-                  window_size, min_samples);
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Transform(LessThanCompFunctor<double>(), lag,
-                  static_cast<double *>(out), window_size, min_samples);
-  }
-}
+    ga->Transform(ExpandingMaxTransform<float>(), lag,
+                  static_cast<float *>(out));
 
-int GroupedArray_RollingMaxTransform(GroupedArrayHandle handle, int data_type,
-                                     int lag, int window_size, int min_samples,
-                                     void *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Transform(GreaterThanCompFuctor<float>(), lag,
-                  static_cast<float *>(out), window_size, min_samples);
   } else {
     auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Transform(GreaterThanCompFuctor<double>(), lag,
-                  static_cast<double *>(out), window_size, min_samples);
+    ga->Transform(ExpandingMaxTransform<double>(), lag,
+                  static_cast<double *>(out));
   }
+  return 0;
 }

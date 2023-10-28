@@ -147,6 +147,7 @@ class GroupedArray:
             ctypes.c_int(min_samples),
             _data_as_void_ptr(out),
         )
+        return out
 
     def seasonal_rolling_update(
         self,
@@ -164,6 +165,36 @@ class GroupedArray:
             ctypes.c_int(season_length),
             ctypes.c_int(window_size),
             ctypes.c_int(min_samples),
+            _data_as_void_ptr(out),
+        )
+        return out
+
+    def expanding_transform_with_aggs(
+        self,
+        tfm_name: str,
+        lag: int,
+        aggs: np.ndarray,
+    ) -> np.ndarray:
+        out = np.full_like(self.data, np.nan)
+        _LIB[f"GroupedArray_Expanding{tfm_name}Transform"](
+            self._handle,
+            self.dtype,
+            ctypes.c_int(lag),
+            _data_as_void_ptr(out),
+            _data_as_void_ptr(aggs),
+        )
+        return out
+
+    def expanding_transform(
+        self,
+        tfm_name: str,
+        lag: int,
+    ) -> np.ndarray:
+        out = np.full_like(self.data, np.nan)
+        _LIB[f"GroupedArray_Expanding{tfm_name}Transform"](
+            self._handle,
+            self.dtype,
+            ctypes.c_int(lag),
             _data_as_void_ptr(out),
         )
         return out
