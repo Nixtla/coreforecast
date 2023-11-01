@@ -41,6 +41,7 @@ jobs:
           CIBW_BUILD: cp38-${{ matrix.platform-id }}
           CIBW_ARCHS: all
           CIBW_TEST_SKIP: '*-macosx_arm64'
+          CIBW_BUILD_VERBOSITY: 3
 
       - uses: actions/upload-artifact@v3
         with:
