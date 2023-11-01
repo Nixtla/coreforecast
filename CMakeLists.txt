@@ -7,6 +7,10 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
+    set(USE_OPENMP OFF)
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 if(USE_OPENMP)
     if(APPLE)
