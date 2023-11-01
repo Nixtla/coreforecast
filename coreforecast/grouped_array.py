@@ -91,6 +91,16 @@ class GroupedArray:
         )
         return out
 
+    def take_from_groups(self, k: int) -> np.ndarray:
+        out = np.empty_like(self.data, shape=len(self))
+        _LIB.GroupedArray_TakeFromGroups(
+            self._handle,
+            self.dtype,
+            ctypes.c_int(k),
+            _data_as_void_ptr(out),
+        )
+        return out
+
     def lag_transform(self, lag: int) -> np.ndarray:
         out = np.empty_like(self.data)
         _LIB.GroupedArray_LagTransform(
@@ -195,6 +205,26 @@ class GroupedArray:
             self._handle,
             self.dtype,
             ctypes.c_int(lag),
+            _data_as_void_ptr(out),
+        )
+        return out
+
+    def exponentially_weighted_transform(
+        self,
+        tfm_name: str,
+        lag: int,
+        alpha: float,
+    ) -> np.ndarray:
+        out = np.full_like(self.data, np.nan)
+        if self.dtype == DTYPE_FLOAT32:
+            alpha = ctypes.c_float(alpha)
+        else:
+            alpha = ctypes.c_double(alpha)
+        _LIB[f"GroupedArray_ExponentiallyWeighted{tfm_name}Transform"](
+            self._handle,
+            self.dtype,
+            ctypes.c_int(lag),
+            ctypes.pointer(alpha),
             _data_as_void_ptr(out),
         )
         return out

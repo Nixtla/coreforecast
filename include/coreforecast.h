@@ -42,6 +42,9 @@ DLL_EXPORT int GroupedArray_ScalerInverseTransform(GroupedArrayHandle handle,
                                                    const void *stats,
                                                    int data_type, void *out);
 
+DLL_EXPORT int GroupedArray_TakeFromGroups(GroupedArrayHandle handle,
+                                           int data_type, int k, void *out);
+
 DLL_EXPORT int GroupedArray_LagTransform(GroupedArrayHandle handle,
                                          int data_type, int lag, void *out);
 
@@ -131,4 +134,7 @@ DLL_EXPORT int GroupedArray_ExpandingMinTransform(GroupedArrayHandle handle,
 DLL_EXPORT int GroupedArray_ExpandingMaxTransform(GroupedArrayHandle handle,
                                                   int data_type, int lag,
                                                   void *out);
+
+DLL_EXPORT int GroupedArray_ExponentiallyWeightedMeanTransform(
+    GroupedArrayHandle handle, int data_type, int lag, void *alpha, void *out);
 }

@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <cmath>
-#include <memory>
 #include <numeric>
 
 #include "coreforecast.h"
@@ -21,6 +20,15 @@ template <typename T> inline indptr_t FirstNotNaN(const T *data, indptr_t n) {
     ++i;
   }
   return i;
+}
+
+template <typename T>
+inline void TakeFromGroups(const T *data, int n, T *out, int k) {
+  if (k > n) {
+    *out = std::numeric_limits<T>::quiet_NaN();
+  } else {
+    *out = data[n - 1 - k];
+  }
 }
 
 template <typename T>
@@ -134,7 +142,7 @@ inline void RollingStdTransformWithStats(const T *data, int n, T *out, T *agg,
     out[i] = sqrt(m2 / (window_size - 1));
   }
   if (save_stats) {
-    agg[0] = n;
+    agg[0] = static_cast<T>(n);
     agg[1] = curr_avg;
     agg[2] = m2;
   }
@@ -351,7 +359,7 @@ inline void ExpandingMeanTransform(const T *data, int n, T *out, T *agg) {
 
 template <typename T>
 inline void ExpandingStdTransform(const T *data, int n, T *out, T *agg) {
-  RollingStdTransformWithStats(data, n, out, agg, true, n, 1);
+  RollingStdTransformWithStats(data, n, out, agg, true, n, 2);
 }
 
 template <typename T> struct ExpandingMinTransform {
@@ -365,6 +373,15 @@ template <typename T> struct ExpandingMaxTransform {
     RollingCompTransform(std::greater<T>(), data, n, out, n, 1);
   }
 };
+
+template <typename T>
+inline void ExponentiallyWeightedMeanTransform(const T *data, int n, T *out,
+                                               T alpha) {
+  out[0] = data[0];
+  for (int i = 1; i < n; ++i) {
+    out[i] = alpha * data[i] + (1 - alpha) * out[i - 1];
+  }
+}
 
 template <class T> class GroupedArray {
 private:
@@ -381,7 +398,6 @@ public:
         num_threads_(num_threads) {}
   ~GroupedArray() {}
   template <typename Func, typename... Args>
-
   void Reduce(Func f, int n_out, T *out, int lag,
               Args &&...args) const noexcept {
 #pragma omp parallel for schedule(static) num_threads(num_threads_)
@@ -551,6 +567,18 @@ int GroupedArray_ScalerInverseTransform(GroupedArrayHandle handle,
     ga->ScalerTransform(CommonScalerInverseTransform<double>,
                         static_cast<const double *>(stats),
                         static_cast<double *>(out));
+  }
+  return 0;
+}
+
+int GroupedArray_TakeFromGroups(GroupedArrayHandle handle, int data_type, int k,
+                                void *out) {
+  if (data_type == DTYPE_FLOAT32) {
+    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+    ga->Reduce(TakeFromGroups<float>, 1, static_cast<float *>(out), 0, k);
+  } else {
+    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+    ga->Reduce(TakeFromGroups<double>, 1, static_cast<double *>(out), 0, k);
   }
   return 0;
 }
@@ -890,6 +918,21 @@ int GroupedArray_ExpandingMaxTransform(GroupedArrayHandle handle, int data_type,
     auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
     ga->Transform(ExpandingMaxTransform<double>(), lag,
                   static_cast<double *>(out));
+  }
+  return 0;
+}
+
+int GroupedArray_ExponentiallyWeightedMeanTransform(GroupedArrayHandle handle,
+                                                    int data_type, int lag,
+                                                    void *alpha, void *out) {
+  if (data_type == DTYPE_FLOAT32) {
+    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+    ga->Transform(ExponentiallyWeightedMeanTransform<float>, lag,
+                  static_cast<float *>(out), *static_cast<float *>(alpha));
+  } else {
+    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+    ga->Transform(ExponentiallyWeightedMeanTransform<double>, lag,
+                  static_cast<double *>(out), *static_cast<double *>(alpha));
   }
   return 0;
 }

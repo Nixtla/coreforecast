@@ -1,11 +1,39 @@
-from typing import Optional
+__all__ = [
+    "Lag",
+    "RollingMean",
+    "RollingStd",
+    "RollingMin",
+    "RollingMax",
+    "SeasonalRollingMean",
+    "SeasonalRollingStd",
+    "SeasonalRollingMin",
+    "SeasonalRollingMax",
+    "ExpandingMean",
+    "ExpandingStd",
+    "ExpandingMin",
+    "ExpandingMax",
+    "ExponentiallyWeightedMean",
+]
+
+import abc
+from typing import Callable, Optional
 
 import numpy as np
 
 from .grouped_array import GroupedArray
 
 
-class Lag:
+class BaseLagTransform(abc.ABC):
+    @abc.abstractmethod
+    def transform(self, ga: GroupedArray) -> np.ndarray:
+        ...
+
+    @abc.abstractmethod
+    def update(self, ga: GroupedArray) -> np.ndarray:
+        ...
+
+
+class Lag(BaseLagTransform):
     def __init__(self, lag: int):
         self.lag = lag
 
@@ -13,10 +41,10 @@ class Lag:
         return ga.lag_transform(self.lag)
 
     def update(self, ga: GroupedArray) -> np.ndarray:
-        return ga.data[ga.indptr[1:] - self.lag]
+        return ga.take_from_groups(self.lag - 1)
 
 
-class RollingBase:
+class RollingBase(BaseLagTransform):
     tfm_name: str
     lag: int
     window_size: int
@@ -102,7 +130,7 @@ class SeasonalRollingMax(SeasonalRollingBase):
     tfm_name = "Max"
 
 
-class ExpandingBase:
+class ExpandingBase(BaseLagTransform):
     def __init__(self, lag: int):
         self.lag = lag
 
@@ -116,7 +144,7 @@ class ExpandingMean(ExpandingBase):
 
     def update(self, ga: GroupedArray) -> np.ndarray:
         self.n += 1
-        self.cumsum += ga.data[ga.indptr[1:] - self.lag]
+        self.cumsum += ga.take_from_groups(self.lag - 1)
         return self.cumsum / self.n
 
 
@@ -127,32 +155,51 @@ class ExpandingStd(ExpandingBase):
         return out
 
     def update(self, ga: GroupedArray) -> np.ndarray:
-        x = ga.data[ga.indptr[1:] - self.lag]
-        self.stats[:, 0] += 1
+        x = ga.take_from_groups(self.lag - 1)
+        self.stats[:, 0] += 1.0
         n = self.stats[:, 0]
-        prev_avg = self.stats[:, 1]
+        prev_avg = self.stats[:, 1].copy()
         self.stats[:, 1] = prev_avg + (x - prev_avg) / n
         self.stats[:, 2] += (x - prev_avg) * (x - self.stats[:, 1])
+        self.stats[:, 2] = np.maximum(self.stats[:, 2], 0.0)
         return np.sqrt(self.stats[:, 2] / (n - 1))
 
 
-class ExpandingMin(ExpandingBase):
+class ExpandingComp(ExpandingBase):
+    stat: str
+    comp_fn: Callable
+
     def transform(self, ga: GroupedArray) -> np.ndarray:
-        out = ga.expanding_transform("Min", self.lag)
-        self.mins = out[ga.indptr[1:] - 1]
+        out = ga.expanding_transform(self.stat, self.lag)
+        self.stats = out[ga.indptr[1:] - 1]
         return out
 
     def update(self, ga: GroupedArray) -> np.ndarray:
-        self.mins = np.minimum(self.mins, ga.data[ga.indptr[1:] - self.lag])
-        return self.mins
+        self.stats = self.comp_fn(self.stats, ga.take_from_groups(self.lag - 1))
+        return self.stats
 
 
-class ExpandingMax(ExpandingBase):
+class ExpandingMin(ExpandingComp):
+    stat = "Min"
+    comp_fn = np.minimum
+
+
+class ExpandingMax(ExpandingComp):
+    stat = "Max"
+    comp_fn = np.maximum
+
+
+class ExponentiallyWeightedMean(BaseLagTransform):
+    def __init__(self, lag: int, alpha: float):
+        self.lag = lag
+        self.alpha = alpha
+
     def transform(self, ga: GroupedArray) -> np.ndarray:
-        out = ga.expanding_transform("Max", self.lag)
-        self.maxs = out[ga.indptr[1:] - 1]
+        out = ga.exponentially_weighted_transform("Mean", self.lag, self.alpha)
+        self.ewm = out[ga.indptr[1:] - 1]
         return out
 
     def update(self, ga: GroupedArray) -> np.ndarray:
-        self.maxs = np.maximum(self.maxs, ga.data[ga.indptr[1:] - self.lag])
-        return self.maxs
+        x = ga.take_from_groups(self.lag - 1)
+        self.ewm = self.alpha * x + (1 - self.alpha) * self.ewm
+        return self.ewm
