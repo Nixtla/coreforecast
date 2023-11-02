@@ -90,7 +90,11 @@ class SeasonalRollingBase(RollingBase):
     season_length: int
 
     def __init__(
-        self, lag: int, season_length: int, window_size: int, min_samples: int
+        self,
+        lag: int,
+        season_length: int,
+        window_size: int,
+        min_samples: Optional[int] = None,
     ):
         super().__init__(lag, window_size, min_samples)
         self.season_length = season_length

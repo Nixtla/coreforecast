@@ -405,10 +405,8 @@ public:
       indptr_t start = indptr_[i];
       indptr_t end = indptr_[i + 1];
       indptr_t n = end - start;
-      if (lag >= n)
-        continue;
       indptr_t start_idx = FirstNotNaN(data_ + start, n);
-      if (start_idx == n)
+      if (start_idx + lag >= n)
         continue;
       f(data_ + start + start_idx, n - start_idx - lag, out + n_out * i,
         std::forward<Args>(args)...);
@@ -440,7 +438,7 @@ public:
       indptr_t end = indptr_[i + 1];
       indptr_t n = end - start;
       indptr_t start_idx = FirstNotNaN(data_ + start, n);
-      if (start_idx == n) {
+      if (start_idx + lag >= n) {
         continue;
       }
       start += start_idx;
@@ -458,7 +456,7 @@ public:
       indptr_t end = indptr_[i + 1];
       indptr_t n = end - start;
       indptr_t start_idx = FirstNotNaN(data_ + start, n);
-      if (start_idx == n) {
+      if (start_idx + lag >= n) {
         continue;
       }
       start += start_idx;

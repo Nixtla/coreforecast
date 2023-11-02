@@ -31,6 +31,7 @@ def _data_as_void_ptr(arr: np.ndarray):
 
 class GroupedArray:
     def __init__(self, data: np.ndarray, indptr: np.ndarray, num_threads: int = 1):
+        data = np.ascontiguousarray(data, dtype=data.dtype)
         if data.dtype == np.float32:
             self.dtype = DTYPE_FLOAT32
         elif data.dtype == np.float64:
@@ -102,7 +103,7 @@ class GroupedArray:
         return out
 
     def lag_transform(self, lag: int) -> np.ndarray:
-        out = np.empty_like(self.data)
+        out = np.full_like(self.data, np.nan)
         _LIB.GroupedArray_LagTransform(
             self._handle,
             self.dtype,
