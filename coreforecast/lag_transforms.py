@@ -45,7 +45,7 @@ class Lag(BaseLagTransform):
 
 
 class RollingBase(BaseLagTransform):
-    tfm_name: str
+    stat_name: str
     lag: int
     window_size: int
     min_samples: int
@@ -61,29 +61,29 @@ class RollingBase(BaseLagTransform):
 
     def transform(self, ga: GroupedArray) -> np.ndarray:
         return ga.rolling_transform(
-            self.tfm_name, self.lag, self.window_size, self.min_samples
+            self.stat_name, self.lag, self.window_size, self.min_samples
         )
 
     def update(self, ga: GroupedArray) -> np.ndarray:
         return ga.rolling_update(
-            self.tfm_name, self.lag - 1, self.window_size, self.min_samples
+            self.stat_name, self.lag - 1, self.window_size, self.min_samples
         )
 
 
 class RollingMean(RollingBase):
-    tfm_name = "Mean"
+    stat_name = "Mean"
 
 
 class RollingStd(RollingBase):
-    tfm_name = "Std"
+    stat_name = "Std"
 
 
 class RollingMin(RollingBase):
-    tfm_name = "Min"
+    stat_name = "Min"
 
 
 class RollingMax(RollingBase):
-    tfm_name = "Max"
+    stat_name = "Max"
 
 
 class SeasonalRollingBase(RollingBase):
@@ -101,7 +101,7 @@ class SeasonalRollingBase(RollingBase):
 
     def transform(self, ga: GroupedArray) -> np.ndarray:
         return ga.seasonal_rolling_transform(
-            self.tfm_name,
+            self.stat_name,
             self.lag,
             self.season_length,
             self.window_size,
@@ -110,7 +110,7 @@ class SeasonalRollingBase(RollingBase):
 
     def update(self, ga: GroupedArray) -> np.ndarray:
         return ga.seasonal_rolling_update(
-            self.tfm_name,
+            self.stat_name,
             self.lag - 1,
             self.season_length,
             self.window_size,
@@ -119,19 +119,19 @@ class SeasonalRollingBase(RollingBase):
 
 
 class SeasonalRollingMean(SeasonalRollingBase):
-    tfm_name = "Mean"
+    stat_name = "Mean"
 
 
 class SeasonalRollingStd(SeasonalRollingBase):
-    tfm_name = "Std"
+    stat_name = "Std"
 
 
 class SeasonalRollingMin(SeasonalRollingBase):
-    tfm_name = "Min"
+    stat_name = "Min"
 
 
 class SeasonalRollingMax(SeasonalRollingBase):
-    tfm_name = "Max"
+    stat_name = "Max"
 
 
 class ExpandingBase(BaseLagTransform):

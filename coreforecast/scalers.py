@@ -18,16 +18,16 @@ class BaseLocalScaler:
 
 
 class LocalMinMaxScaler(BaseLocalScaler):
-    stats_fn_name = "GroupedArray_MinMaxScalerStats"
+    stats_fn_name = "MinMaxScalerStats"
 
 
 class LocalStandardScaler(BaseLocalScaler):
-    stats_fn_name = "GroupedArray_StandardScalerStats"
+    stats_fn_name = "StandardScalerStats"
 
 
 class LocalRobustScaler(BaseLocalScaler):
     def __init__(self, scale: str):
         if scale == "iqr":
-            self.stats_fn_name = "GroupedArray_RobustScalerIqrStats"
+            self.stats_fn_name = "RobustScalerIqrStats"
         else:
-            self.stats_fn_name = "GroupedArray_RobustScalerMadStats"
+            self.stats_fn_name = "RobustScalerMadStats"

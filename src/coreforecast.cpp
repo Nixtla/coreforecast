@@ -466,471 +466,496 @@ public:
   }
 };
 
-int GroupedArray_Create(const void *data, indptr_t n_data, indptr_t *indptr,
-                        indptr_t n_groups, int num_threads, int data_type,
-                        GroupedArrayHandle *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    *out = new GroupedArray<float>(static_cast<const float *>(data), n_data,
-                                   indptr, n_groups, num_threads);
-  } else {
-    *out = new GroupedArray<double>(static_cast<const double *>(data), n_data,
-                                    indptr, n_groups, num_threads);
-  }
+int GroupedArrayFloat32_Create(const float *data, indptr_t n_data,
+                               indptr_t *indptr, indptr_t n_indptr,
+                               int num_threads, GroupedArrayHandle *out) {
+  *out = new GroupedArray(data, n_data, indptr, n_indptr, num_threads);
+  return 0;
+}
+int GroupedArrayFloat64_Create(const double *data, indptr_t n_data,
+                               indptr_t *indptr, indptr_t n_indptr,
+                               int num_threads, GroupedArrayHandle *out) {
+  *out = new GroupedArray(data, n_data, indptr, n_indptr, num_threads);
   return 0;
 }
 
-int GroupedArray_Delete(GroupedArrayHandle handle, int data_type) {
-  if (data_type == DTYPE_FLOAT32) {
-    delete reinterpret_cast<GroupedArray<float> *>(handle);
-  } else {
-    delete reinterpret_cast<GroupedArray<double> *>(handle);
-  }
+int GroupedArrayFloat32_Delete(GroupedArrayHandle handle) {
+  delete reinterpret_cast<GroupedArray<float> *>(handle);
+  return 0;
+}
+int GroupedArrayFloat64_Delete(GroupedArrayHandle handle) {
+  delete reinterpret_cast<GroupedArray<double> *>(handle);
   return 0;
 }
 
-int GroupedArray_MinMaxScalerStats(GroupedArrayHandle handle, int data_type,
-                                   void *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Reduce(MinMaxScalerStats<float>, 2, static_cast<float *>(out), 0);
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Reduce(MinMaxScalerStats<double>, 2, static_cast<double *>(out), 0);
-  }
+int GroupedArrayFloat32_MinMaxScalerStats(GroupedArrayHandle handle,
+                                          float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Reduce(MinMaxScalerStats<float>, 2, out, 0);
+  return 0;
+}
+int GroupedArrayFloat64_MinMaxScalerStats(GroupedArrayHandle handle,
+                                          double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Reduce(MinMaxScalerStats<double>, 2, out, 0);
   return 0;
 }
 
-int GroupedArray_StandardScalerStats(GroupedArrayHandle handle, int data_type,
-                                     void *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Reduce(StandardScalerStats<float>, 2, static_cast<float *>(out), 0);
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Reduce(StandardScalerStats<double>, 2, static_cast<double *>(out), 0);
-  }
+int GroupedArrayFloat32_StandardScalerStats(GroupedArrayHandle handle,
+                                            float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Reduce(StandardScalerStats<float>, 2, out, 0);
+  return 0;
+}
+int GroupedArrayFloat64_StandardScalerStats(GroupedArrayHandle handle,
+                                            double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Reduce(StandardScalerStats<double>, 2, out, 0);
   return 0;
 }
 
-int GroupedArray_RobustScalerIqrStats(GroupedArrayHandle handle, int data_type,
-                                      void *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Reduce(RobustScalerIqrStats<float>, 2, static_cast<float *>(out), 0);
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Reduce(RobustScalerIqrStats<double>, 2, static_cast<double *>(out), 0);
-  }
+int GroupedArrayFloat32_RobustScalerIqrStats(GroupedArrayHandle handle,
+                                             float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Reduce(RobustScalerIqrStats<float>, 2, out, 0);
+  return 0;
+}
+int GroupedArrayFloat64_RobustScalerIqrStats(GroupedArrayHandle handle,
+                                             double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Reduce(RobustScalerIqrStats<double>, 2, out, 0);
   return 0;
 }
 
-int GroupedArray_RobustScalerMadStats(GroupedArrayHandle handle, int data_type,
-                                      void *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Reduce(RobustScalerMadStats<float>, 2, static_cast<float *>(out), 0);
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Reduce(RobustScalerMadStats<double>, 2, static_cast<double *>(out), 0);
-  }
+int GroupedArrayFloat32_RobustScalerMadStats(GroupedArrayHandle handle,
+                                             float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Reduce(RobustScalerMadStats<float>, 2, out, 0);
+  return 0;
+}
+int GroupedArrayFloat64_RobustScalerMadStats(GroupedArrayHandle handle,
+                                             double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Reduce(RobustScalerMadStats<double>, 2, out, 0);
   return 0;
 }
 
-int GroupedArray_ScalerTransform(GroupedArrayHandle handle, const void *stats,
-                                 int data_type, void *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->ScalerTransform(CommonScalerTransform<float>,
-                        static_cast<const float *>(stats),
-                        static_cast<float *>(out));
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->ScalerTransform(CommonScalerTransform<double>,
-                        static_cast<const double *>(stats),
-                        static_cast<double *>(out));
-  }
+int GroupedArrayFloat32_ScalerTransform(GroupedArrayHandle handle,
+                                        const float *stats, float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->ScalerTransform(CommonScalerTransform<float>, stats, out);
+  return 0;
+}
+int GroupedArrayFloat64_ScalerTransform(GroupedArrayHandle handle,
+                                        const double *stats, double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->ScalerTransform(CommonScalerTransform<double>, stats, out);
   return 0;
 }
 
-int GroupedArray_ScalerInverseTransform(GroupedArrayHandle handle,
-                                        const void *stats, int data_type,
-                                        void *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->ScalerTransform(CommonScalerInverseTransform<float>,
-                        static_cast<const float *>(stats),
-                        static_cast<float *>(out));
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->ScalerTransform(CommonScalerInverseTransform<double>,
-                        static_cast<const double *>(stats),
-                        static_cast<double *>(out));
-  }
+int GroupedArrayFloat32_ScalerInverseTransform(GroupedArrayHandle handle,
+                                               const float *stats, float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->ScalerTransform(CommonScalerInverseTransform<float>, stats, out);
+  return 0;
+}
+int GroupedArrayFloat64_ScalerInverseTransform(GroupedArrayHandle handle,
+                                               const double *stats,
+                                               double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->ScalerTransform(CommonScalerInverseTransform<double>, stats, out);
   return 0;
 }
 
-int GroupedArray_TakeFromGroups(GroupedArrayHandle handle, int data_type, int k,
-                                void *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Reduce(TakeFromGroups<float>, 1, static_cast<float *>(out), 0, k);
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Reduce(TakeFromGroups<double>, 1, static_cast<double *>(out), 0, k);
-  }
+int GroupedArrayFloat32_TakeFromGroups(GroupedArrayHandle handle, int k,
+                                       float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Reduce(TakeFromGroups<float>, 1, out, 0, k);
+  return 0;
+}
+int GroupedArrayFloat64_TakeFromGroups(GroupedArrayHandle handle, int k,
+                                       double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Reduce(TakeFromGroups<double>, 1, out, 0, k);
   return 0;
 }
 
-int GroupedArray_LagTransform(GroupedArrayHandle handle, int data_type, int lag,
-                              void *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Transform(LagTransform<float>, lag, static_cast<float *>(out));
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Transform(LagTransform<double>, lag, static_cast<double *>(out));
-  }
+int GroupedArrayFloat32_LagTransform(GroupedArrayHandle handle, int lag,
+                                     float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Transform(LagTransform<float>, lag, out);
+  return 0;
+}
+int GroupedArrayFloat64_LagTransform(GroupedArrayHandle handle, int lag,
+                                     double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Transform(LagTransform<double>, lag, out);
   return 0;
 }
 
-int GroupedArray_RollingMeanTransform(GroupedArrayHandle handle, int data_type,
-                                      int lag, int window_size, int min_samples,
-                                      void *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Transform(RollingMeanTransform<float>, lag, static_cast<float *>(out),
-                  window_size, min_samples);
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Transform(RollingMeanTransform<double>, lag, static_cast<double *>(out),
-                  window_size, min_samples);
-  }
+int GroupedArrayFloat32_RollingMeanTransform(GroupedArrayHandle handle, int lag,
+                                             int window_size, int min_samples,
+                                             float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Transform(RollingMeanTransform<float>, lag, out, window_size,
+                min_samples);
+  return 0;
+}
+int GroupedArrayFloat64_RollingMeanTransform(GroupedArrayHandle handle, int lag,
+                                             int window_size, int min_samples,
+                                             double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Transform(RollingMeanTransform<double>, lag, out, window_size,
+                min_samples);
   return 0;
 }
 
-int GroupedArray_RollingStdTransform(GroupedArrayHandle handle, int data_type,
-                                     int lag, int window_size, int min_samples,
-                                     void *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Transform(RollingStdTransform<float>, lag, static_cast<float *>(out),
-                  window_size, min_samples);
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Transform(RollingStdTransform<double>, lag, static_cast<double *>(out),
-                  window_size, min_samples);
-  }
+int GroupedArrayFloat32_RollingStdTransform(GroupedArrayHandle handle, int lag,
+                                            int window_size, int min_samples,
+                                            float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Transform(RollingStdTransform<float>, lag, out, window_size, min_samples);
+  return 0;
+}
+int GroupedArrayFloat64_RollingStdTransform(GroupedArrayHandle handle, int lag,
+                                            int window_size, int min_samples,
+                                            double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Transform(RollingStdTransform<double>, lag, out, window_size,
+                min_samples);
   return 0;
 }
 
-int GroupedArray_RollingMinTransform(GroupedArrayHandle handle, int data_type,
-                                     int lag, int window_size, int min_samples,
-                                     void *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Transform(RollingMinTransform<float>(), lag, static_cast<float *>(out),
-                  window_size, min_samples);
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Transform(RollingMinTransform<double>(), lag,
-                  static_cast<double *>(out), window_size, min_samples);
-  }
+int GroupedArrayFloat32_RollingMinTransform(GroupedArrayHandle handle, int lag,
+                                            int window_size, int min_samples,
+                                            float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Transform(RollingMinTransform<float>(), lag, out, window_size,
+                min_samples);
+  return 0;
+}
+int GroupedArrayFloat64_RollingMinTransform(GroupedArrayHandle handle, int lag,
+                                            int window_size, int min_samples,
+                                            double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Transform(RollingMinTransform<double>(), lag, out, window_size,
+                min_samples);
   return 0;
 }
 
-int GroupedArray_RollingMaxTransform(GroupedArrayHandle handle, int data_type,
-                                     int lag, int window_size, int min_samples,
-                                     void *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Transform(RollingMaxTransform<float>(), lag, static_cast<float *>(out),
-                  window_size, min_samples);
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Transform(RollingMaxTransform<double>(), lag,
-                  static_cast<double *>(out), window_size, min_samples);
-  }
+int GroupedArrayFloat32_RollingMaxTransform(GroupedArrayHandle handle, int lag,
+                                            int window_size, int min_samples,
+                                            float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Transform(RollingMaxTransform<float>(), lag, out, window_size,
+                min_samples);
+  return 0;
+}
+int GroupedArrayFloat64_RollingMaxTransform(GroupedArrayHandle handle, int lag,
+                                            int window_size, int min_samples,
+                                            double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Transform(RollingMaxTransform<double>(), lag, out, window_size,
+                min_samples);
   return 0;
 }
 
-int GroupedArray_RollingMeanUpdate(GroupedArrayHandle handle, int data_type,
-                                   int lag, int window_size, int min_samples,
-                                   void *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Reduce(RollingMeanUpdate<float>(), 1, static_cast<float *>(out), lag,
-               window_size, min_samples);
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Reduce(RollingMeanUpdate<double>(), 1, static_cast<double *>(out), lag,
-               window_size, min_samples);
-  }
+int GroupedArrayFloat32_RollingMeanUpdate(GroupedArrayHandle handle, int lag,
+                                          int window_size, int min_samples,
+                                          float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Reduce(RollingMeanUpdate<float>(), 1, out, lag, window_size, min_samples);
+  return 0;
+}
+int GroupedArrayFloat64_RollingMeanUpdate(GroupedArrayHandle handle, int lag,
+                                          int window_size, int min_samples,
+                                          double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Reduce(RollingMeanUpdate<double>(), 1, out, lag, window_size,
+             min_samples);
   return 0;
 }
 
-int GroupedArray_RollingStdUpdate(GroupedArrayHandle handle, int data_type,
-                                  int lag, int window_size, int min_samples,
-                                  void *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Reduce(RollingStdUpdate<float>(), 1, static_cast<float *>(out), lag,
-               window_size, min_samples);
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Reduce(RollingStdUpdate<double>(), 1, static_cast<double *>(out), lag,
-               window_size, min_samples);
-  }
+int GroupedArrayFloat32_RollingStdUpdate(GroupedArrayHandle handle, int lag,
+                                         int window_size, int min_samples,
+                                         float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Reduce(RollingStdUpdate<float>(), 1, out, lag, window_size, min_samples);
+  return 0;
+}
+int GroupedArrayFloat64_RollingStdUpdate(GroupedArrayHandle handle, int lag,
+                                         int window_size, int min_samples,
+                                         double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Reduce(RollingStdUpdate<double>(), 1, out, lag, window_size, min_samples);
   return 0;
 }
 
-int GroupedArray_RollingMinUpdate(GroupedArrayHandle handle, int data_type,
-                                  int lag, int window_size, int min_samples,
-                                  void *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Reduce(RollingMinUpdate<float>(), 1, static_cast<float *>(out), lag,
-               window_size, min_samples);
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Reduce(RollingMinUpdate<double>(), 1, static_cast<double *>(out), lag,
-               window_size, min_samples);
-  }
+int GroupedArrayFloat32_RollingMinUpdate(GroupedArrayHandle handle, int lag,
+                                         int window_size, int min_samples,
+                                         float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Reduce(RollingMinUpdate<float>(), 1, out, lag, window_size, min_samples);
+  return 0;
+}
+int GroupedArrayFloat64_RollingMinUpdate(GroupedArrayHandle handle, int lag,
+                                         int window_size, int min_samples,
+                                         double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Reduce(RollingMinUpdate<double>(), 1, out, lag, window_size, min_samples);
   return 0;
 }
 
-int GroupedArray_RollingMaxUpdate(GroupedArrayHandle handle, int data_type,
-                                  int lag, int window_size, int min_samples,
-                                  void *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Reduce(RollingMaxUpdate<float>(), 1, static_cast<float *>(out), lag,
-               window_size, min_samples);
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Reduce(RollingMaxUpdate<double>(), 1, static_cast<double *>(out), lag,
-               window_size, min_samples);
-  }
+int GroupedArrayFloat32_RollingMaxUpdate(GroupedArrayHandle handle, int lag,
+                                         int window_size, int min_samples,
+                                         float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Reduce(RollingMaxUpdate<float>(), 1, out, lag, window_size, min_samples);
+  return 0;
+}
+int GroupedArrayFloat64_RollingMaxUpdate(GroupedArrayHandle handle, int lag,
+                                         int window_size, int min_samples,
+                                         double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Reduce(RollingMaxUpdate<double>(), 1, out, lag, window_size, min_samples);
   return 0;
 }
 
-int GroupedArray_SeasonalRollingMeanTransform(GroupedArrayHandle handle,
-                                              int data_type, int lag,
-                                              int season_length,
-                                              int window_size, int min_samples,
-                                              void *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Transform(SeasonalRollingMeanTransform<float>(), lag,
-                  static_cast<float *>(out), season_length, window_size,
-                  min_samples);
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Transform(SeasonalRollingMeanTransform<double>(), lag,
-                  static_cast<double *>(out), season_length, window_size,
-                  min_samples);
-  }
+int GroupedArrayFloat32_SeasonalRollingMeanTransform(GroupedArrayHandle handle,
+                                                     int lag, int season_length,
+                                                     int window_size,
+                                                     int min_samples,
+                                                     float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Transform(SeasonalRollingMeanTransform<float>(), lag, out, season_length,
+                window_size, min_samples);
+  return 0;
+}
+int GroupedArrayFloat64_SeasonalRollingMeanTransform(GroupedArrayHandle handle,
+                                                     int lag, int season_length,
+                                                     int window_size,
+                                                     int min_samples,
+                                                     double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Transform(SeasonalRollingMeanTransform<double>(), lag, out, season_length,
+                window_size, min_samples);
   return 0;
 }
 
-int GroupedArray_SeasonalRollingStdTransform(GroupedArrayHandle handle,
-                                             int data_type, int lag,
-                                             int season_length, int window_size,
-                                             int min_samples, void *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Transform(SeasonalRollingStdTransform<float>(), lag,
-                  static_cast<float *>(out), season_length, window_size,
-                  min_samples);
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Transform(SeasonalRollingStdTransform<double>(), lag,
-                  static_cast<double *>(out), season_length, window_size,
-                  min_samples);
-  }
+int GroupedArrayFloat32_SeasonalRollingStdTransform(GroupedArrayHandle handle,
+                                                    int lag, int season_length,
+                                                    int window_size,
+                                                    int min_samples,
+                                                    float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Transform(SeasonalRollingStdTransform<float>(), lag, out, season_length,
+                window_size, min_samples);
+  return 0;
+}
+int GroupedArrayFloat64_SeasonalRollingStdTransform(GroupedArrayHandle handle,
+                                                    int lag, int season_length,
+                                                    int window_size,
+                                                    int min_samples,
+                                                    double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Transform(SeasonalRollingStdTransform<double>(), lag, out, season_length,
+                window_size, min_samples);
   return 0;
 }
 
-int GroupedArray_SeasonalRollingMinTransform(GroupedArrayHandle handle,
-                                             int data_type, int lag,
-                                             int season_length, int window_size,
-                                             int min_samples, void *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Transform(SeasonalRollingMinTransform<float>(), lag,
-                  static_cast<float *>(out), season_length, window_size,
-                  min_samples);
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Transform(SeasonalRollingMinTransform<double>(), lag,
-                  static_cast<double *>(out), season_length, window_size,
-                  min_samples);
-  }
+int GroupedArrayFloat32_SeasonalRollingMinTransform(GroupedArrayHandle handle,
+                                                    int lag, int season_length,
+                                                    int window_size,
+                                                    int min_samples,
+                                                    float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Transform(SeasonalRollingMinTransform<float>(), lag, out, season_length,
+                window_size, min_samples);
+  return 0;
+}
+int GroupedArrayFloat64_SeasonalRollingMinTransform(GroupedArrayHandle handle,
+                                                    int lag, int season_length,
+                                                    int window_size,
+                                                    int min_samples,
+                                                    double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Transform(SeasonalRollingMinTransform<double>(), lag, out, season_length,
+                window_size, min_samples);
   return 0;
 }
 
-int GroupedArray_SeasonalRollingMaxTransform(GroupedArrayHandle handle,
-                                             int data_type, int lag,
-                                             int season_length, int window_size,
-                                             int min_samples, void *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Transform(SeasonalRollingMaxTransform<float>(), lag,
-                  static_cast<float *>(out), season_length, window_size,
-                  min_samples);
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Transform(SeasonalRollingMaxTransform<double>(), lag,
-                  static_cast<double *>(out), season_length, window_size,
-                  min_samples);
-  }
+int GroupedArrayFloat32_SeasonalRollingMaxTransform(GroupedArrayHandle handle,
+                                                    int lag, int season_length,
+                                                    int window_size,
+                                                    int min_samples,
+                                                    float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Transform(SeasonalRollingMaxTransform<float>(), lag, out, season_length,
+                window_size, min_samples);
+  return 0;
+}
+int GroupedArrayFloat64_SeasonalRollingMaxTransform(GroupedArrayHandle handle,
+                                                    int lag, int season_length,
+                                                    int window_size,
+                                                    int min_samples,
+                                                    double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Transform(SeasonalRollingMaxTransform<double>(), lag, out, season_length,
+                window_size, min_samples);
   return 0;
 }
 
-int GroupedArray_SeasonalRollingMeanUpdate(GroupedArrayHandle handle,
-                                           int data_type, int lag,
-                                           int season_length, int window_size,
-                                           int min_samples, void *out) {
+int GroupedArrayFloat32_SeasonalRollingMeanUpdate(GroupedArrayHandle handle,
+                                                  int lag, int season_length,
+                                                  int window_size,
+                                                  int min_samples, float *out) {
 
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Reduce(SeasonalRollingMeanUpdate<float>(), 1, static_cast<float *>(out),
-               lag, season_length, window_size, min_samples);
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Reduce(SeasonalRollingMeanUpdate<double>(), 1,
-               static_cast<double *>(out), lag, season_length, window_size,
-               min_samples);
-  }
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Reduce(SeasonalRollingMeanUpdate<float>(), 1, out, lag, season_length,
+             window_size, min_samples);
+  return 0;
+}
+int GroupedArrayFloat64_SeasonalRollingMeanUpdate(GroupedArrayHandle handle,
+                                                  int lag, int season_length,
+                                                  int window_size,
+                                                  int min_samples,
+                                                  double *out) {
+
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Reduce(SeasonalRollingMeanUpdate<double>(), 1, out, lag, season_length,
+             window_size, min_samples);
   return 0;
 }
 
-int GroupedArray_SeasonalRollingStdUpdate(GroupedArrayHandle handle,
-                                          int data_type, int lag,
-                                          int season_length, int window_size,
-                                          int min_samples, void *out) {
+int GroupedArrayFloat32_SeasonalRollingStdUpdate(GroupedArrayHandle handle,
+                                                 int lag, int season_length,
+                                                 int window_size,
+                                                 int min_samples, float *out) {
 
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Reduce(SeasonalRollingStdUpdate<float>(), 1, static_cast<float *>(out),
-               lag, season_length, window_size, min_samples);
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Reduce(SeasonalRollingStdUpdate<double>(), 1,
-               static_cast<double *>(out), lag, season_length, window_size,
-               min_samples);
-  }
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Reduce(SeasonalRollingStdUpdate<float>(), 1, out, lag, season_length,
+             window_size, min_samples);
+  return 0;
+}
+int GroupedArrayFloat64_SeasonalRollingStdUpdate(GroupedArrayHandle handle,
+                                                 int lag, int season_length,
+                                                 int window_size,
+                                                 int min_samples, double *out) {
+
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Reduce(SeasonalRollingStdUpdate<double>(), 1, out, lag, season_length,
+             window_size, min_samples);
   return 0;
 }
 
-int GroupedArray_SeasonalRollingMinUpdate(GroupedArrayHandle handle,
-                                          int data_type, int lag,
-                                          int season_length, int window_size,
-                                          int min_samples, void *out) {
+int GroupedArrayFloat32_SeasonalRollingMinUpdate(GroupedArrayHandle handle,
+                                                 int lag, int season_length,
+                                                 int window_size,
+                                                 int min_samples, float *out) {
 
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Reduce(SeasonalRollingMinUpdate<float>(), 1, static_cast<float *>(out),
-               lag, season_length, window_size, min_samples);
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Reduce(SeasonalRollingMinUpdate<double>(), 1,
-               static_cast<double *>(out), lag, season_length, window_size,
-               min_samples);
-  }
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Reduce(SeasonalRollingMinUpdate<float>(), 1, out, lag, season_length,
+             window_size, min_samples);
+  return 0;
+}
+int GroupedArrayFloat64_SeasonalRollingMinUpdate(GroupedArrayHandle handle,
+                                                 int lag, int season_length,
+                                                 int window_size,
+                                                 int min_samples, double *out) {
+
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Reduce(SeasonalRollingMinUpdate<double>(), 1, out, lag, season_length,
+             window_size, min_samples);
   return 0;
 }
 
-int GroupedArray_SeasonalRollingMaxUpdate(GroupedArrayHandle handle,
-                                          int data_type, int lag,
-                                          int season_length, int window_size,
-                                          int min_samples, void *out) {
+int GroupedArrayFloat32_SeasonalRollingMaxUpdate(GroupedArrayHandle handle,
+                                                 int lag, int season_length,
+                                                 int window_size,
+                                                 int min_samples, float *out) {
 
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Reduce(SeasonalRollingMaxUpdate<float>(), 1, static_cast<float *>(out),
-               lag, season_length, window_size, min_samples);
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Reduce(SeasonalRollingMaxUpdate<double>(), 1,
-               static_cast<double *>(out), lag, season_length, window_size,
-               min_samples);
-  }
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Reduce(SeasonalRollingMaxUpdate<float>(), 1, out, lag, season_length,
+             window_size, min_samples);
+  return 0;
+}
+int GroupedArrayFloat64_SeasonalRollingMaxUpdate(GroupedArrayHandle handle,
+                                                 int lag, int season_length,
+                                                 int window_size,
+                                                 int min_samples, double *out) {
+
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Reduce(SeasonalRollingMaxUpdate<double>(), 1, out, lag, season_length,
+             window_size, min_samples);
   return 0;
 }
 
-int GroupedArray_ExpandingMeanTransform(GroupedArrayHandle handle,
-                                        int data_type, int lag, void *out,
-                                        void *agg) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->TransformAndReduce(ExpandingMeanTransform<float>, lag,
-                           static_cast<float *>(out), 1,
-                           static_cast<float *>(agg));
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->TransformAndReduce(ExpandingMeanTransform<double>, lag,
-                           static_cast<double *>(out), 1,
-                           static_cast<double *>(agg));
-  }
+int GroupedArrayFloat32_ExpandingMeanTransform(GroupedArrayHandle handle,
+                                               int lag, float *out,
+                                               float *agg) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->TransformAndReduce(ExpandingMeanTransform<float>, lag, out, 1, agg);
+  return 0;
+}
+int GroupedArrayFloat64_ExpandingMeanTransform(GroupedArrayHandle handle,
+                                               int lag, double *out,
+                                               double *agg) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->TransformAndReduce(ExpandingMeanTransform<double>, lag, out, 1, agg);
   return 0;
 }
 
-int GroupedArray_ExpandingStdTransform(GroupedArrayHandle handle, int data_type,
-                                       int lag, void *out, void *agg) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->TransformAndReduce(ExpandingStdTransform<float>, lag,
-                           static_cast<float *>(out), 3,
-                           static_cast<float *>(agg));
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->TransformAndReduce(ExpandingStdTransform<double>, lag,
-                           static_cast<double *>(out), 3,
-                           static_cast<double *>(agg));
-  }
+int GroupedArrayFloat32_ExpandingStdTransform(GroupedArrayHandle handle,
+                                              int lag, float *out, float *agg) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->TransformAndReduce(ExpandingStdTransform<float>, lag, out, 3, agg);
+  return 0;
+}
+int GroupedArrayFloat64_ExpandingStdTransform(GroupedArrayHandle handle,
+                                              int lag, double *out,
+                                              double *agg) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->TransformAndReduce(ExpandingStdTransform<double>, lag, out, 3, agg);
   return 0;
 }
 
-int GroupedArray_ExpandingMinTransform(GroupedArrayHandle handle, int data_type,
-                                       int lag, void *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Transform(ExpandingMinTransform<float>(), lag,
-                  static_cast<float *>(out));
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Transform(ExpandingMinTransform<double>(), lag,
-                  static_cast<double *>(out));
-  }
+int GroupedArrayFloat32_ExpandingMinTransform(GroupedArrayHandle handle,
+                                              int lag, float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Transform(ExpandingMinTransform<float>(), lag, out);
+  return 0;
+}
+int GroupedArrayFloat64_ExpandingMinTransform(GroupedArrayHandle handle,
+                                              int lag, double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Transform(ExpandingMinTransform<double>(), lag, out);
   return 0;
 }
 
-int GroupedArray_ExpandingMaxTransform(GroupedArrayHandle handle, int data_type,
-                                       int lag, void *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Transform(ExpandingMaxTransform<float>(), lag,
-                  static_cast<float *>(out));
+int GroupedArrayFloat32_ExpandingMaxTransform(GroupedArrayHandle handle,
+                                              int lag, float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Transform(ExpandingMaxTransform<float>(), lag, out);
 
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Transform(ExpandingMaxTransform<double>(), lag,
-                  static_cast<double *>(out));
-  }
+  return 0;
+}
+int GroupedArrayFloat64_ExpandingMaxTransform(GroupedArrayHandle handle,
+                                              int lag, double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Transform(ExpandingMaxTransform<double>(), lag, out);
+
   return 0;
 }
 
-int GroupedArray_ExponentiallyWeightedMeanTransform(GroupedArrayHandle handle,
-                                                    int data_type, int lag,
-                                                    void *alpha, void *out) {
-  if (data_type == DTYPE_FLOAT32) {
-    auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-    ga->Transform(ExponentiallyWeightedMeanTransform<float>, lag,
-                  static_cast<float *>(out), *static_cast<float *>(alpha));
-  } else {
-    auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-    ga->Transform(ExponentiallyWeightedMeanTransform<double>, lag,
-                  static_cast<double *>(out), *static_cast<double *>(alpha));
-  }
+int GroupedArrayFloat32_ExponentiallyWeightedMeanTransform(
+    GroupedArrayHandle handle, int lag, float alpha, float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Transform(ExponentiallyWeightedMeanTransform<float>, lag, out, alpha);
+  return 0;
+}
+int GroupedArrayFloat64_ExponentiallyWeightedMeanTransform(
+    GroupedArrayHandle handle, int lag, double alpha, double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Transform(ExponentiallyWeightedMeanTransform<double>, lag, out, alpha);
   return 0;
 }
