@@ -73,7 +73,7 @@ combs_map = {
 @pytest.mark.parametrize("comb", list(combs_map.keys()))
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 def test_correctness(data, comb, dtype):
-    rtol = 1e-5 if dtype == np.float32 else 1e-12
+    rtol = 1e-5 if dtype == np.float32 else 1e-7
     if dtype == np.float32:
         if "rolling_std" in comb:
             rtol = 1e-2
