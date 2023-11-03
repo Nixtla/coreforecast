@@ -23,14 +23,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # - os: ubuntu-20.04
-          #   platform-id: manylinux_x86_64
-          # - os: windows-2019
-          #   platform-id: win_amd64
+          - os: ubuntu-20.04
+            platform-id: manylinux_x86_64
+          - os: windows-2019
+            platform-id: win_amd64
           - os: macos-11
             platform-id: macosx_x86_64
-          # - os: macos-latest
-          #   platform-id: macosx_arm64
+          - os: macos-latest
+            platform-id: macosx_arm64
 
     steps:
       - uses: actions/checkout@v4
@@ -58,23 +58,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # os: [macos-latest, ubuntu-latest, windows-latest]
-        # python-version: ['3.8', '3.9', '3.10', '3.11']
-        os: [macos-latest]
-        python-version: ['3.10']
+        os: [macos-latest, ubuntu-latest, windows-latest]
+        python-version: ['3.8', '3.9', '3.10', '3.11']
     steps:
       - name: Clone repo
         uses: actions/checkout@v3
 
-      # - name: Set up environment
-      #   uses: mamba-org/setup-micromamba@v1
-      #   with:
-      #     environment-file: environment.yml
-      #     create-args: python=${{ matrix.python-version }}
-      #     cache-environment: true
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+          cache: pip
 
       - name: Install dependencies
         run: pip install -r requirements-test.txt
