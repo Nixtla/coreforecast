@@ -50,3 +50,7 @@ add_library(coreforecast SHARED src/coreforecast.cpp)
 if(MSVC)
     set_target_properties(coreforecast PROPERTIES OUTPUT_NAME "libcoreforecast")
 endif()
+
+if(USE_OPENMP AND CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+    target_link_libraries(coreforecast PUBLIC OpenMP::OpenMP_CXX)
+endif()
