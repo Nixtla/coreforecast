@@ -514,26 +514,26 @@ int GroupedArrayFloat64_StandardScalerStats(GroupedArrayHandle handle,
   return 0;
 }
 
-int GroupedArrayFloat32_RobustScalerIqrStats(GroupedArrayHandle handle,
+int GroupedArrayFloat32_RobustIqrScalerStats(GroupedArrayHandle handle,
                                              float *out) {
   auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
   ga->Reduce(RobustScalerIqrStats<float>, 2, out, 0);
   return 0;
 }
-int GroupedArrayFloat64_RobustScalerIqrStats(GroupedArrayHandle handle,
+int GroupedArrayFloat64_RobustIqrScalerStats(GroupedArrayHandle handle,
                                              double *out) {
   auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
   ga->Reduce(RobustScalerIqrStats<double>, 2, out, 0);
   return 0;
 }
 
-int GroupedArrayFloat32_RobustScalerMadStats(GroupedArrayHandle handle,
+int GroupedArrayFloat32_RobustMadScalerStats(GroupedArrayHandle handle,
                                              float *out) {
   auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
   ga->Reduce(RobustScalerMadStats<float>, 2, out, 0);
   return 0;
 }
-int GroupedArrayFloat64_RobustScalerMadStats(GroupedArrayHandle handle,
+int GroupedArrayFloat64_RobustMadScalerStats(GroupedArrayHandle handle,
                                              double *out) {
   auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
   ga->Reduce(RobustScalerMadStats<double>, 2, out, 0);

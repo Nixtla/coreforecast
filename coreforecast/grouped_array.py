@@ -59,9 +59,9 @@ class GroupedArray:
     def __getitem__(self, i):
         return self.data[self.indptr[i] : self.indptr[i + 1]]
 
-    def scaler_fit(self, stats_fn_name: str) -> np.ndarray:
+    def scaler_fit(self, scaler_type: str) -> np.ndarray:
         stats = np.full_like(self.data, np.nan, shape=(len(self), 2))
-        _LIB[f"{self.prefix}_{stats_fn_name}"](
+        _LIB[f"{self.prefix}_{scaler_type}ScalerStats"](
             self._handle,
             _data_as_void_ptr(stats),
         )

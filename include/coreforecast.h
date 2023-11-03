@@ -35,15 +35,15 @@ DLL_EXPORT int
 GroupedArrayFloat64_StandardScalerStats(GroupedArrayHandle handle, double *out);
 
 DLL_EXPORT int
-GroupedArrayFloat32_RobustScalerIqrStats(GroupedArrayHandle handle, float *out);
+GroupedArrayFloat32_RobustIqrScalerStats(GroupedArrayHandle handle, float *out);
 DLL_EXPORT int
-GroupedArrayFloat64_RobustScalerIqrStats(GroupedArrayHandle handle,
+GroupedArrayFloat64_RobustIqrScalerStats(GroupedArrayHandle handle,
                                          double *out);
 
 DLL_EXPORT int
-GroupedArrayFloat32_RobustScalerMadStats(GroupedArrayHandle handle, float *out);
+GroupedArrayFloat32_RobustMadScalerStats(GroupedArrayHandle handle, float *out);
 DLL_EXPORT int
-GroupedArrayFloat64_RobustScalerMadStats(GroupedArrayHandle handle,
+GroupedArrayFloat64_RobustMadScalerStats(GroupedArrayHandle handle,
                                          double *out);
 
 DLL_EXPORT int GroupedArrayFloat32_ScalerTransform(GroupedArrayHandle handle,
