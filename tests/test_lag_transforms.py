@@ -15,7 +15,6 @@ min_samples = 2
 lengths = np.random.randint(low=100, high=200, size=100)
 indptr = np.append(0, lengths.cumsum()).astype(np.int32)
 data = 10 * np.random.rand(indptr[-1])
-ga = GroupedArray(data, indptr)
 
 
 def transform(data, indptr, updates_only, lag, func, *args) -> np.ndarray:
@@ -33,48 +32,59 @@ def transform(data, indptr, updates_only, lag, func, *args) -> np.ndarray:
     return out
 
 
-@pytest.mark.parametrize(
-    "comb",
-    [
-        (rolling_mean, RollingMean, [window_size, min_samples]),
-        (rolling_std, RollingStd, [window_size, min_samples]),
-        (rolling_min, RollingMin, [window_size, min_samples]),
-        (rolling_max, RollingMax, [window_size, min_samples]),
-        (
-            seasonal_rolling_mean,
-            SeasonalRollingMean,
-            [season_length, window_size, min_samples],
-        ),
-        (
-            seasonal_rolling_std,
-            SeasonalRollingStd,
-            [season_length, window_size, min_samples],
-        ),
-        (
-            seasonal_rolling_min,
-            SeasonalRollingMin,
-            [season_length, window_size, min_samples],
-        ),
-        (
-            seasonal_rolling_max,
-            SeasonalRollingMax,
-            [season_length, window_size, min_samples],
-        ),
-        (expanding_mean, ExpandingMean, []),
-        (expanding_std, ExpandingStd, []),
-        (expanding_min, ExpandingMin, []),
-        (expanding_max, ExpandingMax, []),
-        (ewm_mean, ExponentiallyWeightedMean, [0.8]),
-    ],
-)
-def test_correctness(comb):
-    wf, cf, args = comb
+@pytest.fixture
+def data():
+    return 10 * np.random.rand(indptr[-1])
+
+
+combs_map = {
+    "rolling_mean": (rolling_mean, RollingMean, [window_size, min_samples]),
+    "rolling_std": (rolling_std, RollingStd, [window_size, min_samples]),
+    "rolling_min": (rolling_min, RollingMin, [window_size, min_samples]),
+    "rolling_max": (rolling_max, RollingMax, [window_size, min_samples]),
+    "seasonal_rolling_mean": (
+        seasonal_rolling_mean,
+        SeasonalRollingMean,
+        [season_length, window_size, min_samples],
+    ),
+    "seasonal_rolling_std": (
+        seasonal_rolling_std,
+        SeasonalRollingStd,
+        [season_length, window_size, min_samples],
+    ),
+    "seasonal_rolling_min": (
+        seasonal_rolling_min,
+        SeasonalRollingMin,
+        [season_length, window_size, min_samples],
+    ),
+    "seasonal_rolling_max": (
+        seasonal_rolling_max,
+        SeasonalRollingMax,
+        [season_length, window_size, min_samples],
+    ),
+    "expanding_mean": (expanding_mean, ExpandingMean, []),
+    "expanding_std": (expanding_std, ExpandingStd, []),
+    "expanding_min": (expanding_min, ExpandingMin, []),
+    "expanding_max": (expanding_max, ExpandingMax, []),
+    "ewm_mean": (ewm_mean, ExponentiallyWeightedMean, [0.8]),
+}
+
+
+@pytest.mark.parametrize("comb", list(combs_map.keys()))
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_correctness(data, comb, dtype):
+    rtol = 1e-5 if dtype == np.float32 else 1e-12
+    if "rolling_std" in comb and dtype == np.float32:
+        rtol = 1e-3
+    data = data.astype(dtype, copy=True)
+    ga = GroupedArray(data, indptr)
+    wf, cf, args = combs_map[comb]
     # transform
     wres = transform(data, indptr, False, lag, wf, *args)
     cobj = cf(lag, *args)
     cres = cobj.transform(ga)
-    np.testing.assert_allclose(wres, cres)
+    np.testing.assert_allclose(wres, cres, rtol=rtol)
     # update
     wres = transform(data, indptr, True, lag - 1, wf, *args)
     cres = cobj.update(ga)
-    np.testing.assert_allclose(wres, cres)
+    np.testing.assert_allclose(wres, cres, rtol=rtol)
