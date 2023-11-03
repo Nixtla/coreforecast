@@ -9,7 +9,7 @@ on:
 
 defaults:
   run:
-    shell: bash -l {0}
+    shell: bash
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
