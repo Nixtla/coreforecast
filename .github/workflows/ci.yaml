@@ -42,8 +42,10 @@ jobs:
           CIBW_ARCHS: all
           CIBW_TEST_SKIP: '*-macosx_arm64'
           CIBW_BUILD_VERBOSITY: 3
-          CIBW_BEFORE_BUILD_MACOS: pip install toml && python scripts/disable_omp_arm64.py
-          MACOSX_DEPLOYMENT_TARGET: 11.0
+          CIBW_BEFORE_BUILD_MACOS: |
+            sudo xcode-select -s /Applications/Xcode_11.7.app/Contents/Developer
+            pip install toml
+            python scripts/disable_omp_arm64.py
 
       - uses: actions/upload-artifact@v3
         with:
