@@ -77,10 +77,6 @@ jobs:
       - name: Install the library
         run: pip install --no-index --find-links dist coreforecast
 
-      - name: Install OpenMP for MacOS
-        if: matrix.os == 'macos-latest'
-        run: brew install libomp
-
       - name: Run tests
         run: pytest --benchmark-group-by=param:scaler_name --benchmark-sort=fullname
 
