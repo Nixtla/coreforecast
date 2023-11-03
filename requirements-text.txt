@@ -1,0 +1,6 @@
+numba
+numpy
+pytest
+pytest-benchmark
+utilsforecast>=0.0.7
+window-ops

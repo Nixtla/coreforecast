@@ -66,12 +66,19 @@ jobs:
       - name: Clone repo
         uses: actions/checkout@v3
 
-      - name: Set up environment
-        uses: mamba-org/setup-micromamba@v1
+      # - name: Set up environment
+      #   uses: mamba-org/setup-micromamba@v1
+      #   with:
+      #     environment-file: environment.yml
+      #     create-args: python=${{ matrix.python-version }}
+      #     cache-environment: true
+      - uses: actions/setup-python@v4
         with:
-          environment-file: environment.yml
-          create-args: python=${{ matrix.python-version }}
-          cache-environment: true
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements-test.txt
 
       - name: Download wheels
         uses: actions/download-artifact@v3
