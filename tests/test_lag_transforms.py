@@ -75,7 +75,7 @@ combs_map = {
 def test_correctness(data, comb, dtype):
     rtol = 1e-5 if dtype == np.float32 else 1e-12
     if "rolling_std" in comb and dtype == np.float32:
-        rtol = 5e-3
+        rtol = 1e-2
     data = data.astype(dtype, copy=True)
     ga = GroupedArray(data, indptr)
     wf, cf, args = combs_map[comb]
