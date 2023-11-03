@@ -78,7 +78,7 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install -r requirements-test.txt
+        run: pip3 install -r requirements-test.txt
 
       - name: Download wheels
         uses: actions/download-artifact@v3
@@ -87,7 +87,7 @@ jobs:
           path: dist
 
       - name: Install the library
-        run: pip install --no-index --find-links dist coreforecast
+        run: pip3 install --no-index --find-links dist coreforecast
 
       - name: Run tests
         run: pytest --benchmark-group-by=param:scaler_name --benchmark-sort=fullname
