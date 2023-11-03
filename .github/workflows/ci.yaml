@@ -27,7 +27,7 @@ jobs:
           #   platform-id: manylinux_x86_64
           # - os: windows-2019
           #   platform-id: win_amd64
-          - os: macos-latest
+          - os: macos-11
             platform-id: macosx_x86_64
           # - os: macos-latest
           #   platform-id: macosx_arm64
