@@ -38,7 +38,7 @@ def pd_rolling_quantile(x, lag, p, window_size, min_samples):
         pd.Series(x)
         .shift(lag)
         .rolling(window=window_size, min_periods=min_samples)
-        .quantile(q=p)
+        .quantile(p)
     )
 
 
@@ -53,7 +53,7 @@ def pd_seasonal_rolling_quantile(x, lag, p, season_length, window_size, min_samp
 
 
 def pd_expanding_quantile(x, lag, p):
-    return pd.Series(x).shift(lag).expanding().quantile(q=p)
+    return pd.Series(x).shift(lag).expanding().quantile(p)
 
 
 @pytest.fixture
