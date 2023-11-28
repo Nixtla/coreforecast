@@ -70,6 +70,17 @@ template <typename T> inline T Quantile(T *data, T p, int n) {
   return out;
 }
 
+template <typename T> inline T SortedQuantile(T *data, T p, int n) {
+  T i_plus_g = p * (n - 1);
+  int i = static_cast<int>(i_plus_g);
+  T g = i_plus_g - i;
+  T out = data[i];
+  if (g > 0.0) {
+    out += g * (data[i + 1] - out);
+  }
+  return out;
+}
+
 template <typename T>
 inline void RobustScalerIqrStats(const T *data, int n, T *stats) {
   T *buffer = new T[n];
@@ -195,6 +206,62 @@ template <typename T> struct RollingMaxTransform {
                          min_samples);
   }
 };
+
+template <typename T>
+inline void RollingQuantileTransform(const T *data, int n, T *out, T p,
+                                     int window_size, int min_samples) {
+  int upper_limit = std::min(window_size, n);
+  T *buffer = new T[upper_limit];
+  int *positions = new int[upper_limit];
+  min_samples = std::min(min_samples, upper_limit);
+  for (int i = 0; i < min_samples - 1; ++i) {
+    buffer[i] = data[i];
+    positions[i] = i;
+    out[i] = std::numeric_limits<T>::quiet_NaN();
+  }
+  if (min_samples > 2) {
+    std::sort(buffer, buffer + min_samples - 2);
+  }
+  for (int i = min_samples - 1; i < upper_limit; ++i) {
+    int idx = std::lower_bound(buffer, buffer + i, data[i]) - buffer;
+
+    for (int j = 0; j < i - idx; ++j) {
+      buffer[i - j] = buffer[i - j - 1];
+      positions[i - j] = positions[i - j - 1];
+    }
+    buffer[idx] = data[i];
+    positions[idx] = i;
+    out[i] = SortedQuantile(buffer, p, i + 1);
+  }
+  for (int i = window_size; i < n; ++i) {
+    int remove_idx =
+        std::min_element(positions, positions + window_size) - positions;
+    int idx;
+    if (data[i] <= buffer[remove_idx]) {
+      idx = std::lower_bound(buffer, buffer + remove_idx, data[i]) - buffer;
+      for (int j = 0; j < remove_idx - idx; ++j) {
+        buffer[remove_idx - j] = buffer[remove_idx - j - 1];
+        positions[remove_idx - j] = positions[remove_idx - j - 1];
+      }
+    } else {
+      idx = (std::lower_bound(buffer + remove_idx - 1, buffer + window_size,
+                              data[i]) -
+             buffer) -
+            1;
+      if (idx == window_size) {
+        --idx;
+      }
+      for (int j = 0; j < idx - remove_idx; ++j) {
+        buffer[remove_idx + j] = buffer[remove_idx + j + 1];
+        positions[remove_idx + j] = positions[remove_idx + j + 1];
+      }
+    }
+    buffer[idx] = data[i];
+    positions[idx] = i;
+    out[i] = SortedQuantile(buffer, p, window_size);
+  }
+  delete[] buffer;
+}
 
 template <typename Func, typename T>
 inline void SeasonalRollingTransform(Func RollingTfm, const T *data, int n,
@@ -469,13 +536,13 @@ public:
 int GroupedArrayFloat32_Create(const float *data, indptr_t n_data,
                                indptr_t *indptr, indptr_t n_indptr,
                                int num_threads, GroupedArrayHandle *out) {
-  *out = new GroupedArray(data, n_data, indptr, n_indptr, num_threads);
+  *out = new GroupedArray<float>(data, n_data, indptr, n_indptr, num_threads);
   return 0;
 }
 int GroupedArrayFloat64_Create(const double *data, indptr_t n_data,
                                indptr_t *indptr, indptr_t n_indptr,
                                int num_threads, GroupedArrayHandle *out) {
-  *out = new GroupedArray(data, n_data, indptr, n_indptr, num_threads);
+  *out = new GroupedArray<double>(data, n_data, indptr, n_indptr, num_threads);
   return 0;
 }
 
@@ -656,6 +723,25 @@ int GroupedArrayFloat64_RollingMaxTransform(GroupedArrayHandle handle, int lag,
                                             double *out) {
   auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
   ga->Transform(RollingMaxTransform<double>(), lag, out, window_size,
+                min_samples);
+  return 0;
+}
+
+int GroupedArrayFloat32_RollingQuantileTransform(GroupedArrayHandle handle,
+                                                 int lag, float p,
+                                                 int window_size,
+                                                 int min_samples, float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Transform(RollingQuantileTransform<float>, lag, out, p, window_size,
+                min_samples);
+  return 0;
+}
+int GroupedArrayFloat64_RollingQuantileTransform(GroupedArrayHandle handle,
+                                                 int lag, double p,
+                                                 int window_size,
+                                                 int min_samples, double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Transform(RollingQuantileTransform<double>, lag, out, p, window_size,
                 min_samples);
   return 0;
 }

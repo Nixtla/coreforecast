@@ -106,6 +106,15 @@ GroupedArrayFloat64_RollingMaxTransform(GroupedArrayHandle handle, int lag,
                                         int window_size, int min_samples,
                                         double *out);
 
+DLL_EXPORT int
+GroupedArrayFloat32_RollingQuantileTransform(GroupedArrayHandle handle, int lag,
+                                             float p, int window_size,
+                                             int min_samples, float *out);
+DLL_EXPORT int
+GroupedArrayFloat64_RollingQuantileTransform(GroupedArrayHandle handle, int lag,
+                                             double p, int window_size,
+                                             int min_samples, double *out);
+
 DLL_EXPORT int GroupedArrayFloat32_RollingMeanUpdate(GroupedArrayHandle handle,
                                                      int lag, int window_size,
                                                      int min_samples,
