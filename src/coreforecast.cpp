@@ -208,8 +208,8 @@ template <typename T> struct RollingMaxTransform {
 };
 
 template <typename T>
-inline void RollingQuantileTransform(const T *data, int n, T *out, T p,
-                                     int window_size, int min_samples) {
+inline void RollingQuantileTransform(const T *data, int n, T *out,
+                                     int window_size, int min_samples, T p) {
   int upper_limit = std::min(window_size, n);
   T *buffer = new T[upper_limit];
   int *positions = new int[upper_limit];
@@ -224,7 +224,6 @@ inline void RollingQuantileTransform(const T *data, int n, T *out, T p,
   }
   for (int i = min_samples - 1; i < upper_limit; ++i) {
     int idx = std::lower_bound(buffer, buffer + i, data[i]) - buffer;
-
     for (int j = 0; j < i - idx; ++j) {
       buffer[i - j] = buffer[i - j - 1];
       positions[i - j] = positions[i - j - 1];
@@ -263,10 +262,10 @@ inline void RollingQuantileTransform(const T *data, int n, T *out, T p,
   delete[] buffer;
 }
 
-template <typename Func, typename T>
+template <typename Func, typename T, typename... Args>
 inline void SeasonalRollingTransform(Func RollingTfm, const T *data, int n,
                                      T *out, int season_length, int window_size,
-                                     int min_samples) {
+                                     int min_samples, Args &&...args) {
   int buff_size = n / season_length + (n % season_length > 0);
   T *season_data = new T[buff_size];
   T *season_out = new T[buff_size];
@@ -276,7 +275,8 @@ inline void SeasonalRollingTransform(Func RollingTfm, const T *data, int n,
     for (int j = 0; j < season_n; ++j) {
       season_data[j] = data[i + j * season_length];
     }
-    RollingTfm(season_data, season_n, season_out, window_size, min_samples);
+    RollingTfm(season_data, season_n, season_out, window_size, min_samples,
+               std::forward<Args>(args)...);
     for (int j = 0; j < season_n; ++j) {
       out[i + j * season_length] = season_out[j];
     }
@@ -317,16 +317,25 @@ template <typename T> struct SeasonalRollingMaxTransform {
   }
 };
 
-template <typename Func, typename T>
+template <typename T> struct SeasonalRollingQuantileTransform {
+  void operator()(const T *data, int n, T *out, int season_length,
+                  int window_size, int min_samples, T p) {
+    SeasonalRollingTransform(RollingQuantileTransform<T>, data, n, out,
+                             season_length, window_size, min_samples, p);
+  }
+};
+
+template <typename Func, typename T, typename... Args>
 inline void RollingUpdate(Func RollingTfm, const T *data, int n, T *out,
-                          int window_size, int min_samples) {
+                          int window_size, int min_samples, Args &&...args) {
   if (n < min_samples) {
     *out = std::numeric_limits<T>::quiet_NaN();
     return;
   }
   int n_samples = std::min(window_size, n);
   T *buffer = new T[n_samples];
-  RollingTfm(data + n - n_samples, n_samples, buffer, window_size, min_samples);
+  RollingTfm(data + n - n_samples, n_samples, buffer, window_size, min_samples,
+             std::forward<Args>(args)...);
   *out = buffer[n_samples - 1];
   delete[] buffer;
 }
@@ -363,10 +372,18 @@ template <typename T> struct RollingMaxUpdate {
   }
 };
 
-template <typename Func, typename T>
+template <typename T> struct RollingQuantileUpdate {
+  void operator()(const T *data, int n, T *out, int window_size,
+                  int min_samples, T p) {
+    RollingUpdate(RollingQuantileTransform<T>, data, n, out, window_size,
+                  min_samples, p);
+  }
+};
+
+template <typename Func, typename T, typename... Args>
 inline void SeasonalRollingUpdate(Func RollingUpdate, const T *data, int n,
                                   T *out, int season_length, int window_size,
-                                  int min_samples) {
+                                  int min_samples, Args &&...args) {
   int season = n % season_length;
   int season_n = n / season_length + (season > 0);
   if (season_n < min_samples) {
@@ -378,7 +395,8 @@ inline void SeasonalRollingUpdate(Func RollingUpdate, const T *data, int n,
   for (int i = 0; i < n_samples; ++i) {
     season_data[i] = data[n - 1 - (n_samples - 1 - i) * season_length];
   }
-  RollingUpdate(season_data, n_samples, out, window_size, min_samples);
+  RollingUpdate(season_data, n_samples, out, window_size, min_samples,
+                std::forward<Args>(args)...);
   delete[] season_data;
 }
 
@@ -414,6 +432,14 @@ template <typename T> struct SeasonalRollingMaxUpdate {
   }
 };
 
+template <typename T> struct SeasonalRollingQuantileUpdate {
+  void operator()(const T *data, int n, T *out, int season_length,
+                  int window_size, int min_samples, T p) {
+    SeasonalRollingUpdate(RollingQuantileUpdate<T>(), data, n, out,
+                          season_length, window_size, min_samples, p);
+  }
+};
+
 template <typename T>
 inline void ExpandingMeanTransform(const T *data, int n, T *out, T *agg) {
   T accum = static_cast<T>(0.0);
@@ -440,6 +466,18 @@ template <typename T> struct ExpandingMaxTransform {
     RollingCompTransform(std::greater<T>(), data, n, out, n, 1);
   }
 };
+
+template <typename T>
+inline void ExpandingQuantileTransform(const T *data, int n, T *out, T p) {
+  RollingQuantileTransform(data, n, out, n, 1, p);
+}
+
+template <typename T>
+inline void ExpandingQuantileUpdate(const T *data, int n, T *out, T p) {
+  T *buffer = new T[n];
+  std::copy(data, data + n, buffer);
+  *out = Quantile(buffer, p, n);
+}
 
 template <typename T>
 inline void ExponentiallyWeightedMeanTransform(const T *data, int n, T *out,
@@ -732,8 +770,8 @@ int GroupedArrayFloat32_RollingQuantileTransform(GroupedArrayHandle handle,
                                                  int window_size,
                                                  int min_samples, float *out) {
   auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-  ga->Transform(RollingQuantileTransform<float>, lag, out, p, window_size,
-                min_samples);
+  ga->Transform(RollingQuantileTransform<float>, lag, out, window_size,
+                min_samples, p);
   return 0;
 }
 int GroupedArrayFloat64_RollingQuantileTransform(GroupedArrayHandle handle,
@@ -741,8 +779,8 @@ int GroupedArrayFloat64_RollingQuantileTransform(GroupedArrayHandle handle,
                                                  int window_size,
                                                  int min_samples, double *out) {
   auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-  ga->Transform(RollingQuantileTransform<double>, lag, out, p, window_size,
-                min_samples);
+  ga->Transform(RollingQuantileTransform<double>, lag, out, window_size,
+                min_samples, p);
   return 0;
 }
 
@@ -804,6 +842,24 @@ int GroupedArrayFloat64_RollingMaxUpdate(GroupedArrayHandle handle, int lag,
                                          double *out) {
   auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
   ga->Reduce(RollingMaxUpdate<double>(), 1, out, lag, window_size, min_samples);
+  return 0;
+}
+
+int GroupedArrayFloat32_RollingQuantileUpdate(GroupedArrayHandle handle,
+                                              int lag, float p, int window_size,
+                                              int min_samples, float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Reduce(RollingQuantileUpdate<float>(), 1, out, lag, window_size,
+             min_samples, p);
+  return 0;
+}
+int GroupedArrayFloat64_RollingQuantileUpdate(GroupedArrayHandle handle,
+                                              int lag, double p,
+                                              int window_size, int min_samples,
+                                              double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Reduce(RollingQuantileUpdate<double>(), 1, out, lag, window_size,
+             min_samples, p);
   return 0;
 }
 
@@ -888,6 +944,23 @@ int GroupedArrayFloat64_SeasonalRollingMaxTransform(GroupedArrayHandle handle,
   auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
   ga->Transform(SeasonalRollingMaxTransform<double>(), lag, out, season_length,
                 window_size, min_samples);
+  return 0;
+}
+
+int GroupedArrayFloat32_SeasonalRollingQuantileTransform(
+    GroupedArrayHandle handle, int lag, int season_length, float p,
+    int window_size, int min_samples, float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Transform(SeasonalRollingQuantileTransform<float>(), lag, out,
+                season_length, window_size, min_samples, p);
+  return 0;
+}
+int GroupedArrayFloat64_SeasonalRollingQuantileTransform(
+    GroupedArrayHandle handle, int lag, int season_length, double p,
+    int window_size, int min_samples, double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Transform(SeasonalRollingQuantileTransform<double>(), lag, out,
+                season_length, window_size, min_samples, p);
   return 0;
 }
 
@@ -976,6 +1049,25 @@ int GroupedArrayFloat64_SeasonalRollingMaxUpdate(GroupedArrayHandle handle,
   return 0;
 }
 
+int GroupedArrayFloat32_SeasonalRollingQuantileUpdate(
+    GroupedArrayHandle handle, int lag, int season_length, float p,
+    int window_size, int min_samples, float *out) {
+
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Reduce(SeasonalRollingQuantileUpdate<float>(), 1, out, lag, season_length,
+             window_size, min_samples, p);
+  return 0;
+}
+int GroupedArrayFloat64_SeasonalRollingQuantileUpdate(
+    GroupedArrayHandle handle, int lag, int season_length, double p,
+    int window_size, int min_samples, double *out) {
+
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Reduce(SeasonalRollingQuantileUpdate<double>(), 1, out, lag,
+             season_length, window_size, min_samples, p);
+  return 0;
+}
+
 int GroupedArrayFloat32_ExpandingMeanTransform(GroupedArrayHandle handle,
                                                int lag, float *out,
                                                float *agg) {
@@ -1030,6 +1122,35 @@ int GroupedArrayFloat64_ExpandingMaxTransform(GroupedArrayHandle handle,
   auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
   ga->Transform(ExpandingMaxTransform<double>(), lag, out);
 
+  return 0;
+}
+
+int GroupedArrayFloat32_ExpandingQuantileTransform(GroupedArrayHandle handle,
+                                                   int lag, float p,
+                                                   float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Transform(ExpandingQuantileTransform<float>, lag, out, p);
+  return 0;
+}
+int GroupedArrayFloat64_ExpandingQuantileTransform(GroupedArrayHandle handle,
+                                                   int lag, double p,
+                                                   double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Transform(ExpandingQuantileTransform<double>, lag, out, p);
+  return 0;
+}
+
+int GroupedArrayFloat32_ExpandingQuantileUpdate(GroupedArrayHandle handle,
+                                                int lag, float p, float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->Reduce(ExpandingQuantileUpdate<float>, 1, out, lag, p);
+  return 0;
+}
+int GroupedArrayFloat64_ExpandingQuantileUpdate(GroupedArrayHandle handle,
+                                                int lag, double p,
+                                                double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->Reduce(ExpandingQuantileUpdate<double>, 1, out, lag, p);
   return 0;
 }
 
