@@ -260,6 +260,7 @@ inline void RollingQuantileTransform(const T *data, int n, T *out,
     out[i] = SortedQuantile(buffer, p, window_size);
   }
   delete[] buffer;
+  delete[] positions;
 }
 
 template <typename Func, typename T, typename... Args>
@@ -477,6 +478,7 @@ inline void ExpandingQuantileUpdate(const T *data, int n, T *out, T p) {
   T *buffer = new T[n];
   std::copy(data, data + n, buffer);
   *out = Quantile(buffer, p, n);
+  delete[] buffer;
 }
 
 template <typename T>
