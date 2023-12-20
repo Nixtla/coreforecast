@@ -16,10 +16,14 @@ jobs:
           python-version: '3.10'
 
       - name: Install dependencies
-        run: pip install . lazydocs
+        run: |
+          pip install -e .
+          pip install lazydocs
 
       - name: Build docs
-        run: lazydocs . && python docs/to_mdx.py
+        run: |
+          lazydocs . || exit -1
+          python docs/to_mdx.py
 
       - name: Deploy
         if: github.event_name == 'push'
