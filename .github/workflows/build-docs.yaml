@@ -15,14 +15,11 @@ jobs:
           cache: 'pip'
           python-version: '3.10'
 
-      - name: Install dependencies
-        run: |
-          pip install -e .
-          pip install lazydocs
-
       - name: Build docs
         run: |
-          lazydocs . || exit -1
+          python -m pip install --upgrade pip
+          pip install . lazydocs
+          lazydocs .
           python docs/to_mdx.py
 
       - name: Deploy
