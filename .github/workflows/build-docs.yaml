@@ -16,9 +16,8 @@ jobs:
 
       - name: Build docs
         run: |
-          python -m pip install --upgrade pip
           pip install . lazydocs
-          lazydocs .
+          lazydocs .coreforecast
           python docs/to_mdx.py
 
       - name: Deploy
