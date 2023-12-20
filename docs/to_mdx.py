@@ -1,5 +1,4 @@
 import re
-import shutil
 from pathlib import Path
 
 comment_pat = re.compile(r"<!--.*?-->", re.DOTALL)
@@ -16,4 +15,11 @@ for file in Path("docs").glob("*.md"):
     output_file.write_text(text)
 
 # copy readme
-shutil.copy("README.md", output_path / "index.mdx")
+header = """---
+description: Fast implementations of common forecasting routines
+title: "coreforecast"
+---
+"""
+readme_text = Path("README.md").read_text()
+readme_text = header + readme_text
+(output_path / "index.mdx").write_text(readme_text)

@@ -1,10 +1,3 @@
----
-description: Fast implementations of common forecasting routines
-output-file: index.html
-title: "coreforecast"
-
----
-
 ## Motivation
 At Nixtla we have implemented several libraries to deal with time series data. We often have to apply some transformation over all of the series, which can prove time consuming even for simple operations like performing some kind of scaling.
 
