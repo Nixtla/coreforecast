@@ -1,0 +1,1043 @@
+
+
+
+
+# <kbd>module</kbd> `coreforecast.lag_transforms`
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `Lag`
+Simple lag operator 
+
+
+
+**Args:**
+ 
+ - <b>`lag`</b> (int):  Number of periods to offset 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(lag: int)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `transform`
+
+```python
+transform(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `update`
+
+```python
+update(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `RollingMean`
+Rolling Mean 
+
+
+
+**Args:**
+ 
+ - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation. 
+ - <b>`window_size`</b> (int):  Length of the rolling window. 
+ - <b>`min_samples`</b> (int, optional):  Minimum number of samples required to compute the statistic.  If None, defaults to window_size. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(lag: int, window_size: int, min_samples: Optional[int] = None)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `transform`
+
+```python
+transform(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `update`
+
+```python
+update(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `RollingStd`
+Rolling Standard Deviation 
+
+
+
+**Args:**
+ 
+ - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation. 
+ - <b>`window_size`</b> (int):  Length of the rolling window. 
+ - <b>`min_samples`</b> (int, optional):  Minimum number of samples required to compute the statistic.  If None, defaults to window_size. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(lag: int, window_size: int, min_samples: Optional[int] = None)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `transform`
+
+```python
+transform(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `update`
+
+```python
+update(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `RollingMin`
+Rolling Minimum 
+
+
+
+**Args:**
+ 
+ - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation. 
+ - <b>`window_size`</b> (int):  Length of the rolling window. 
+ - <b>`min_samples`</b> (int, optional):  Minimum number of samples required to compute the statistic.  If None, defaults to window_size. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(lag: int, window_size: int, min_samples: Optional[int] = None)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `transform`
+
+```python
+transform(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `update`
+
+```python
+update(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `RollingMax`
+Rolling Maximum 
+
+
+
+**Args:**
+ 
+ - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation. 
+ - <b>`window_size`</b> (int):  Length of the rolling window. 
+ - <b>`min_samples`</b> (int, optional):  Minimum number of samples required to compute the statistic.  If None, defaults to window_size. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(lag: int, window_size: int, min_samples: Optional[int] = None)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `transform`
+
+```python
+transform(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `update`
+
+```python
+update(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `RollingQuantile`
+Rolling quantile 
+
+
+
+**Args:**
+ 
+ - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation 
+ - <b>`p`</b> (float):  Quantile to compute 
+ - <b>`window_size`</b> (int):  Length of the rolling window 
+ - <b>`min_samples`</b> (int, optional):  Minimum number of samples required to compute the statistic.  If None, defaults to window_size. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    lag: int,
+    p: float,
+    window_size: int,
+    min_samples: Optional[int] = None
+)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `transform`
+
+```python
+transform(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `update`
+
+```python
+update(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `SeasonalRollingMean`
+Seasonal rolling Mean 
+
+
+
+**Args:**
+ 
+ - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation 
+ - <b>`season_length`</b> (int):  Length of the seasonal period, e.g. 7 for weekly data 
+ - <b>`window_size`</b> (int):  Length of the rolling window 
+ - <b>`min_samples`</b> (int, optional):  Minimum number of samples required to compute the statistic.  If None, defaults to window_size. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    lag: int,
+    season_length: int,
+    window_size: int,
+    min_samples: Optional[int] = None
+)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `transform`
+
+```python
+transform(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `update`
+
+```python
+update(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `SeasonalRollingStd`
+Seasonal rolling Standard Deviation 
+
+
+
+**Args:**
+ 
+ - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation 
+ - <b>`season_length`</b> (int):  Length of the seasonal period, e.g. 7 for weekly data 
+ - <b>`window_size`</b> (int):  Length of the rolling window 
+ - <b>`min_samples`</b> (int, optional):  Minimum number of samples required to compute the statistic.  If None, defaults to window_size. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    lag: int,
+    season_length: int,
+    window_size: int,
+    min_samples: Optional[int] = None
+)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `transform`
+
+```python
+transform(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `update`
+
+```python
+update(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `SeasonalRollingMin`
+Seasonal rolling Minimum 
+
+
+
+**Args:**
+ 
+ - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation 
+ - <b>`season_length`</b> (int):  Length of the seasonal period, e.g. 7 for weekly data 
+ - <b>`window_size`</b> (int):  Length of the rolling window 
+ - <b>`min_samples`</b> (int, optional):  Minimum number of samples required to compute the statistic.  If None, defaults to window_size. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    lag: int,
+    season_length: int,
+    window_size: int,
+    min_samples: Optional[int] = None
+)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `transform`
+
+```python
+transform(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `update`
+
+```python
+update(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `SeasonalRollingMax`
+Seasonal rolling Maximum 
+
+
+
+**Args:**
+ 
+ - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation 
+ - <b>`season_length`</b> (int):  Length of the seasonal period, e.g. 7 for weekly data 
+ - <b>`window_size`</b> (int):  Length of the rolling window 
+ - <b>`min_samples`</b> (int, optional):  Minimum number of samples required to compute the statistic.  If None, defaults to window_size. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    lag: int,
+    season_length: int,
+    window_size: int,
+    min_samples: Optional[int] = None
+)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `transform`
+
+```python
+transform(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `update`
+
+```python
+update(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `SeasonalRollingQuantile`
+Seasonal rolling statistic 
+
+
+
+**Args:**
+ 
+ - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation 
+ - <b>`p`</b> (float):  Quantile to compute 
+ - <b>`season_length`</b> (int):  Length of the seasonal period, e.g. 7 for weekly data 
+ - <b>`window_size`</b> (int):  Length of the rolling window 
+ - <b>`min_samples`</b> (int, optional):  Minimum number of samples required to compute the statistic.  If None, defaults to window_size. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    lag: int,
+    p: float,
+    season_length: int,
+    window_size: int,
+    min_samples: Optional[int] = None
+)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `transform`
+
+```python
+transform(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `update`
+
+```python
+update(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `ExpandingMean`
+Expanding Mean 
+
+
+
+**Args:**
+ 
+ - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(lag: int)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `transform`
+
+```python
+transform(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `update`
+
+```python
+update(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `ExpandingStd`
+Expanding Standard Deviation 
+
+
+
+**Args:**
+ 
+ - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(lag: int)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `transform`
+
+```python
+transform(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `update`
+
+```python
+update(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `ExpandingMin`
+Expanding Minimum 
+
+
+
+**Args:**
+ 
+ - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(lag: int)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `transform`
+
+```python
+transform(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `update`
+
+```python
+update(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `ExpandingMax`
+Expanding Maximum 
+
+
+
+**Args:**
+ 
+ - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(lag: int)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `transform`
+
+```python
+transform(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `update`
+
+```python
+update(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `ExpandingQuantile`
+Expanding quantile 
+
+
+
+**Args:**
+  lag (int):  Number of periods to offset by before applying the transformation  p (float):  Quantile to compute 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(lag: int, p: float)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `transform`
+
+```python
+transform(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `update`
+
+```python
+update(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `ExponentiallyWeightedMean`
+Exponentially weighted mean 
+
+
+
+**Args:**
+ 
+ - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation 
+ - <b>`alpha`</b> (float):  Smoothing factor 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(lag: int, alpha: float)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `transform`
+
+```python
+transform(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `update`
+
+```python
+update(ga: GroupedArray) → ndarray
+```
+
+
+
+
+
+
+
+
+---
+
+_This file was automatically generated via [lazydocs](https://github.com/ml-tooling/lazydocs)._

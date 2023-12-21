@@ -1,0 +1,283 @@
+
+
+
+
+# <kbd>module</kbd> `coreforecast.scalers`
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `LocalMinMaxScaler`
+Scale each group to the [0, 1] interval 
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `fit`
+
+```python
+fit(ga: GroupedArray) → _BaseLocalScaler
+```
+
+Compute the statistics for each group. 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`self`</b>:  The fitted scaler object. 
+
+---
+
+
+
+### <kbd>method</kbd> `inverse_transform`
+
+```python
+inverse_transform(ga: GroupedArray) → ndarray
+```
+
+Use the computed statistics to invert the transformation. 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Array with the inverted transformation. 
+
+---
+
+
+
+### <kbd>method</kbd> `transform`
+
+```python
+transform(ga: GroupedArray) → ndarray
+```
+
+Use the computed statistics to apply the transformation. 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Array with the transformed data. 
+
+
+---
+
+
+
+## <kbd>class</kbd> `LocalStandardScaler`
+Scale each group to have zero mean and unit variance 
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `fit`
+
+```python
+fit(ga: GroupedArray) → _BaseLocalScaler
+```
+
+Compute the statistics for each group. 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`self`</b>:  The fitted scaler object. 
+
+---
+
+
+
+### <kbd>method</kbd> `inverse_transform`
+
+```python
+inverse_transform(ga: GroupedArray) → ndarray
+```
+
+Use the computed statistics to invert the transformation. 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Array with the inverted transformation. 
+
+---
+
+
+
+### <kbd>method</kbd> `transform`
+
+```python
+transform(ga: GroupedArray) → ndarray
+```
+
+Use the computed statistics to apply the transformation. 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Array with the transformed data. 
+
+
+---
+
+
+
+## <kbd>class</kbd> `LocalRobustScaler`
+Scale each group using robust statistics 
+
+
+
+**Args:**
+ 
+ - <b>`scale`</b> (str):  Type of robust scaling to use. Valid options are 'iqr' and 'mad'.  If 'iqr' will use the inter quartile range as the scale.  If 'mad' will use median absolute deviation as the scale. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(scale: str)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `fit`
+
+```python
+fit(ga: GroupedArray) → _BaseLocalScaler
+```
+
+Compute the statistics for each group. 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`self`</b>:  The fitted scaler object. 
+
+---
+
+
+
+### <kbd>method</kbd> `inverse_transform`
+
+```python
+inverse_transform(ga: GroupedArray) → ndarray
+```
+
+Use the computed statistics to invert the transformation. 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Array with the inverted transformation. 
+
+---
+
+
+
+### <kbd>method</kbd> `transform`
+
+```python
+transform(ga: GroupedArray) → ndarray
+```
+
+Use the computed statistics to apply the transformation. 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Array with the transformed data. 
+
+
+
+
+---
+
+_This file was automatically generated via [lazydocs](https://github.com/ml-tooling/lazydocs)._
