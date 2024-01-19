@@ -1,7 +1,5 @@
-#include "export.h"
-#include "grouped_array.h"
+#include "grouped_array_functions.h"
 
-extern "C" {
 DLL_EXPORT int GroupedArrayFloat32_Create(const float *data, indptr_t n_data,
                                           indptr_t *indptr, indptr_t n_indptr,
                                           int num_threads,
@@ -36,5 +34,4 @@ int GroupedArrayFloat64_TakeFromGroups(GroupedArrayHandle handle, int k,
   auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
   ga->Reduce(TakeFromGroups<double>, 1, out, 0, k);
   return 0;
-}
 }
