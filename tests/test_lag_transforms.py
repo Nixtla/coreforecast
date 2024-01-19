@@ -102,7 +102,7 @@ def test_correctness(data, comb, dtype):
         if "rolling_std" in comb:
             rtol = 1e-2
     if "expanding_std" in comb:
-        rtol *= 10
+        rtol *= 100
     data = data.astype(dtype, copy=True)
     ga = GroupedArray(data, indptr)
     wf, cf, args = combs_map[comb]

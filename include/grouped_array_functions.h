@@ -16,6 +16,6 @@ DLL_EXPORT int GroupedArrayFloat64_Delete(GroupedArrayHandle handle);
 
 DLL_EXPORT int GroupedArrayFloat32_TakeFromGroups(GroupedArrayHandle handle,
                                                   int k, float *out);
-int GroupedArrayFloat64_TakeFromGroups(GroupedArrayHandle handle, int k,
-                                       double *out);
+DLL_EXPORT int GroupedArrayFloat64_TakeFromGroups(GroupedArrayHandle handle,
+                                                  int k, double *out);
 }
