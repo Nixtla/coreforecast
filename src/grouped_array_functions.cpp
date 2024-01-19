@@ -29,8 +29,8 @@ DLL_EXPORT int GroupedArrayFloat32_TakeFromGroups(GroupedArrayHandle handle,
   ga->Reduce(TakeFromGroups<float>, 1, out, 0, k);
   return 0;
 }
-int GroupedArrayFloat64_TakeFromGroups(GroupedArrayHandle handle, int k,
-                                       double *out) {
+DLL_EXPORT int GroupedArrayFloat64_TakeFromGroups(GroupedArrayHandle handle,
+                                                  int k, double *out) {
   auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
   ga->Reduce(TakeFromGroups<double>, 1, out, 0, k);
   return 0;
