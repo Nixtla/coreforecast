@@ -1,7 +1,9 @@
 #include "scalers.h"
+#include "brent.h"
 #include "stats.h"
 
 #include <numeric>
+#include <vector>
 
 template <typename T>
 inline T CommonScalerTransform(T data, T scale, T offset) {
@@ -29,14 +31,10 @@ inline void MinMaxScalerStats(const T *data, int n, T *stats) {
 
 template <typename T>
 inline void StandardScalerStats(const T *data, int n, T *stats) {
-  double sum = std::accumulate(data, data + n, 0.0);
-  double mean = sum / n;
-  double sum_sq = 0.0;
-  for (int i = 0; i < n; ++i) {
-    sum_sq += (data[i] - mean) * (data[i] - mean);
-  }
+  double mean = Mean(data, n);
+  double std = StandardDeviation(data, n, mean);
   stats[0] = static_cast<T>(mean);
-  stats[1] = static_cast<T>(sqrt(sum_sq / n));
+  stats[1] = static_cast<T>(std);
 }
 
 template <typename T>
@@ -63,6 +61,66 @@ inline void RobustScalerMadStats(const T *data, int n, T *stats) {
   stats[0] = median;
   stats[1] = mad;
   delete[] buffer;
+}
+
+double GuerreroCV(double lambda, const std::vector<double> &x_mean,
+                  const std::vector<double> &x_std) {
+  auto x_rat = std::vector<double>(x_std.size());
+  int start_idx = 0;
+  for (size_t i = 0; i < x_rat.size(); ++i) {
+    if (std::isnan(x_std[i])) {
+      start_idx++;
+      continue;
+    }
+    x_rat[i] = x_std[i] / std::pow(x_mean[i], 1.0 - lambda);
+  }
+  double mean = Mean(x_rat.data() + start_idx, x_rat.size() - start_idx);
+  double std = StandardDeviation(x_rat.data() + start_idx,
+                                 x_rat.size() - start_idx, mean, 1);
+  if (std::isnan(std)) {
+    return std::numeric_limits<double>::max();
+  }
+  return std / mean;
+}
+
+double BoxCoxLambda_Guerrero(const double *x, int n, int period, double lower,
+                             double upper) {
+  int n_seasons = n / period;
+  int n_full = n_seasons * period;
+  // build matrix with subseries having full periods
+  auto x_mat = std::vector<double>(n_seasons * period);
+  std::copy(x + n - n_full, x + n, x_mat.begin());
+  // means of subseries
+  auto x_mean = std::vector<double>(n_seasons, 0.0);
+  auto x_n = std::vector<int>(n_seasons, 0);
+  for (int i = 0; i < n_seasons; ++i) {
+    for (int j = 0; j < period; ++j) {
+      if (std::isnan(x_mat[i * period + j])) {
+        continue;
+      }
+      x_mean[i] += x_mat[i * period + j];
+      x_n[i]++;
+    }
+    x_mean[i] /= x_n[i];
+  }
+  // stds of subseries
+  auto x_std = std::vector<double>(x_mean.size(), 0.0);
+  for (size_t i = 0; i < x_std.size(); ++i) {
+    if (std::isnan(x_mean[i]) || x_n[i] < 2) {
+      x_std[i] = std::numeric_limits<double>::quiet_NaN();
+      continue;
+    }
+    for (int j = 0; j < period; ++j) {
+      if (std::isnan(x_mat[i * period + j])) {
+        continue;
+      }
+      double tmp = x_mat[i * period + j] - x_mean[i];
+      x_std[i] += tmp * tmp / (x_n[i] - 1);
+    }
+    x_std[i] = std::sqrt(x_std[i]);
+  }
+  double tol = std::pow(std::numeric_limits<double>::epsilon(), 0.25);
+  return Brent(GuerreroCV, lower, upper, tol, x_mean, x_std);
 }
 
 int GroupedArrayFloat32_MinMaxScalerStats(GroupedArrayHandle handle,

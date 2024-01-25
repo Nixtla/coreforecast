@@ -1,13 +1,52 @@
+import ctypes
+
 import numpy as np
 
-from .grouped_array import GroupedArray
+from .grouped_array import _LIB, GroupedArray
 
 
 __all__ = [
+    "boxcox_lambda",
     "LocalMinMaxScaler",
     "LocalStandardScaler",
     "LocalRobustScaler",
 ]
+
+
+_LIB.BoxCoxLambda_Guerrero.restype = ctypes.c_double
+
+
+def boxcox_lambda(
+    x: np.ndarray,
+    season_length: int,
+    lower: float = -1.0,
+    upper: float = 2.0,
+    method: str = "guerrero",
+) -> float:
+    """Find optimum lambda for the Box-Cox transformation
+
+    Args:
+        x (np.ndarray): Array with data to transform.
+        season_length (int): Length of the seasonal period.
+        lower (float): Lower bound for the lambda.
+        upper (float): Upper bound for the lambda.
+        method (str): Method to use. Valid options are 'guerrero'.
+
+    Returns:
+        float: Optimum lambda."""
+    if method != "guerrero":
+        raise NotImplementedError(f"Method {method} not implemented")
+    if any(x <= 0):
+        raise ValueError("All values in x must be positive")
+    if lower >= upper:
+        raise ValueError("lower must be less than upper")
+    return _LIB.BoxCoxLambda_Guerrero(
+        x.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        ctypes.c_int(x.size),
+        ctypes.c_int(season_length),
+        ctypes.c_double(lower),
+        ctypes.c_double(upper),
+    )
 
 
 class _BaseLocalScaler:

@@ -39,4 +39,7 @@ GroupedArrayFloat32_ScalerInverseTransform(GroupedArrayHandle handle,
 DLL_EXPORT int
 GroupedArrayFloat64_ScalerInverseTransform(GroupedArrayHandle handle,
                                            const double *stats, double *out);
+
+DLL_EXPORT double BoxCoxLambda_Guerrero(const double *x, int n, int period,
+                                        double lower, double upper);
 }
