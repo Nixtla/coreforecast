@@ -8,6 +8,92 @@
 
 
 
+---
+
+
+
+## <kbd>function</kbd> `boxcox_lambda`
+
+```python
+boxcox_lambda(
+    x: ndarray,
+    season_length: int,
+    lower: float = -0.9,
+    upper: float = 2.0,
+    method: str = 'guerrero'
+) → float
+```
+
+Find optimum lambda for the Box-Cox transformation (supports negative numbers) 
+
+
+
+**Args:**
+ 
+ - <b>`x`</b> (np.ndarray):  Array with data to transform. 
+ - <b>`season_length`</b> (int):  Length of the seasonal period. 
+ - <b>`lower`</b> (float):  Lower bound for the lambda. 
+ - <b>`upper`</b> (float):  Upper bound for the lambda. 
+ - <b>`method`</b> (str):  Method to use. Valid options are 'guerrero'. 
+
+
+
+**Returns:**
+ 
+ - <b>`float`</b>:  Optimum lambda. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `boxcox`
+
+```python
+boxcox(x: ndarray, lmbda: float) → ndarray
+```
+
+Apply the Box-Cox transformation 
+
+
+
+**Args:**
+ 
+ - <b>`x`</b> (np.ndarray):  Array with data to transform. 
+ - <b>`lmbda`</b> (float):  Lambda value to use. 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Array with the transformed data. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `inv_boxcox`
+
+```python
+inv_boxcox(x: ndarray, lmbda: float) → ndarray
+```
+
+Invert the Box-Cox transformation 
+
+
+
+**Args:**
+ 
+ - <b>`x`</b> (np.ndarray):  Array with data to transform. 
+ - <b>`lmbda`</b> (float):  Lambda value to use. 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Array with the inverted transformation. 
+
 
 ---
 
@@ -262,6 +348,115 @@ transform(ga: GroupedArray) → ndarray
 ```
 
 Use the computed statistics to apply the transformation. 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Array with the transformed data. 
+
+
+---
+
+
+
+## <kbd>class</kbd> `LocalBoxCoxScaler`
+Find the optimum lambda for the Box-Cox transformation by group and apply it 
+
+
+
+**Args:**
+ 
+ - <b>`season_length`</b> (int):  Length of the seasonal period. 
+ - <b>`lower`</b> (float):  Lower bound for the lambda. 
+ - <b>`upper`</b> (float):  Upper bound for the lambda. 
+ - <b>`method`</b> (str):  Method to use. Valid options are 'guerrero'. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    season_length: int,
+    lower: float = -0.9,
+    upper: float = 2.0,
+    method='guerrero'
+)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `fit`
+
+```python
+fit(ga: GroupedArray) → _BaseLocalScaler
+```
+
+Compute the statistics for each group. 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`self`</b>:  The fitted scaler object. 
+
+---
+
+
+
+### <kbd>method</kbd> `inverse_transform`
+
+```python
+inverse_transform(ga: GroupedArray) → ndarray
+```
+
+Use the computed lambdas to invert the transformation. 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Array with the inverted transformation. 
+
+---
+
+
+
+### <kbd>method</kbd> `transform`
+
+```python
+transform(ga: GroupedArray) → ndarray
+```
+
+Use the computed lambdas to apply the transformation. 
 
 
 
