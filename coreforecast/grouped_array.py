@@ -52,7 +52,7 @@ class GroupedArray:
         self.data = _ensure_float(data)
         if self.data.dtype == np.float32:
             self.prefix = "GroupedArrayFloat32"
-        elif self.data.dtype == np.float64:
+        else:
             self.prefix = "GroupedArrayFloat64"
         if indptr.dtype != np.int32:
             indptr = indptr.astype(np.int32)
@@ -323,7 +323,7 @@ class GroupedArray:
     def _boxcox_fit(
         self, season_length: int, lower: float, upper: float, method: str
     ) -> np.ndarray:
-        out = np.empty_like(self.data, shape=(len(self), 1))
+        out = np.empty_like(self.data, shape=(len(self), 2))
         _LIB[f"{self.prefix}_BoxCoxLambda{method}"](
             self._handle,
             ctypes.c_int(season_length),
@@ -331,8 +331,7 @@ class GroupedArray:
             _pyfloat_to_np_c(upper, self.data.dtype),
             _data_as_void_ptr(out),
         )
-        # dummy scales to be compatible with GroupedArray's ScalerTransform
-        return np.hstack([out, np.ones_like(out)])
+        return out
 
     def _boxcox_transform(self, stats: np.ndarray) -> np.ndarray:
         out = np.empty_like(self.data)

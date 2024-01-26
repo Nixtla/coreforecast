@@ -284,14 +284,14 @@ int GroupedArrayFloat32_BoxCoxLambdaGuerrero(GroupedArrayHandle handle,
                                              int period, float lower,
                                              float upper, float *out) {
   auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-  ga->Reduce(BoxCoxLambda_Guerrero<float>, 1, out, 0, period, lower, upper);
+  ga->Reduce(BoxCoxLambda_Guerrero<float>, 2, out, 0, period, lower, upper);
   return 0;
 }
 int GroupedArrayFloat64_BoxCoxLambdaGuerrero(GroupedArrayHandle handle,
                                              int period, double lower,
                                              double upper, double *out) {
   auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-  ga->Reduce(BoxCoxLambda_Guerrero<double>, 1, out, 0, period, lower, upper);
+  ga->Reduce(BoxCoxLambda_Guerrero<double>, 2, out, 0, period, lower, upper);
   return 0;
 }
 

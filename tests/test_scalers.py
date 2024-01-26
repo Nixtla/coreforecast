@@ -7,8 +7,8 @@ from coreforecast.scalers import (
     LocalMinMaxScaler,
     LocalRobustScaler,
     LocalStandardScaler,
-    boxcox_lambda,
     boxcox,
+    boxcox_lambda,
     inv_boxcox,
 )
 
@@ -113,7 +113,11 @@ def test_correctness(data, indptr, scaler_name, dtype):
 
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 def test_boxcox_correctness(data, indptr, dtype):
-    ga = GroupedArray(data.astype(dtype), indptr)
+    data = data.astype(dtype, copy=True)
+    # introduce some nans
+    for i in [1, 90, 177]:
+        data[indptr[i] : indptr[i] + 19] = np.nan
+    ga = GroupedArray(data, indptr)
     sc = LocalBoxCoxScaler(season_length=10)
     sc.fit(ga)
     transformed = sc.transform(ga)
