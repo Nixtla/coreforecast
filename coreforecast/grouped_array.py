@@ -29,8 +29,14 @@ def _data_as_void_ptr(arr: np.ndarray):
 
 def _ensure_float(x: np.ndarray) -> np.ndarray:
     if x.dtype not in (np.float32, np.float64):
-        return x.astype(np.float32)
+        x = x.astype(np.float32)
     return x
+
+
+def _pyfloat_to_np_c(x: float, t: np.dtype) -> Union[ctypes.c_float, ctypes.c_double]:
+    if t == np.float32:
+        return ctypes.c_float(x)
+    return ctypes.c_double(x)
 
 
 class GroupedArray:
@@ -310,6 +316,38 @@ class GroupedArray:
             self._handle,
             ctypes.c_int(lag),
             self._pyfloat_to_c(alpha),
+            _data_as_void_ptr(out),
+        )
+        return out
+
+    def _boxcox_fit(
+        self, season_length: int, lower: float, upper: float, method: str
+    ) -> np.ndarray:
+        out = np.empty_like(self.data, shape=(len(self), 1))
+        _LIB[f"{self.prefix}_BoxCoxLambda{method}"](
+            self._handle,
+            ctypes.c_int(season_length),
+            _pyfloat_to_np_c(lower, self.data.dtype),
+            _pyfloat_to_np_c(upper, self.data.dtype),
+            _data_as_void_ptr(out),
+        )
+        # dummy scales to be compatible with GroupedArray's ScalerTransform
+        return np.hstack([out, np.ones_like(out)])
+
+    def _boxcox_transform(self, stats: np.ndarray) -> np.ndarray:
+        out = np.empty_like(self.data)
+        _LIB[f"{self.prefix}_BoxCoxTransform"](
+            self._handle,
+            _data_as_void_ptr(stats),
+            _data_as_void_ptr(out),
+        )
+        return out
+
+    def _boxcox_inverse_transform(self, stats: np.ndarray) -> np.ndarray:
+        out = np.empty_like(self.data)
+        _LIB[f"{self.prefix}_BoxCoxInverseTransform"](
+            self._handle,
+            _data_as_void_ptr(stats),
             _data_as_void_ptr(out),
         )
         return out

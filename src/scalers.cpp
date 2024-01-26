@@ -7,12 +7,12 @@
 #include <vector>
 
 template <typename T>
-inline T CommonScalerTransform(T data, T scale, T offset) {
+inline T CommonScalerTransform(T data, T offset, T scale) {
   return (data - offset) / scale;
 }
 
 template <typename T>
-inline T CommonScalerInverseTransform(T data, T scale, T offset) {
+inline T CommonScalerInverseTransform(T data, T offset, T scale) {
   return data * scale + offset;
 }
 
@@ -88,6 +88,16 @@ T GuerreroCV(T lambda, const std::vector<T> &x_mean,
 template <typename T>
 void BoxCoxLambda_Guerrero(const T *x, int n, T *out, int period, T lower,
                            T upper) {
+  if (n <= 2 * period) {
+    *out = static_cast<T>(1.0);
+    return;
+  }
+  for (int i = 0; i < n; ++i) {
+    if (x[i] <= 0.0) {
+      lower = std::max(lower, static_cast<T>(0.0));
+      break;
+    }
+  }
   int n_seasons = n / period;
   int n_full = n_seasons * period;
   // build matrix with subseries having full periods
@@ -136,7 +146,7 @@ template <typename T> inline T BoxCoxTransform(T x, T lambda, T /*unused*/) {
   if (x > 0) {
     return std::expm1(lambda * std::log(x)) / lambda;
   }
-  return -std::expm1(-lambda * std::log(-x)) / lambda;
+  return (-std::exp(lambda * std::log(-x)) - 1) / lambda;
 }
 
 template <typename T>

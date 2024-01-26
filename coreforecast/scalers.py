@@ -1,28 +1,29 @@
 import ctypes
-from typing import Union
 
 import numpy as np
 
-from .grouped_array import _LIB, _data_as_void_ptr, _ensure_float, GroupedArray
+from .grouped_array import (
+    _LIB,
+    _data_as_void_ptr,
+    _ensure_float,
+    _pyfloat_to_np_c,
+    GroupedArray,
+)
 
 
 __all__ = [
-    "boxcox_lambda",
     "LocalBoxCoxScaler",
     "LocalMinMaxScaler",
     "LocalRobustScaler",
     "LocalStandardScaler",
+    "boxcox",
+    "boxcox_lambda",
+    "inv_boxcox"
 ]
 
 
 _LIB.Float32_BoxCoxLambdaGuerrero.restype = ctypes.c_float
 _LIB.Float64_BoxCoxLambdaGuerrero.restype = ctypes.c_double
-
-
-def _pyfloat_to_np_c(x: float, t: np.dtype) -> Union[ctypes.c_float, ctypes.c_double]:
-    if t == np.float32:
-        return ctypes.c_float(x)
-    return ctypes.c_double(x)
 
 
 def boxcox_lambda(
@@ -45,8 +46,6 @@ def boxcox_lambda(
         float: Optimum lambda."""
     if method != "guerrero":
         raise NotImplementedError(f"Method {method} not implemented")
-    if any(x <= 0):
-        raise ValueError("All values in x must be positive")
     if lower >= upper:
         raise ValueError("lower must be less than upper")
     x = _ensure_float(x)
@@ -65,6 +64,14 @@ def boxcox_lambda(
 
 
 def boxcox(x: np.ndarray, lmbda: float) -> np.ndarray:
+    """Apply the Box-Cox transformation
+
+    Args:
+        x (np.ndarray): Array with data to transform.
+        lmbda (float): Lambda value to use.
+
+    Returns:
+        np.ndarray: Array with the transformed data."""
     x = _ensure_float(x)
     if x.dtype == np.float32:
         fn = "Float32_BoxCoxTransform"
@@ -81,6 +88,14 @@ def boxcox(x: np.ndarray, lmbda: float) -> np.ndarray:
 
 
 def inv_boxcox(x: np.ndarray, lmbda: float) -> np.ndarray:
+    """Invert the Box-Cox transformation
+
+    Args:
+        x (np.ndarray): Array with data to transform.
+        lmbda (float): Lambda value to use.
+
+    Returns:
+        np.ndarray: Array with the inverted transformation."""
     x = _ensure_float(x)
     if x.dtype == np.float32:
         fn = "Float32_BoxCoxInverseTransform"
@@ -159,6 +174,14 @@ class LocalRobustScaler(_BaseLocalScaler):
 
 
 class LocalBoxCoxScaler(_BaseLocalScaler):
+    """Find the optimum lambda for the Box-Cox transformation by group and apply it
+
+    Args:
+        season_length (int): Length of the seasonal period.
+        lower (float): Lower bound for the lambda.
+        upper (float): Upper bound for the lambda.
+        method (str): Method to use. Valid options are 'guerrero'."""
+
     def __init__(
         self,
         season_length: int,
@@ -174,32 +197,34 @@ class LocalBoxCoxScaler(_BaseLocalScaler):
         self.method = method.capitalize()
 
     def fit(self, ga: GroupedArray) -> "_BaseLocalScaler":
-        self.stats = np.empty_like(ga.data, shape=(len(ga), 1))
-        _LIB[f"{ga.prefix}_BoxCoxLambda{self.method}"](
-            ga._handle,
-            ctypes.c_int(self.season_length),
-            _pyfloat_to_np_c(self.lower, ga.data.dtype),
-            _pyfloat_to_np_c(self.upper, ga.data.dtype),
-            _data_as_void_ptr(self.stats),
+        """Compute the statistics for each group.
+
+        Args:
+            ga (GroupedArray): Array with grouped data.
+
+        Returns:
+            self: The fitted scaler object."""
+        self.stats = ga._boxcox_fit(
+            self.season_length, self.lower, self.upper, self.method
         )
-        # this is to use ones as scale. I know.
-        self.stats = np.hstack([self.stats, np.ones_like(self.stats)])
         return self
 
     def transform(self, ga: GroupedArray) -> np.ndarray:
-        out = np.empty_like(ga.data)
-        _LIB[f"{ga.prefix}_BoxCoxTransform"](
-            ga._handle,
-            _data_as_void_ptr(self.stats),
-            _data_as_void_ptr(out),
-        )
-        return out
+        """Use the computed lambdas to apply the transformation.
+
+        Args:
+            ga (GroupedArray): Array with grouped data.
+
+        Returns:
+            np.ndarray: Array with the transformed data."""
+        return ga._boxcox_transform(self.stats)
 
     def inverse_transform(self, ga: GroupedArray) -> np.ndarray:
-        out = np.empty_like(ga.data)
-        _LIB[f"{ga.prefix}_BoxCoxInverseTransform"](
-            ga._handle,
-            _data_as_void_ptr(self.stats),
-            _data_as_void_ptr(out),
-        )
-        return out
+        """Use the computed lambdas to invert the transformation.
+
+        Args:
+            ga (GroupedArray): Array with grouped data.
+
+        Returns:
+            np.ndarray: Array with the inverted transformation."""
+        return ga._boxcox_inverse_transform(self.stats)
