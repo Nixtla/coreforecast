@@ -27,6 +27,12 @@ def _data_as_void_ptr(arr: np.ndarray):
     return arr.ctypes.data_as(ctypes.POINTER(ctypes.c_void_p))
 
 
+def _ensure_float(x: np.ndarray) -> np.ndarray:
+    if x.dtype not in (np.float32, np.float64):
+        return x.astype(np.float32)
+    return x
+
+
 class GroupedArray:
     """Array of grouped data
 
@@ -37,14 +43,11 @@ class GroupedArray:
 
     def __init__(self, data: np.ndarray, indptr: np.ndarray, num_threads: int = 1):
         data = np.ascontiguousarray(data, dtype=data.dtype)
-        if data.dtype == np.float32:
+        self.data = _ensure_float(data)
+        if self.data.dtype == np.float32:
             self.prefix = "GroupedArrayFloat32"
-        elif data.dtype == np.float64:
+        elif self.data.dtype == np.float64:
             self.prefix = "GroupedArrayFloat64"
-        else:
-            self.prefix = "GroupedArrayFloat32"
-            data = data.astype(np.float32)
-        self.data = data
         if indptr.dtype != np.int32:
             indptr = indptr.astype(np.int32)
         self.indptr = indptr
