@@ -18,7 +18,7 @@ __all__ = [
     "LocalStandardScaler",
     "boxcox",
     "boxcox_lambda",
-    "inv_boxcox"
+    "inv_boxcox",
 ]
 
 
@@ -33,7 +33,7 @@ def boxcox_lambda(
     upper: float = 2.0,
     method: str = "guerrero",
 ) -> float:
-    """Find optimum lambda for the Box-Cox transformation
+    """Find optimum lambda for the Box-Cox transformation (supports negative numbers)
 
     Args:
         x (np.ndarray): Array with data to transform.
