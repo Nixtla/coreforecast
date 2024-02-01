@@ -109,6 +109,16 @@ void ConditionalDifference(const T *data, int n, T *out, T *apply, int period) {
   Difference(data, n, out, period);
 }
 
+template <typename T>
+void ConditionalInvertDifference(const T *data, int n, T *out,
+                                 T *apply_and_tails, int period) {
+  if (apply_and_tails[0] == 0) {
+    std::copy(data, data + n, out);
+    return;
+  }
+  InvertDifference(data, n, out, apply_and_tails + 1, period);
+}
+
 void Float32_Difference(const float *x, indptr_t n, int d, float *out) {
   Difference<float>(x, n, out, d);
 }
@@ -195,4 +205,21 @@ void GroupedArrayFloat64_ConditionalDifference(GroupedArrayHandle handle,
   auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
   ga->TransformAndReduce(ConditionalDifference<double>, 0, out, 1, apply,
                          period);
+}
+
+void GroupedArrayFloat32_ConditionalInvertDifference(GroupedArrayHandle handle,
+                                                     int period,
+                                                     float *apply_and_tails,
+                                                     float *out) {
+  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
+  ga->TransformAndReduce(ConditionalInvertDifference<float>, 0, out, period + 1,
+                         apply_and_tails, period);
+}
+void GroupedArrayFloat64_ConditionalInvertDifference(GroupedArrayHandle handle,
+                                                     int period,
+                                                     double *apply_and_tails,
+                                                     double *out) {
+  auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
+  ga->TransformAndReduce(ConditionalInvertDifference<double>, 0, out,
+                         period + 1, apply_and_tails, period);
 }

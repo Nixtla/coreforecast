@@ -47,4 +47,10 @@ GroupedArrayFloat32_ConditionalDifference(GroupedArrayHandle handle, int period,
 DLL_EXPORT void
 GroupedArrayFloat64_ConditionalDifference(GroupedArrayHandle handle, int period,
                                           double *apply, double *out);
+
+DLL_EXPORT void GroupedArrayFloat32_ConditionalInvertDifference(
+    GroupedArrayHandle handle, int period, float *apply_and_tails, float *out);
+DLL_EXPORT void GroupedArrayFloat64_ConditionalInvertDifference(
+    GroupedArrayHandle handle, int period, double *apply_and_tails,
+    double *out);
 }

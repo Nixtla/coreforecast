@@ -35,6 +35,8 @@ class GroupedArray:
         )
 
     def with_data(self, data: np.ndarray) -> "GroupedArray":
+        data = data.astype(self.data.dtype, copy=False)
+        data = np.ascontiguousarray(data)
         return GroupedArray(data, self.indptr, self.num_threads)
 
     def __del__(self):
@@ -383,6 +385,19 @@ class GroupedArray:
             self._handle,
             ctypes.c_int(d),
             _data_as_void_ptr(mask),
+            _data_as_void_ptr(out),
+        )
+        return out
+
+    def _conditional_inv_diff(
+        self, d: int, mask: np.ndarray, tails: np.ndarray
+    ) -> np.ndarray:
+        mask_with_tails = np.hstack([mask.reshape(-1, 1), tails.reshape(-1, d)])
+        out = np.empty_like(self.data)
+        _LIB[f"{self.prefix}_ConditionalInvertDifference"](
+            self._handle,
+            ctypes.c_int(d),
+            _data_as_void_ptr(mask_with_tails),
             _data_as_void_ptr(out),
         )
         return out
