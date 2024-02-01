@@ -178,10 +178,13 @@ def test_seasonal_differences_correctness(data, indptr, dtype):
 
     with_season = np.empty_like(data)
     expected = data.copy()
-    for start, end in zip(indptr[:-1], indptr[1:]):
+    keep_as_is = np.random.choice(len(indptr) - 1, size=10, replace=False)
+    for i, (start, end) in enumerate(zip(indptr[:-1], indptr[1:])):
+        if i in keep_as_is:
+            continue
         size = end - start
         repeats = math.ceil(size / season_length)
-        seasonality = np.tile(0.38 * np.arange(season_length), repeats)
+        seasonality = np.tile(np.arange(season_length), repeats)
         with_season[start:end] = seasonality[:size] + data[start:end]
         expected[start : start + season_length] = np.nan
         expected[start + season_length : end] -= data[start : end - season_length]
