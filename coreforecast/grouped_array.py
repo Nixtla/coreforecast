@@ -79,7 +79,7 @@ class GroupedArray:
 
     def index_from_end(self, k: int) -> np.ndarray:
         out = np.empty_like(self.data, shape=len(self))
-        _LIB[f"{self.prefix}_TakeFromEnd"](
+        _LIB[f"{self.prefix}_IndexFromEnd"](
             self._handle,
             ctypes.c_int(k),
             _data_as_void_ptr(out),

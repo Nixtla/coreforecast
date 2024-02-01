@@ -1,7 +1,7 @@
 #include "grouped_array_functions.h"
 
 template <typename T>
-inline void TakeFromEnd(const T *data, int n, T *out, int k) {
+inline void IndexFromEnd(const T *data, int n, T *out, int k) {
   if (k > n) {
     *out = std::numeric_limits<T>::quiet_NaN();
   } else {
@@ -43,15 +43,16 @@ int GroupedArrayFloat64_Delete(GroupedArrayHandle handle) {
   return 0;
 }
 
-int GroupedArrayFloat32_TakeFromEnd(GroupedArrayHandle handle, int k,
-                                    float *out) {
+int GroupedArrayFloat32_IndexFromEnd(GroupedArrayHandle handle, int k,
+                                     float *out) {
   auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-  ga->Reduce(TakeFromEnd<float>, 1, out, 0, k);
+  ga->Reduce(IndexFromEnd<float>, 1, out, 0, k);
   return 0;
 }
-int GroupedArrayFloat64_Take(GroupedArrayHandle handle, int k, double *out) {
+int GroupedArrayFloat64_IndexFromEnd(GroupedArrayHandle handle, int k,
+                                     double *out) {
   auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-  ga->Reduce(TakeFromEnd<double>, 1, out, 0, k);
+  ga->Reduce(IndexFromEnd<double>, 1, out, 0, k);
   return 0;
 }
 
