@@ -47,7 +47,6 @@ archs = "all"
 build-verbosity = 3
 macos.before-build = [
     "brew install libomp",
-    "sudo xcode-select -s /Applications/Xcode_11.7.app/Contents/Developer",
     "pip install toml",
     "python scripts/disable_omp_arm64.py",
 ]
