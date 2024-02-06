@@ -133,6 +133,30 @@ Compute the statistics for each group.
 
 
 
+### <kbd>method</kbd> `fit_transform`
+
+```python
+fit_transform(ga: GroupedArray) → ndarray
+```
+
+"Compute the statistics for each group and apply the transformation. 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Array with the transformed data. 
+
+---
+
+
+
 ### <kbd>method</kbd> `inverse_transform`
 
 ```python
@@ -211,6 +235,30 @@ Compute the statistics for each group.
 **Returns:**
  
  - <b>`self`</b>:  The fitted scaler object. 
+
+---
+
+
+
+### <kbd>method</kbd> `fit_transform`
+
+```python
+fit_transform(ga: GroupedArray) → ndarray
+```
+
+"Compute the statistics for each group and apply the transformation. 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Array with the transformed data. 
 
 ---
 
@@ -312,6 +360,30 @@ Compute the statistics for each group.
 **Returns:**
  
  - <b>`self`</b>:  The fitted scaler object. 
+
+---
+
+
+
+### <kbd>method</kbd> `fit_transform`
+
+```python
+fit_transform(ga: GroupedArray) → ndarray
+```
+
+"Compute the statistics for each group and apply the transformation. 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Array with the transformed data. 
 
 ---
 
@@ -426,6 +498,30 @@ Compute the statistics for each group.
 
 
 
+### <kbd>method</kbd> `fit_transform`
+
+```python
+fit_transform(ga: GroupedArray) → ndarray
+```
+
+"Compute the statistics for each group and apply the transformation. 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Array with the transformed data. 
+
+---
+
+
+
 ### <kbd>method</kbd> `inverse_transform`
 
 ```python
@@ -469,6 +565,161 @@ Use the computed lambdas to apply the transformation.
 **Returns:**
  
  - <b>`np.ndarray`</b>:  Array with the transformed data. 
+
+
+---
+
+
+
+## <kbd>class</kbd> `AutoDifferences`
+Find and apply the optimal number of differences to each group. 
+
+
+
+**Args:**
+ 
+ - <b>`max_diffs`</b> (int):  Maximum number of differences to apply. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(max_diffs: int)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `fit_transform`
+
+```python
+fit_transform(ga: GroupedArray) → ndarray
+```
+
+Compute and apply the optimal number of differences for each group 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Array with the transformed data. 
+
+---
+
+
+
+### <kbd>method</kbd> `inverse_transform`
+
+```python
+inverse_transform(ga: GroupedArray) → ndarray
+```
+
+Invert the differences 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Array with the inverted transformation. 
+
+
+---
+
+
+
+## <kbd>class</kbd> `AutoSeasonalDifferences`
+Find and apply the optimal number of seasonal differences to each group. 
+
+
+
+**Args:**
+ 
+ - <b>`season_length`</b> (int):  Length of the seasonal period. 
+ - <b>`max_diff`</b> (int):  Maximum number of seasonal differences to apply. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(season_length: int, max_diffs: int)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `fit_transform`
+
+```python
+fit_transform(ga: GroupedArray) → ndarray
+```
+
+Compute and apply the optimal number of seasonal differences for each group 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Array with the transformed data. 
+
+---
+
+
+
+### <kbd>method</kbd> `inverse_transform`
+
+```python
+inverse_transform(ga: GroupedArray) → ndarray
+```
+
+Invert the seasonal differences 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Array with the inverted transformation. 
 
 
 

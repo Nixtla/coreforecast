@@ -1,0 +1,94 @@
+
+
+
+
+# <kbd>module</kbd> `coreforecast.differences`
+
+
+
+
+
+---
+
+
+
+## <kbd>function</kbd> `num_diffs`
+
+```python
+num_diffs(x: ndarray, max_d: int = 1) → int
+```
+
+Find the optimal number of differences 
+
+
+
+**Args:**
+ 
+ - <b>`x`</b> (np.ndarray):  Array with the time series. 
+ - <b>`max_d`</b> (int, optional):  Maximum number of differences to consider. Defaults to 1. 
+
+
+
+**Returns:**
+ 
+ - <b>`int`</b>:  Optimal number of differences. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `num_seas_diffs`
+
+```python
+num_seas_diffs(x: ndarray, season_length: int, max_d: int = 1) → int
+```
+
+Find the optimal number of seasonal differences 
+
+
+
+**Args:**
+ 
+ - <b>`x`</b> (np.ndarray):  Array with the time series. 
+ - <b>`season_length`</b> (int):  Length of the seasonal pattern. 
+ - <b>`max_d`</b> (int, optional):  Maximum number of differences to consider. Defaults to 1. 
+
+
+
+**Returns:**
+ 
+ - <b>`int`</b>:  Optimal number of seasonal differences. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `diff`
+
+```python
+diff(x: ndarray, d: int) → ndarray
+```
+
+Subtract previous values of the series 
+
+
+
+**Args:**
+ 
+ - <b>`x`</b> (np.ndarray):  Array with the time series. 
+ - <b>`d`</b> (int):  Lag to subtract 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Differenced time series. 
+
+
+
+
+---
+
+_This file was automatically generated via [lazydocs](https://github.com/ml-tooling/lazydocs)._
