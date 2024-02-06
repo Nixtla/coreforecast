@@ -181,6 +181,7 @@ def test_seasonal_differences_correctness(data, indptr, dtype):
     keep_as_is = np.random.choice(len(indptr) - 1, size=10, replace=False)
     for i, (start, end) in enumerate(zip(indptr[:-1], indptr[1:])):
         if i in keep_as_is:
+            with_season[start:end] = data[start:end]
             continue
         size = end - start
         repeats = math.ceil(size / season_length)
