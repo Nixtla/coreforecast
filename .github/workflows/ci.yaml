@@ -30,7 +30,7 @@ jobs:
             platform-id: win_amd64
           - os: macos-11
             platform-id: macosx_x86_64
-          - os: macos-latest
+          - os: macos-14
             platform-id: macosx_arm64
 
     steps:
@@ -52,7 +52,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [macos-latest, ubuntu-latest, windows-latest, macos-14]
         python-version: ['3.8', '3.9', '3.10', '3.11']
     steps:
       - name: Clone repo
