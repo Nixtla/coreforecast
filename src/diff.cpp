@@ -163,14 +163,14 @@ int Float64_NumSeasDiffs(const double *x, indptr_t n, int period, int max_d) {
   return static_cast<int>(out);
 }
 
-int Float32_Period(const float *x, size_t n, int period) {
+int Float32_Period(const float *x, size_t n, int max_lag) {
   float tmp;
-  GreatestAutocovariance(x, n, &tmp, period);
+  GreatestAutocovariance(x, n, &tmp, max_lag);
   return static_cast<int>(tmp);
 }
-int Float64_Period(const double *x, size_t n, int period) {
+int Float64_Period(const double *x, size_t n, int max_lag) {
   double tmp;
-  GreatestAutocovariance(x, n, &tmp, period);
+  GreatestAutocovariance(x, n, &tmp, max_lag);
   return static_cast<int>(tmp);
 }
 
@@ -207,13 +207,6 @@ void GroupedArrayFloat64_NumSeasDiffsPeriods(GroupedArrayHandle handle,
                                              double *periods_and_out) {
   auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
   ga->Reduce(NumSeasDiffsPeriods<double>, 2, periods_and_out, 0, max_d);
-}
-
-void GroupedArrayFloat32_NumSeasDiffsWithPeriods(GroupedArrayHandle handle,
-                                                 int max_period, int max_d,
-                                                 float *out) {
-  auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-  ga->Reduce(NumSeasDiffs<float>, 1, out, 0, max_period, max_d);
 }
 
 void GroupedArrayFloat32_Period(GroupedArrayHandle handle, size_t max_lag,

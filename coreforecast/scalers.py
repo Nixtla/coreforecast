@@ -1,5 +1,5 @@
 import ctypes
-from typing import Any, Optional, Union
+from typing import Optional
 
 import numpy as np
 
@@ -292,7 +292,7 @@ class AutoSeasonalDifferences:
         season_length (int): Length of the seasonal period.
         max_diffs (int): Maximum number of differences to apply.
         n_seasons (int | None): Number of seasons to use to determine the number of differences. Defaults to 10.
-            If `None` will use all samples, otherwise `season_length` * `n_seasons samples` will be used for the test.
+            If `None` will use all samples, otherwise `season_length` * `n_seasons` samples will be used for the test.
             Smaller values will be faster but could be less accurate.
     """
 
@@ -362,7 +362,7 @@ class AutoSeasonalityAndDifferences:
         max_season_length (int): Maximum length of the seasonal period.
         max_diffs (int): Maximum number of differences to apply.
         n_seasons (int | None): Number of seasons to use to determine the number of differences. Defaults to 10.
-            If `None` will use all samples, otherwise `max_season_length` * `n_seasons samples` will be used for the test.
+            If `None` will use all samples, otherwise `max_season_length` * `n_seasons` samples will be used for the test.
             Smaller values will be faster but could be less accurate.
     """
 
@@ -385,18 +385,18 @@ class AutoSeasonalityAndDifferences:
             np.ndarray: Array with the transformed data."""
         self.diffs_ = []
         self.tails_ = []
-        if self.n_seasons is None:
-            tails_ga = ga
-        else:
-            n_samples = self.max_season_length * self.n_seasons
-            tails_ga = GroupedArray(
-                ga._tail(n_samples),
-                np.arange(0, (len(ga) + 1) * n_samples, n_samples),
-                num_threads=ga.num_threads,
-            )
         transformed = ga.data.copy()
         for i in range(self.max_diffs):
             ga = ga.with_data(transformed)
+            if self.n_seasons is None:
+                tails_ga = ga
+            else:
+                n_samples = self.max_season_length * self.n_seasons
+                tails_ga = GroupedArray(
+                    ga._tail(n_samples),
+                    np.arange(0, (len(ga) + 1) * n_samples, n_samples),
+                    num_threads=ga.num_threads,
+                )
             periods = tails_ga._periods(self.max_season_length)
             self.diffs_.append(periods * tails_ga._num_seas_diffs_periods(1, periods))
             self.tails_.append(ga._tails(self.max_season_length, self.diffs_[i]))

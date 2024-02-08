@@ -56,8 +56,3 @@ template <typename T> inline T Dot(const T *x, const T *y, size_t n) {
   }
   return result;
 }
-
-template <typename T>
-inline T Autocovariance(const T *x, size_t n, size_t lag) {
-  return Dot(x, x + lag, n - lag);
-}
