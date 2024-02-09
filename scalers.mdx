@@ -656,14 +656,15 @@ Find and apply the optimal number of seasonal differences to each group.
 **Args:**
  
  - <b>`season_length`</b> (int):  Length of the seasonal period. 
- - <b>`max_diff`</b> (int):  Maximum number of seasonal differences to apply. 
+ - <b>`max_diffs`</b> (int):  Maximum number of differences to apply. 
+ - <b>`n_seasons`</b> (int | None):  Number of seasons to use to determine the number of differences. Defaults to 10.  If `None` will use all samples, otherwise `season_length` * `n_seasons` samples will be used for the test.  Smaller values will be faster but could be less accurate. 
 
 
 
 ### <kbd>method</kbd> `__init__`
 
 ```python
-__init__(season_length: int, max_diffs: int)
+__init__(season_length: int, max_diffs: int, n_seasons: Optional[int] = 10)
 ```
 
 
@@ -684,6 +685,85 @@ fit_transform(ga: GroupedArray) → ndarray
 ```
 
 Compute and apply the optimal number of seasonal differences for each group 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Array with the transformed data. 
+
+---
+
+
+
+### <kbd>method</kbd> `inverse_transform`
+
+```python
+inverse_transform(ga: GroupedArray) → ndarray
+```
+
+Invert the seasonal differences 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Array with the inverted transformation. 
+
+
+---
+
+
+
+## <kbd>class</kbd> `AutoSeasonalityAndDifferences`
+Find the length of the seasonal period and apply the optimal number of differences to each group. 
+
+
+
+**Args:**
+ 
+ - <b>`max_season_length`</b> (int):  Maximum length of the seasonal period. 
+ - <b>`max_diffs`</b> (int):  Maximum number of differences to apply. 
+ - <b>`n_seasons`</b> (int | None):  Number of seasons to use to determine the number of differences. Defaults to 10.  If `None` will use all samples, otherwise `max_season_length` * `n_seasons` samples will be used for the test.  Smaller values will be faster but could be less accurate. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(max_season_length: int, max_diffs: int, n_seasons: Optional[int] = 10)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `fit_transform`
+
+```python
+fit_transform(ga: GroupedArray) → ndarray
+```
+
+Compute the optimal length of the seasonal period and apply the optimal number of differences for each group 
 
 
 
