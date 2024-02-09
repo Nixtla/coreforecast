@@ -241,6 +241,15 @@ def test_seasonality_and_differences_correctness():
     ga = GroupedArray(np.hstack([x, x]), np.array([0, x.size, 2 * x.size]))
     diffed = sc.fit_transform(ga)
     np.testing.assert_allclose(diffed, np.hstack([z, z]))
+    min_period = min(seasonal_periods)
+    zeros_ga = GroupedArray(
+        np.zeros(2 * min_period), np.array([0, min_period, 2 * min_period])
+    )
+    inv_transformed = sc.inverse_transform(zeros_ga)
+    inv_ga = zeros_ga._with_data(inv_transformed)
+    actual = np.hstack([inv_ga[0][:min_period], inv_ga[1][:min_period]])
+    expected = x[-period1:][:min_period] + y[-period2:][:min_period]
+    np.testing.assert_allclose(actual, np.hstack([expected, expected]))
 
 
 @pytest.mark.parametrize("scaler_name", scalers)

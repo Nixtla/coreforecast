@@ -34,7 +34,7 @@ class GroupedArray:
             ctypes.byref(self._handle),
         )
 
-    def with_data(self, data: np.ndarray) -> "GroupedArray":
+    def _with_data(self, data: np.ndarray) -> "GroupedArray":
         data = data.astype(self.data.dtype, copy=False)
         data = np.ascontiguousarray(data)
         return GroupedArray(data, self.indptr, self.num_threads)
@@ -79,7 +79,7 @@ class GroupedArray:
         )
         return out
 
-    def index_from_end(self, k: int) -> np.ndarray:
+    def _index_from_end(self, k: int) -> np.ndarray:
         out = np.empty_like(self.data, shape=len(self))
         _LIB[f"{self.prefix}_IndexFromEnd"](
             self._handle,

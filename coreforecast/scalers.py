@@ -261,7 +261,7 @@ class AutoDifferences:
         transformed = ga.data.copy()
         dtype = ga.data.dtype.type
         for i in range(max_d):
-            ga = ga.with_data(transformed)
+            ga = ga._with_data(transformed)
             self.tails_.append(ga._tail(1))
             mask = np.where(self.diffs_ > i, dtype(1), dtype(0))
             transformed = ga._conditional_diff(1, mask)
@@ -279,7 +279,7 @@ class AutoDifferences:
         n_diffs = len(self.tails_)
         dtype = ga.data.dtype.type
         for i, tails in enumerate(self.tails_[::-1]):
-            ga = ga.with_data(transformed)
+            ga = ga._with_data(transformed)
             mask = np.where(self.diffs_ >= n_diffs - i, dtype(1), dtype(0))
             transformed = ga._conditional_inv_diff(1, mask, tails)
         return transformed
@@ -331,7 +331,7 @@ class AutoSeasonalDifferences:
         dtype = ga.data.dtype.type
         transformed = ga.data.copy()
         for i in range(max_d):
-            ga = ga.with_data(transformed)
+            ga = ga._with_data(transformed)
             self.tails_.append(ga._tail(self.season_length))
             mask = np.where(self.diffs_ > i, dtype(1), dtype(0))
             transformed = ga._conditional_diff(self.season_length, mask)
@@ -349,7 +349,7 @@ class AutoSeasonalDifferences:
         n_diffs = len(self.tails_)
         dtype = ga.data.dtype.type
         for i, tails in enumerate(self.tails_[::-1]):
-            ga = ga.with_data(transformed)
+            ga = ga._with_data(transformed)
             mask = np.where(self.diffs_ >= (n_diffs - i), dtype(1), dtype(0))
             transformed = ga._conditional_inv_diff(self.season_length, mask, tails)
         return transformed
@@ -387,7 +387,7 @@ class AutoSeasonalityAndDifferences:
         self.tails_ = []
         transformed = ga.data.copy()
         for i in range(self.max_diffs):
-            ga = ga.with_data(transformed)
+            ga = ga._with_data(transformed)
             if self.n_seasons is None:
                 tails_ga = ga
             else:
@@ -413,6 +413,6 @@ class AutoSeasonalityAndDifferences:
             np.ndarray: Array with the inverted transformation."""
         transformed = ga.data.copy()
         for diffs, tails in zip(self.diffs_[::-1], self.tails_[::-1]):
-            ga = ga.with_data(transformed)
+            ga = ga._with_data(transformed)
             transformed = ga._inv_diffs(self.max_season_length, diffs, tails)
         return transformed
