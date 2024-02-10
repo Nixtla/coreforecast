@@ -1,8 +1,9 @@
+import ctypes
 from typing import Union
 
-import ctypes
-
 import numpy as np
+
+from ._lib import _indptr_dtype
 
 
 def _data_as_void_ptr(arr: np.ndarray):
