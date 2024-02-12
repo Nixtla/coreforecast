@@ -7,6 +7,7 @@ from ._lib import _LIB, _indptr_dtype
 from .grouped_array import GroupedArray
 from .utils import (
     _data_as_void_ptr,
+    _diffs_to_indptr,
     _ensure_float,
     _float_arr_to_prefix,
     _pyfloat_to_np_c,
@@ -258,8 +259,8 @@ class AutoDifferences:
             ga = ga._with_data(transformed)
             mask = self.diffs_ > i
             ds = np.where(mask, _indptr_dtype(season_length), _indptr_dtype(0))
-            tails_indptr = np.append(_indptr_dtype(0), ds.cumsum(dtype=_indptr_dtype))
-            self.tails_.append(ga._slices_from_end(tails_indptr))
+            tails_indptr = _diffs_to_indptr(ds)
+            self.tails_.append(ga._tails(tails_indptr))
             transformed = ga._diffs(ds)
         return transformed
 
@@ -310,9 +311,7 @@ class AutoDifferences:
                 self.diffs_ > i, _indptr_dtype(season_length), _indptr_dtype(0)
             )
             combined_transformed = combined._diffs(ds)
-            transformed = combined._with_data(combined_transformed)._slices_from_end(
-                ga.indptr
-            )
+            transformed = combined._with_data(combined_transformed)._tails(ga.indptr)
         self.tails_ = new_tails
         return transformed
 
@@ -411,12 +410,6 @@ class AutoSeasonalityAndDifferences:
             raise ValueError("n_seasons must be at least 2")
         self.n_seasons = n_seasons
 
-    def _diffs_to_indptr(self, diffs: np.ndarray) -> np.ndarray:
-        return np.append(
-            _indptr_dtype(0),
-            diffs.astype(_indptr_dtype, copy=False).cumsum(dtype=_indptr_dtype),
-        )
-
     def fit_transform(self, ga: GroupedArray) -> np.ndarray:
         """Compute the optimal length of the seasonal period and apply the optimal number of differences for each group
 
@@ -443,8 +436,8 @@ class AutoSeasonalityAndDifferences:
             diffs = periods * tails_ga._num_seas_diffs_periods(1, periods)
             diffs = diffs.astype(_indptr_dtype)
             self.diffs_.append(diffs)
-            tails_indptr = self._diffs_to_indptr(diffs)
-            self.tails_.append(ga._slices_from_end(tails_indptr))
+            tails_indptr = _diffs_to_indptr(diffs)
+            self.tails_.append(ga._tails(tails_indptr))
             transformed = ga._diffs(diffs)
         return transformed
 
@@ -467,15 +460,13 @@ class AutoSeasonalityAndDifferences:
         transformed = ga.data.copy()
         for i in range(self.max_diffs):
             ga = ga._with_data(transformed)
-            tails_indptr = self._diffs_to_indptr(self.diffs_[i])
+            tails_indptr = _diffs_to_indptr(self.diffs_[i])
             tails_ga = GroupedArray(
                 self.tails_[i], tails_indptr, num_threads=ga.num_threads
             )
             combined = tails_ga._append(ga)
-            new_tails.append(combined._slices_from_end(tails_indptr))
+            new_tails.append(combined._tails(tails_indptr))
             combined_transformed = combined._diffs(self.diffs_[i])
-            transformed = combined._with_data(combined_transformed)._slices_from_end(
-                ga.indptr
-            )
+            transformed = combined._with_data(combined_transformed)._tails(ga.indptr)
         self.tails_ = new_tails
         return transformed

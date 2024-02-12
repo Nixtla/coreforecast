@@ -9,16 +9,6 @@ inline void IndexFromEnd(const T *data, int n, T *out, int k) {
   }
 }
 
-template <typename T>
-inline void SliceFromEnd(const T *data, int n, T *out, int k) {
-  if (k > n) {
-    std::fill(out, out + k - n, std::numeric_limits<T>::quiet_NaN());
-    std::copy(data, data + n, out + k - n);
-  } else {
-    std::copy(data + n - k, data + n, out);
-  }
-}
-
 template <typename T> inline void Head(const T *data, int n, T *out, int k) {
   int m = std::min(k, n);
   std::copy(data, data + m, out);
@@ -29,12 +19,6 @@ template <typename T> inline void Tail(const T *data, int n, T *out, int k) {
   int m = std::min(k, n);
   std::fill(out, out + k - m, std::numeric_limits<T>::quiet_NaN());
   std::copy(data + n - m, data + n, out + k - m);
-}
-
-template <typename T> inline void Tails(const T *data, int n, T *k_and_out) {
-  int k = static_cast<int>(k_and_out[0]);
-  T *out = k_and_out + 1;
-  Tail(data, n, out, k);
 }
 
 template <typename T>
@@ -112,14 +96,13 @@ void GroupedArrayFloat64_Append(GroupedArrayHandle handle,
   ga->Zip(Append<double>, other, out_indptr, out_data);
 }
 
-void GroupedArrayFloat32_SlicesFromEnd(GroupedArrayHandle handle,
-                                       const indptr_t *indptr_out, float *out) {
+void GroupedArrayFloat32_Tails(GroupedArrayHandle handle,
+                               const indptr_t *indptr_out, float *out) {
   auto ga = reinterpret_cast<GroupedArray<float> *>(handle);
-  ga->VariableReduce(SliceFromEnd<float>, indptr_out, out);
+  ga->VariableReduce(Tail<float>, indptr_out, out);
 }
-void GroupedArrayFloat64_SlicesFromEnd(GroupedArrayHandle handle,
-                                       const indptr_t *indptr_out,
-                                       double *out) {
+void GroupedArrayFloat64_Tails(GroupedArrayHandle handle,
+                               const indptr_t *indptr_out, double *out) {
   auto ga = reinterpret_cast<GroupedArray<double> *>(handle);
-  ga->VariableReduce(SliceFromEnd<double>, indptr_out, out);
+  ga->VariableReduce(Tail<double>, indptr_out, out);
 }

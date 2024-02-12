@@ -103,15 +103,6 @@ class GroupedArray:
         )
         return out
 
-    def _slices_from_end(self, ks: np.ndarray) -> np.ndarray:
-        out = np.empty_like(self.data, shape=ks[-1])
-        _LIB[f"{self.prefix}_SlicesFromEnd"](
-            self._handle,
-            _data_as_void_ptr(ks),
-            _data_as_void_ptr(out),
-        )
-        return out
-
     def _head(self, k: int) -> np.ndarray:
         out = np.empty_like(self.data, shape=k * len(self))
         _LIB[f"{self.prefix}_Head"](
@@ -126,6 +117,15 @@ class GroupedArray:
         _LIB[f"{self.prefix}_Tail"](
             self._handle,
             ctypes.c_int(k),
+            _data_as_void_ptr(out),
+        )
+        return out
+
+    def _tails(self, ks: np.ndarray) -> np.ndarray:
+        out = np.empty_like(self.data, shape=ks[-1])
+        _LIB[f"{self.prefix}_Tails"](
+            self._handle,
+            _data_as_void_ptr(ks),
             _data_as_void_ptr(out),
         )
         return out
@@ -434,7 +434,7 @@ class GroupedArray:
     def _inv_diffs(self, ds: np.ndarray, tails: np.ndarray) -> np.ndarray:
         tails_indptr = np.append(
             _indptr_dtype(0),
-            ds.astype(_indptr_dtype).cumsum(),
+            ds.astype(_indptr_dtype, copy=False).cumsum(dtype=_indptr_dtype),
         )
         tails_ga = GroupedArray(tails, tails_indptr)
         out = np.empty_like(self.data)
