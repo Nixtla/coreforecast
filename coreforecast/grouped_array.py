@@ -4,7 +4,7 @@ from typing import Union
 import numpy as np
 
 from ._lib import _LIB, _indptr_dtype, _indptr_t
-from .utils import _ensure_float, _data_as_void_ptr, _pyfloat_to_np_c
+from .utils import _diffs_to_indptr, _ensure_float, _data_as_void_ptr, _pyfloat_to_np_c
 
 
 class GroupedArray:
@@ -432,10 +432,7 @@ class GroupedArray:
         return out
 
     def _inv_diffs(self, ds: np.ndarray, tails: np.ndarray) -> np.ndarray:
-        tails_indptr = np.append(
-            _indptr_dtype(0),
-            ds.astype(_indptr_dtype, copy=False).cumsum(dtype=_indptr_dtype),
-        )
+        tails_indptr = _diffs_to_indptr(ds)
         tails_ga = GroupedArray(tails, tails_indptr)
         out = np.empty_like(self.data)
         _LIB[f"{self.prefix}_InvertDifferences"](
