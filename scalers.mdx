@@ -627,6 +627,121 @@ Use the computed lambdas to apply the transformation.
 
 
 
+## <kbd>class</kbd> `Difference`
+Subtract a lag to each group 
+
+
+
+**Args:**
+ 
+ - <b>`d`</b> (int):  Lag to subtract. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(d: int)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `fit_transform`
+
+```python
+fit_transform(ga: GroupedArray) → ndarray
+```
+
+Apply the transformation 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Array with the transformed data. 
+
+---
+
+
+
+### <kbd>method</kbd> `inverse_transform`
+
+```python
+inverse_transform(ga: GroupedArray) → ndarray
+```
+
+Invert the transformation 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Array with the inverted transformation. 
+
+---
+
+
+
+### <kbd>method</kbd> `take`
+
+```python
+take(idxs: ndarray) → Difference
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `update`
+
+```python
+update(ga: GroupedArray) → ndarray
+```
+
+Update the last observations from each serie 
+
+
+
+**Args:**
+ 
+ - <b>`ga`</b> (GroupedArray):  Array with grouped data. 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Array with the updated data. 
+
+
+---
+
+
+
 ## <kbd>class</kbd> `AutoDifferences`
 Find and apply the optimal number of differences to each group. 
 
