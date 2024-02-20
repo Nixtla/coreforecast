@@ -340,7 +340,7 @@ class GroupedArray:
         return out
 
     def _boxcox_fit(
-        self, season_length: Optional[int], lower: float, upper: float, method: str
+        self, method: str, season_length: Optional[int], lower: float, upper: float
     ) -> np.ndarray:
         out = np.empty_like(self.data, shape=(len(self), 2))
         if method == "guerrero":

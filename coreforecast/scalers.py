@@ -269,7 +269,10 @@ class LocalBoxCoxScaler(_BaseLocalScaler):
         if self.method == "loglik" and any(ga.data < 0):
             raise ValueError("All values in data must be positive for method='loglik'")
         self.stats_ = ga._boxcox_fit(
-            self.season_length, self.lower, self.upper, self.method
+            method=self.method,
+            season_length=self.season_length,
+            lower=self.lower,
+            upper=self.upper,
         )
         return self
 
