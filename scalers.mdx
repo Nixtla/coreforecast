@@ -17,24 +17,24 @@
 ```python
 boxcox_lambda(
     x: ndarray,
-    season_length: int,
+    method: str,
+    season_length: Optional[int] = None,
     lower: float = -0.9,
-    upper: float = 2.0,
-    method: str = 'guerrero'
+    upper: float = 2.0
 ) → float
 ```
 
-Find optimum lambda for the Box-Cox transformation (supports negative numbers) 
+Find optimum lambda for the Box-Cox transformation 
 
 
 
 **Args:**
  
  - <b>`x`</b> (np.ndarray):  Array with data to transform. 
- - <b>`season_length`</b> (int):  Length of the seasonal period. 
+ - <b>`method`</b> (str):  Method to use. Valid options are 'guerrero' and 'loglik'.  'guerrero' minimizes the coefficient of variation for subseries of `x` and supports negative values.  'loglik' maximizes the log-likelihood function. 
+ - <b>`season_length`</b> (int, optional):  Length of the seasonal period.  Only required if method='guerrero'. 
  - <b>`lower`</b> (float):  Lower bound for the lambda. 
  - <b>`upper`</b> (float):  Upper bound for the lambda. 
- - <b>`method`</b> (str):  Method to use. Valid options are 'guerrero'. 
 
 
 
@@ -487,10 +487,10 @@ Find the optimum lambda for the Box-Cox transformation by group and apply it
 
 **Args:**
  
- - <b>`season_length`</b> (int):  Length of the seasonal period. 
+ - <b>`season_length`</b> (int, optional):  Length of the seasonal period.  Only required if method='guerrero'. 
  - <b>`lower`</b> (float):  Lower bound for the lambda. 
  - <b>`upper`</b> (float):  Upper bound for the lambda. 
- - <b>`method`</b> (str):  Method to use. Valid options are 'guerrero'. 
+ - <b>`method`</b> (str):  Method to use. Valid options are 'guerrero' and 'loglik'.  'guerrero' minimizes the coefficient of variation for subseries of `x` and supports negative values.  'loglik' maximizes the log-likelihood function. 
 
 
 
@@ -498,10 +498,10 @@ Find the optimum lambda for the Box-Cox transformation by group and apply it
 
 ```python
 __init__(
-    season_length: int,
+    method: str,
+    season_length: Optional[int] = None,
     lower: float = -0.9,
-    upper: float = 2.0,
-    method='guerrero'
+    upper: float = 2.0
 )
 ```
 
