@@ -129,13 +129,13 @@ def test_boxcox_correctness(data, indptr, dtype, method):
     if method == "loglik":
         data = np.abs(data)
     ga = GroupedArray(data, indptr)
-    sc = LocalBoxCoxScaler(season_length=10, method=method)
+    sc = LocalBoxCoxScaler(method=method, season_length=10)
     sc.fit(ga)
     transformed = sc.transform(ga)
     restored = sc.inverse_transform(GroupedArray(transformed, ga.indptr))
     atol = 5e-4 if dtype == np.float32 else 1e-8
     np.testing.assert_allclose(ga.data, restored, atol=atol)
-    lmbda = boxcox_lambda(ga[0], season_length=10, method=method)
+    lmbda = boxcox_lambda(ga[0], method=method, season_length=10)
     np.testing.assert_allclose(lmbda, sc.stats_[0, 0])
     first_grp = slice(indptr[0], indptr[1])
     first_tfm = boxcox(ga[0], lmbda)

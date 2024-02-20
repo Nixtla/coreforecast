@@ -343,7 +343,7 @@ class GroupedArray:
         self, season_length: Optional[int], lower: float, upper: float, method: str
     ) -> np.ndarray:
         out = np.empty_like(self.data, shape=(len(self), 2))
-        if method == "Guerrero":
+        if method == "guerrero":
             assert season_length is not None
             _LIB[f"{self.prefix}_BoxCoxLambdaGuerrero"](
                 self._handle,
