@@ -62,7 +62,11 @@ class _BaseLagTransform(abc.ABC):
             # transform doesn't save state, we can return any of them
             return first_tfm
         out = copy.deepcopy(first_tfm)
-        out.stats_ = np.vstack([tfm.stats_ for tfm in transforms])
+        if first_tfm.stats_.ndim == 1:
+            concat_fn = np.hstack
+        else:
+            concat_fn = np.vstack
+        out.stats_ = concat_fn([tfm.stats_ for tfm in transforms])
         return out
 
 
