@@ -165,6 +165,10 @@ def test_difference_correctness(data, indptr, dtype):
             restored_ga[i], np.tile(sc.tails_[i * d : (i + 1) * d], horizon // d)
         )
 
+    # stack
+    combined = sc.stack([sc, sc])
+    np.testing.assert_equal(combined.tails_, np.tile(sc.tails_, 2))
+
 
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 def test_differences_correctness(data, indptr, dtype):
@@ -209,6 +213,11 @@ def test_differences_correctness(data, indptr, dtype):
     updates = sc.update(new_ga)
     np.testing.assert_equal(updates, np.array([2, 1, 2, 1, 1, 1], dtype=dtype))
     np.testing.assert_equal(sc.tails_[0], np.array([7, 14], dtype=dtype))
+
+    # stack
+    combined = sc.stack([sc, sc])
+    np.testing.assert_equal(combined.diffs_, np.tile(sc.diffs_, 2))
+    np.testing.assert_equal(combined.tails_[0], np.tile(sc.tails_[0], 2))
 
 
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
@@ -271,6 +280,11 @@ def test_seasonal_differences_correctness(data, indptr, dtype):
     np.testing.assert_equal(updates, np.repeat(offset, 7))
     np.testing.assert_equal(sc.tails_[0], seasonal_x + offset)
 
+    # stack
+    combined = sc.stack([sc, sc])
+    np.testing.assert_equal(combined.diffs_, np.tile(sc.diffs_, 2))
+    np.testing.assert_equal(combined.tails_[0], np.tile(sc.tails_[0], 2))
+
 
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 def test_seasonality_and_differences_correctness(dtype):
@@ -318,6 +332,11 @@ def test_seasonality_and_differences_correctness(dtype):
     updates = sc.update(new_ga)
     np.testing.assert_equal(sc.tails_[0], np.tile(new_data[-min_period:], 2))
     np.testing.assert_allclose(updates, expected_updates)
+
+    # stack
+    combined = sc.stack([sc, sc])
+    np.testing.assert_equal(combined.diffs_[0], np.tile(sc.diffs_[0], 2))
+    np.testing.assert_equal(combined.tails_[0], np.tile(sc.tails_[0], 2))
 
 
 @pytest.mark.parametrize("scaler_name", scalers)
