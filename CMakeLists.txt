@@ -52,10 +52,27 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/jmoralez/stl-cpp.git
     GIT_TAG 13d26c0d0653ddcdbf853de3f92f56faa831a330
 )
-FetchContent_MakeAvailable(stl-cpp)
-include_directories(${stl-cpp_SOURCE_DIR}/include)
+FetchContent_GetProperties(stl-cpp)
+if(NOT stl-cpp_POPULATED)
+    FetchContent_Populate(stl-cpp)
+    include_directories(${stl-cpp_SOURCE_DIR}/include)
+endif()
+FetchContent_Declare(
+    skiplist
+    GIT_REPOSITORY https://github.com/paulross/skiplist.git
+    GIT_TAG aace571a8564067820ff7a5e34ba68d0a9782153
+)
+FetchContent_GetProperties(skiplist)
+if(NOT skiplist_POPULATED)
+    FetchContent_Populate(skiplist)
+    file(GLOB SKIPLIST_SOURCES ${skiplist_SOURCE_DIR}/src/cpp/*.cpp)
+    add_library(skiplist ${SKIPLIST_SOURCES})
+    target_include_directories(skiplist PUBLIC ${skiplist_SOURCE_DIR}/src/cpp)
+    set_source_files_properties(${SKIPLIST_SOURCES} PROPERTIES COMPILE_FLAGS -Wno-unknown-pragmas)
+endif()
 file(GLOB SOURCES src/*.cpp)
 add_library(coreforecast SHARED ${SOURCES})
+target_link_libraries(coreforecast skiplist)
 if(MSVC)
     set_target_properties(coreforecast PROPERTIES OUTPUT_NAME "libcoreforecast")
 endif()
