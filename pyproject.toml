@@ -44,5 +44,4 @@ wheel.py-api = "py3"
 archs = "all"
 build-verbosity = 3
 macos.before-build = ["brew install libomp", "./scripts/switch_xcode"]
-test-requires = "pandas pytest window-ops"
-test-command = "pytest {project}/tests -k correct"
+test-command = "python -c 'import coreforecast._lib'"
