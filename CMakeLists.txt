@@ -48,7 +48,7 @@ endif()
 if(SKBUILD)
     set(LIBRARY_OUTPUT_PATH ${SKBUILD_PLATLIB_DIR}/coreforecast/lib)
 else()
-    set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/coreforecast/lib)
+    set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/python/coreforecast/lib)
 endif()
 
 include_directories(include)
