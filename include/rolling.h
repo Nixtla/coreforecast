@@ -101,18 +101,18 @@ template <typename T, typename Comp>
 inline void RollingCompTransform(const T *data, int n, T *out, int window_size,
                                  int min_samples) {
   int upper_limit = std::min(window_size, n);
-  SortedDeque<T, Comp> queue(window_size);
+  SortedDeque<T, Comp> sdeque(window_size);
   for (int i = 0; i < upper_limit - 1; ++i) {
-    queue.Update(data[i]);
+    sdeque.Update(data[i]);
     if (i + 1 < min_samples) {
       out[i] = std::numeric_limits<T>::quiet_NaN();
     } else {
-      out[i] = queue.Get();
+      out[i] = sdeque.Get();
     }
   }
   for (int i = upper_limit - 1; i < n; ++i) {
-    queue.Update(data[i]);
-    out[i] = queue.Get();
+    sdeque.Update(data[i]);
+    out[i] = sdeque.Get();
   }
 }
 
