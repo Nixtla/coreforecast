@@ -77,7 +77,7 @@ template <typename T> struct ValWithIdx {
 template <typename T, typename Comp> class SortedDeque {
 public:
   SortedDeque(int window_size, Comp comp = Comp())
-      : window_size_(window_size), i_(-1), comp_(comp) {}
+      : window_size_(window_size), comp_(comp) {}
   void Update(T x) {
     while (!buffer_.empty() && comp_(buffer_.back().val, x)) {
       buffer_.pop_back();
@@ -93,7 +93,7 @@ public:
 private:
   std::deque<ValWithIdx<T>> buffer_;
   int window_size_;
-  int i_;
+  int i_ = -1;
   Comp comp_;
 };
 
