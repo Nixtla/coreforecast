@@ -88,7 +88,7 @@ public:
       buffer_.pop_front();
     }
   }
-  T Get() const noexcept { return buffer_.front().val; }
+  T Get() const { return buffer_.front().val; }
 
 private:
   std::deque<ValWithIdx<T>> buffer_;
