@@ -78,7 +78,8 @@ public:
       buffer_.pop_back();
     }
     ++i_;
-    buffer_.push_back({x, window_size_ + i_});
+    std::pair<T, int> pair = std::make_pair(x, window_size_ + i_);
+    buffer_.push_back(pair);
     if (buffer_.front().second <= i_) {
       buffer_.pop_front();
     }
