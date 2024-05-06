@@ -83,7 +83,8 @@ public:
       buffer_.pop_back();
     }
     ++i_;
-    buffer_.push_back({x, window_size_ + i_});
+    ValWithIdx<T> val_with_idx = {x, window_size_ + i_};
+    buffer_.push_back(val_with_idx);
     if (buffer_.front().idx <= i_) {
       buffer_.pop_front();
     }
