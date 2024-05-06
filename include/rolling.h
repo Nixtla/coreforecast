@@ -5,7 +5,7 @@
 #include "grouped_array.h"
 #include "stats.h"
 
-#include <deque>
+#include <list>
 
 template <typename T>
 inline void RollingMeanTransform(const T *data, int n, T *out, int window_size,
@@ -86,7 +86,7 @@ public:
   T Get() const { return buffer_.front().second; }
 
 private:
-  std::deque<std::pair<int, T>> buffer_;
+  std::list<std::pair<int, T>> buffer_;
   int window_size_;
   int i_ = -1;
   Comp comp_;
