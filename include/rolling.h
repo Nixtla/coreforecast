@@ -74,16 +74,16 @@ public:
   SortedDeque(int window_size, Comp comp = Comp())
       : window_size_(window_size), comp_(comp) {}
   void Update(T x) {
-    while (!buffer_.empty() && comp_(buffer_.back().val, x)) {
+    while (!buffer_.empty() && comp_(buffer_.back().first, x)) {
       buffer_.pop_back();
     }
     ++i_;
     buffer_.push_back({x, window_size_ + i_});
-    if (buffer_.front().idx <= i_) {
+    if (buffer_.front().second <= i_) {
       buffer_.pop_front();
     }
   }
-  T Get() const { return buffer_.front().val; }
+  T Get() const { return buffer_.front().first; }
 
 private:
   std::deque<std::pair<T, int>> buffer_;
