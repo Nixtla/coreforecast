@@ -5,6 +5,8 @@
 #include "grouped_array.h"
 #include "stats.h"
 
+#include <deque>
+
 template <typename T>
 inline void RollingMeanTransform(const T *data, int n, T *out, int window_size,
                                  int min_samples) {
@@ -67,45 +69,66 @@ inline void RollingStdTransform(const T *data, int n, T *out, int window_size,
                                min_samples);
 }
 
-template <typename Func, typename T>
-inline void RollingCompTransform(Func Comp, const T *data, int n, T *out,
-                                 int window_size, int min_samples) {
-  int upper_limit = std::min(window_size, n);
-  T pivot = data[0];
-  for (int i = 0; i < upper_limit; ++i) {
-    if (Comp(data[i], pivot)) {
-      pivot = data[i];
+template <typename T> struct ValWithIdx {
+  T val;
+  int idx;
+};
+
+template <typename T, typename Comp> class SortedDeque {
+public:
+  SortedDeque(int window_size, Comp comp = Comp())
+      : window_size_(window_size), i_(-1), comp_(comp) {}
+  void Update(T x) {
+    while (!buffer_.empty() && comp_(buffer_.back().val, x)) {
+      buffer_.pop_back();
     }
+    ++i_;
+    buffer_.push_back({x, window_size_ + i_});
+    if (buffer_.front().idx <= i_) {
+      buffer_.pop_front();
+    }
+  }
+  T Get() const noexcept { return buffer_.front().val; }
+
+private:
+  std::deque<ValWithIdx<T>> buffer_;
+  int window_size_;
+  int i_;
+  Comp comp_;
+};
+
+template <typename T, typename Comp>
+inline void RollingCompTransform(const T *data, int n, T *out, int window_size,
+                                 int min_samples) {
+  int upper_limit = std::min(window_size, n);
+  SortedDeque<T, Comp> queue(window_size);
+  for (int i = 0; i < upper_limit - 1; ++i) {
+    queue.Update(data[i]);
     if (i + 1 < min_samples) {
       out[i] = std::numeric_limits<T>::quiet_NaN();
     } else {
-      out[i] = pivot;
+      out[i] = queue.Get();
     }
   }
-  for (int i = window_size; i < n; ++i) {
-    pivot = data[i];
-    for (int j = 0; j < window_size; ++j) {
-      if (Comp(data[i - j], pivot)) {
-        pivot = data[i - j];
-      }
-    }
-    out[i] = pivot;
+  for (int i = upper_limit - 1; i < n; ++i) {
+    queue.Update(data[i]);
+    out[i] = queue.Get();
   }
 }
 
 template <typename T> struct RollingMinTransform {
   void operator()(const T *data, int n, T *out, int window_size,
                   int min_samples) {
-    RollingCompTransform(std::less<T>(), data, n, out, window_size,
-                         min_samples);
+    RollingCompTransform<T, std::greater_equal<T>>(data, n, out, window_size,
+                                                   min_samples);
   }
 };
 
 template <typename T> struct RollingMaxTransform {
   void operator()(const T *data, int n, T *out, int window_size,
-                  int min_samples) const {
-    RollingCompTransform(std::greater<T>(), data, n, out, window_size,
-                         min_samples);
+                  int min_samples) {
+    RollingCompTransform<T, std::less_equal<T>>(data, n, out, window_size,
+                                                min_samples);
   }
 };
 
