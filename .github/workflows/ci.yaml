@@ -23,16 +23,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-20.04
-            platform-id: manylinux_x86_64
-          - os: ubuntu-20.04
-            platform-id: manylinux_aarch64
+          # - os: ubuntu-20.04
+          #   platform-id: manylinux_x86_64
+          # - os: ubuntu-20.04
+          #   platform-id: manylinux_aarch64
           - os: windows-2019
             platform-id: win_amd64
-          - os: macos-11
-            platform-id: macosx_x86_64
-          - os: macos-14
-            platform-id: macosx_arm64
+          # - os: macos-11
+          #   platform-id: macosx_x86_64
+          # - os: macos-14
+          #   platform-id: macosx_arm64
 
     steps:
       - uses: actions/checkout@v4
@@ -59,7 +59,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, ubuntu-latest, windows-latest]
+        # os: [macos-13, ubuntu-latest, windows-latest]
+        os: [windows-latest]
         python-version: ['3.8', '3.9', '3.10', '3.11']
     steps:
       - name: Clone repo
