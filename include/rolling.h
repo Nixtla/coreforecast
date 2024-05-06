@@ -69,11 +69,6 @@ inline void RollingStdTransform(const T *data, int n, T *out, int window_size,
                                min_samples);
 }
 
-template <typename T> struct ValWithIdx {
-  T val;
-  int idx;
-};
-
 template <typename T, typename Comp> class SortedDeque {
 public:
   SortedDeque(int window_size, Comp comp = Comp())
@@ -83,8 +78,7 @@ public:
       buffer_.pop_back();
     }
     ++i_;
-    ValWithIdx<T> val_with_idx = {x, window_size_ + i_};
-    buffer_.push_back(val_with_idx);
+    buffer_.push_back({x, window_size_ + i_});
     if (buffer_.front().idx <= i_) {
       buffer_.pop_front();
     }
@@ -92,7 +86,7 @@ public:
   T Get() const { return buffer_.front().val; }
 
 private:
-  std::deque<ValWithIdx<T>> buffer_;
+  std::deque<std::pair<T, int>> buffer_;
   int window_size_;
   int i_ = -1;
   Comp comp_;
