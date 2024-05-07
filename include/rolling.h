@@ -128,7 +128,7 @@ private:
   int window_size_;
   int head_ = 0;
   int tail_ = -1;
-  int i_ = -1;
+  int i_ = 0;
   Comp comp_;
 };
 
