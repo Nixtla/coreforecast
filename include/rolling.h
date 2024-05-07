@@ -75,7 +75,6 @@ public:
   }
   inline bool empty() const noexcept { return tail_ == -1; }
   inline void push_back(int i, T x) noexcept {
-    // tail_ = (tail_ + 1) % window_size_;
     if (tail_ == -1) {
       head_ = 0;
       tail_ = 0;
@@ -95,9 +94,6 @@ public:
     } else {
       --tail_;
     }
-    // } else {
-    //   tail_ = (tail_ - 1 + window_size_) % window_size_;
-    // }
   }
   inline void pop_front() noexcept {
     if (head_ == tail_) {
@@ -108,9 +104,6 @@ public:
     } else {
       ++head_;
     }
-    // } else {
-    //   head_ = (head_ + 1) % window_size_;
-    // }
   }
   inline const std::pair<int, T> &front() const noexcept {
     return buffer_[head_];
@@ -118,7 +111,7 @@ public:
   inline const std::pair<int, T> &back() const noexcept {
     return buffer_[tail_];
   }
-  void Update(T x) noexcept {
+  void update(T x) noexcept {
     while (!empty() && comp_(back().second, x)) {
       pop_back();
     }
@@ -144,16 +137,16 @@ inline void RollingCompTransform(const T *data, int n, T *out, int window_size,
                                  int min_samples) {
   int upper_limit = std::min(window_size, n);
   SortedDeque<T, Comp> sdeque(window_size);
-  for (int i = 0; i < upper_limit - 1; ++i) {
-    sdeque.Update(data[i]);
+  for (int i = 0; i < upper_limit; ++i) {
+    sdeque.update(data[i]);
     if (i + 1 < min_samples) {
       out[i] = std::numeric_limits<T>::quiet_NaN();
     } else {
       out[i] = sdeque.get();
     }
   }
-  for (int i = upper_limit - 1; i < n; ++i) {
-    sdeque.Update(data[i]);
+  for (int i = upper_limit; i < n; ++i) {
+    sdeque.update(data[i]);
     out[i] = sdeque.get();
   }
 }
