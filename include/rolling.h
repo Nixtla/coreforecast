@@ -5,8 +5,6 @@
 #include "grouped_array.h"
 #include "stats.h"
 
-#include <deque>
-
 template <typename T>
 inline void RollingMeanTransform(const T *data, int n, T *out, int window_size,
                                  int min_samples) {
@@ -72,23 +70,50 @@ inline void RollingStdTransform(const T *data, int n, T *out, int window_size,
 template <typename T, typename Comp> class SortedDeque {
 public:
   SortedDeque(int window_size, Comp comp = Comp())
-      : window_size_(window_size), comp_(comp) {}
-  void Update(T x) {
-    while (!buffer_.empty() && comp_(buffer_.back().second, x)) {
-      buffer_.pop_back();
-    }
-    ++i_;
-    buffer_.push_back({window_size_ + i_, x});
-    if (buffer_.front().first <= i_) {
-      buffer_.pop_front();
+      : window_size_(window_size), comp_(comp) {
+    buffer_.reserve(window_size);
+  }
+  inline bool empty() const { return tail_ == -1; }
+  void push_back(int i, T x) {
+    tail_ = (tail_ + 1) % window_size_;
+    buffer_[tail_] = {i, x};
+  }
+  void pop_back() {
+    if (head_ == tail_) {
+      head_ = 0;
+      tail_ = -1;
+    } else {
+      tail_ = (tail_ - 1 + window_size_) % window_size_;
     }
   }
-  T Get() const { return buffer_.front().second; }
+  void pop_front() {
+    if (head_ == tail_) {
+      head_ = 0;
+      tail_ = -1;
+    } else {
+      head_ = (head_ + 1) % window_size_;
+    }
+  }
+  inline const std::pair<int, T> &front() const { return buffer_[head_]; }
+  inline const std::pair<int, T> &back() const { return buffer_[tail_]; }
+  void Update(T x) {
+    while (!empty() && comp_(back().second, x)) {
+      pop_back();
+    }
+    if (!empty() && front().first <= i_) {
+      pop_front();
+    }
+    push_back(window_size_ + i_, x);
+    ++i_;
+  }
+  T get() const { return front().second; }
 
 private:
-  std::deque<std::pair<int, T>> buffer_;
+  std::vector<std::pair<int, T>> buffer_;
   int window_size_;
-  int i_ = -1;
+  int head_ = 0;
+  int tail_ = -1;
+  int i_ = 0;
   Comp comp_;
 };
 
@@ -102,12 +127,12 @@ inline void RollingCompTransform(const T *data, int n, T *out, int window_size,
     if (i + 1 < min_samples) {
       out[i] = std::numeric_limits<T>::quiet_NaN();
     } else {
-      out[i] = sdeque.Get();
+      out[i] = sdeque.get();
     }
   }
   for (int i = upper_limit - 1; i < n; ++i) {
     sdeque.Update(data[i]);
-    out[i] = sdeque.Get();
+    out[i] = sdeque.get();
   }
 }
 
