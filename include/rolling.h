@@ -73,30 +73,52 @@ public:
       : window_size_(window_size), comp_(comp) {
     buffer_.reserve(window_size);
   }
-  inline bool empty() const { return tail_ == -1; }
-  void push_back(int i, T x) {
-    tail_ = (tail_ + 1) % window_size_;
+  inline bool empty() const noexcept { return tail_ == -1; }
+  inline void push_back(int i, T x) noexcept {
+    // tail_ = (tail_ + 1) % window_size_;
+    if (tail_ == -1) {
+      head_ = 0;
+      tail_ = 0;
+    } else if (tail_ == window_size_ - 1) {
+      tail_ = 0;
+    } else {
+      ++tail_;
+    }
     buffer_[tail_] = {i, x};
   }
-  void pop_back() {
+  inline void pop_back() noexcept {
     if (head_ == tail_) {
       head_ = 0;
       tail_ = -1;
+    } else if (tail_ == 0) {
+      tail_ = window_size_ - 1;
     } else {
-      tail_ = (tail_ - 1 + window_size_) % window_size_;
+      --tail_;
     }
+    // } else {
+    //   tail_ = (tail_ - 1 + window_size_) % window_size_;
+    // }
   }
-  void pop_front() {
+  inline void pop_front() noexcept {
     if (head_ == tail_) {
       head_ = 0;
       tail_ = -1;
+    } else if (head_ == window_size_ - 1) {
+      head_ = 0;
     } else {
-      head_ = (head_ + 1) % window_size_;
+      ++head_;
     }
+    // } else {
+    //   head_ = (head_ + 1) % window_size_;
+    // }
   }
-  inline const std::pair<int, T> &front() const { return buffer_[head_]; }
-  inline const std::pair<int, T> &back() const { return buffer_[tail_]; }
-  void Update(T x) {
+  inline const std::pair<int, T> &front() const noexcept {
+    return buffer_[head_];
+  }
+  inline const std::pair<int, T> &back() const noexcept {
+    return buffer_[tail_];
+  }
+  void Update(T x) noexcept {
     while (!empty() && comp_(back().second, x)) {
       pop_back();
     }
@@ -106,14 +128,14 @@ public:
     push_back(window_size_ + i_, x);
     ++i_;
   }
-  T get() const { return front().second; }
+  T get() const noexcept { return front().second; }
 
 private:
   std::vector<std::pair<int, T>> buffer_;
   int window_size_;
   int head_ = 0;
   int tail_ = -1;
-  int i_ = 0;
+  int i_ = -1;
   Comp comp_;
 };
 
