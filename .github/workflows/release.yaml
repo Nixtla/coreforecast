@@ -43,6 +43,7 @@ jobs:
 
       - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
+          name: artifact-${{ matrix.platform-id }}
           path: ./wheelhouse/*.whl
           retention-days: 1
 
@@ -64,7 +65,9 @@ jobs:
 
       - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
+          name: artifact-sdist
           path: ./dist/*.tar.gz
+          retention-days: 1
 
   upload_to_pypi:
     name: 'Upload to PyPI'
@@ -76,8 +79,9 @@ jobs:
     steps:
       - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         with:
-          name: artifact
           path: dist
+          pattern: 'artifact-*'
+          merge-multiple: true
 
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@ec4db0b4ddc65acdf4bff5fa45ac92d78b56bdf0 # v1.9.0

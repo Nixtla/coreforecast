@@ -50,6 +50,7 @@ jobs:
 
       - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
+          name: artifact-${{ matrix.platform-id }}
           path: ./wheelhouse/*.whl
           retention-days: 1
 
@@ -59,8 +60,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, ubuntu-latest, windows-latest]
+        os: [macos-13, macos-14, ubuntu-latest, windows-latest]
         python-version: ['3.8', '3.9', '3.10', '3.11']
+        exclude:
+          - os: macos-14
+            python-version: '3.8'
+          - os: macos-14
+            python-version: '3.9'
     steps:
       - name: Clone repo
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # 4.1.7
@@ -76,39 +82,9 @@ jobs:
       - name: Download wheels
         uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         with:
-          name: artifact
           path: dist
-
-      - name: Install the library
-        run: pip install --no-index --find-links dist coreforecast
-
-      - name: Run tests
-        run: pytest --benchmark-group-by=param:scaler_name --benchmark-sort=fullname
-
-  run_tests-macos-arm64:
-    needs: [build_wheels]
-    runs-on: macos-14
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ['3.10', '3.11']
-    steps:
-      - name: Clone repo
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # 4.1.7
-
-      - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # 5.1.0
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-
-      - name: Install dependencies
-        run: pip install -r requirements-test.txt
-
-      - name: Download wheels
-        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
-        with:
-          name: artifact
-          path: dist
+          pattern: 'artifact-*'
+          merge-multiple: true
 
       - name: Install the library
         run: pip install --no-index --find-links dist coreforecast
