@@ -53,7 +53,7 @@ public:
     for (int t = 0; t < num_threads_; ++t) {
       int start_group = t * groups_per_thread + std::min(t, remainder);
       int end_group = (t + 1) * groups_per_thread + std::min(t + 1, remainder);
-      threads.emplace_back([=]() { f(start_group, end_group); });
+      threads.emplace_back(f, start_group, end_group);
     }
     for (auto &thread : threads) {
       thread.join();
