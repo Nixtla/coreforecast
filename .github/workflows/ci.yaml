@@ -47,6 +47,7 @@ jobs:
         uses: pypa/cibuildwheel@932529cab190fafca8c735a551657247fa8f8eaf # v2.19.1
         env:
           CIBW_BUILD: cp310-${{ matrix.platform-id }}
+          MACOSX_DEPLOYMENT_TARGET: '10.9'
 
       - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
