@@ -18,7 +18,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 description = "Fast implementations of common forecasting routines"
-authors = [{ name = "José Morales", email = "jmoralz92@gmail.com" }]
+authors = [{ name = "Jose Morales", email = "jmoralz92@gmail.com" }]
 readme = "README.md"
 keywords = ["forecasting", "time-series"]
 
