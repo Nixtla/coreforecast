@@ -1,13 +1,12 @@
+import coreforecast.lag_transforms as lag_tf
 import numpy as np
 import pandas as pd
 import pytest
-from window_ops.expanding import *
-from window_ops.ewm import ewm_mean
-from window_ops.rolling import *
-from window_ops.shift import shift_array
-
+import window_ops.expanding as wexp
+import window_ops.rolling as wroll
 from coreforecast.grouped_array import GroupedArray
-from coreforecast.lag_transforms import *
+from window_ops.ewm import ewm_mean
+from window_ops.shift import shift_array
 
 lag = 2
 season_length = 7
@@ -61,35 +60,35 @@ def data():
 
 
 combs_map = {
-    "rolling_mean": (rolling_mean, RollingMean, [window_size, min_samples]),
-    "rolling_std": (rolling_std, RollingStd, [window_size, min_samples]),
-    "rolling_min": (rolling_min, RollingMin, [window_size, min_samples]),
-    "rolling_max": (rolling_max, RollingMax, [window_size, min_samples]),
+    "rolling_mean": (wroll.rolling_mean, lag_tf.RollingMean, [window_size, min_samples]),
+    "rolling_std": (wroll.rolling_std, lag_tf.RollingStd, [window_size, min_samples]),
+    "rolling_min": (wroll.rolling_min, lag_tf.RollingMin, [window_size, min_samples]),
+    "rolling_max": (wroll.rolling_max, lag_tf.RollingMax, [window_size, min_samples]),
     "seasonal_rolling_mean": (
-        seasonal_rolling_mean,
-        SeasonalRollingMean,
+        wroll.seasonal_rolling_mean,
+        lag_tf.SeasonalRollingMean,
         [season_length, window_size, min_samples],
     ),
     "seasonal_rolling_std": (
-        seasonal_rolling_std,
-        SeasonalRollingStd,
+        wroll.seasonal_rolling_std,
+        lag_tf.SeasonalRollingStd,
         [season_length, window_size, min_samples],
     ),
     "seasonal_rolling_min": (
-        seasonal_rolling_min,
-        SeasonalRollingMin,
+        wroll.seasonal_rolling_min,
+        lag_tf.SeasonalRollingMin,
         [season_length, window_size, min_samples],
     ),
     "seasonal_rolling_max": (
-        seasonal_rolling_max,
-        SeasonalRollingMax,
+        wroll.seasonal_rolling_max,
+        lag_tf.SeasonalRollingMax,
         [season_length, window_size, min_samples],
     ),
-    "expanding_mean": (expanding_mean, ExpandingMean, []),
-    "expanding_std": (expanding_std, ExpandingStd, []),
-    "expanding_min": (expanding_min, ExpandingMin, []),
-    "expanding_max": (expanding_max, ExpandingMax, []),
-    "ewm_mean": (ewm_mean, ExponentiallyWeightedMean, [0.8]),
+    "expanding_mean": (wexp.expanding_mean, lag_tf.ExpandingMean, []),
+    "expanding_std": (wexp.expanding_std, lag_tf.ExpandingStd, []),
+    "expanding_min": (wexp.expanding_min, lag_tf.ExpandingMin, []),
+    "expanding_max": (wexp.expanding_max, lag_tf.ExpandingMax, []),
+    "ewm_mean": (ewm_mean, lag_tf.ExponentiallyWeightedMean, [0.8]),
 }
 
 
@@ -131,11 +130,11 @@ def test_correctness_quantiles(data, dtype, p, window_type):
     data = data.astype(dtype, copy=True)
     ga = GroupedArray(data, indptr)
     if window_type == "rolling":
-        core_cls = RollingQuantile(lag, p, window_size, min_samples)
+        core_cls = lag_tf.RollingQuantile(lag, p, window_size, min_samples)
         pd_fun = pd_rolling_quantile
         pd_kwargs = dict(window_size=window_size, min_samples=min_samples)
     elif window_type == "seasonal_rolling":
-        core_cls = SeasonalRollingQuantile(
+        core_cls = lag_tf.SeasonalRollingQuantile(
             lag, p, season_length, window_size, min_samples
         )
         pd_fun = pd_seasonal_rolling_quantile
@@ -145,7 +144,7 @@ def test_correctness_quantiles(data, dtype, p, window_type):
             min_samples=min_samples,
         )
     else:
-        core_cls = ExpandingQuantile(lag, p)
+        core_cls = lag_tf.ExpandingQuantile(lag, p)
         pd_fun = pd_expanding_quantile
         pd_kwargs = {}
     cres = core_cls.transform(ga)
