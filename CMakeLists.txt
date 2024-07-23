@@ -3,31 +3,21 @@ project(coreforecast)
 
 include(FetchContent)
 
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release)
-endif()
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-if(APPLE)
-    set(CMAKE_SHARED_LIBRARY_SUFFIX ".so")
+find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif()
 
-if(UNIX)
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fPIC -O0 -g -Wall -Wextra -Wpedantic")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fPIC -O3 -Wall -Wextra -Wpedantic")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unknown-pragmas")
-else()
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2 /Ob2 /Ot /Oy /W4")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4068")
-endif()
-
-if(SKBUILD)
-    set(LIBRARY_OUTPUT_PATH ${SKBUILD_PLATLIB_DIR}/coreforecast/lib)
-else()
-    set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/python/coreforecast/lib)
-endif()
+execute_process(
+    COMMAND "${Python_EXECUTABLE}" -m nanobind --cmake_dir
+    OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE NB_DIR
+)
+list(APPEND CMAKE_PREFIX_PATH "${NB_DIR}")
+find_package(nanobind CONFIG REQUIRED)
 
 include_directories(include)
 FetchContent_Declare(
@@ -54,9 +44,4 @@ if(NOT skiplist_POPULATED)
     include_directories(${skiplist_SOURCE_DIR}/src/cpp)
 endif()
 
-file(GLOB SOURCES src/*.cpp ${skiplist_SOURCE_DIR}/src/cpp/SkipList.cpp)
-add_library(coreforecast SHARED ${SOURCES})
-
-if(MSVC)
-    set_target_properties(coreforecast PROPERTIES OUTPUT_NAME "libcoreforecast")
-endif()
+nanobind_add_module(_coreforecast src/coreforecast.cpp)
