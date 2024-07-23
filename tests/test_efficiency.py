@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from coreforecast.exponentially_weighted import exponentially_weighted_mean
 from coreforecast.grouped_array import GroupedArray
 from coreforecast.lag_transforms import RollingMean
 from coreforecast.scalers import LocalStandardScaler
@@ -32,3 +33,7 @@ def test_lag_transforms(benchmark, data, indptr, dtype, num_threads):
     ga = GroupedArray(data.astype(dtype), indptr, num_threads=num_threads)
     tfm = RollingMean(lag=1, window_size=10, min_samples=5)
     benchmark(tfm.transform, ga)
+
+
+def test_ewm(benchmark, data, indptr):
+    benchmark(exponentially_weighted_mean, x=data[:indptr[1]], alpha=0.9)
