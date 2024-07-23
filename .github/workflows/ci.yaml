@@ -102,10 +102,10 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install uv && uv pip install --system ".[dev]" pytest-codspeed pytest-xdist
+        run: pip install uv && uv pip install --system ".[dev]" pytest-codspeed
 
       - name: Run benchmarks
         uses: CodSpeedHQ/action@a58b84c0b61569a9cbb7cfb378cc849d65cf1ce5 # 2.4.3
         with:
           token: ${{ secrets.CODESPEED_TOKEN }}
-          run: pytest tests/test_efficiency.py --codspeed -n 2
+          run: pytest tests/test_efficiency.py --codspeed
