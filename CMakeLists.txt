@@ -44,4 +44,5 @@ if(NOT skiplist_POPULATED)
     include_directories(${skiplist_SOURCE_DIR}/src/cpp)
 endif()
 
-nanobind_add_module(_coreforecast src/coreforecast.cpp)
+file(GLOB SOURCES src/*.cpp ${skiplist_SOURCE_DIR}/src/cpp/SkipList.cpp)
+nanobind_add_module(_coreforecast ${SOURCES})
