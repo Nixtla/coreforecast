@@ -2,16 +2,12 @@ import coreforecast.lag_transforms as lag_tf
 import numpy as np
 import pandas as pd
 import pytest
-import window_ops.expanding as wexp
-import window_ops.rolling as wroll
 from coreforecast.grouped_array import GroupedArray
-from window_ops.ewm import ewm_mean
 from window_ops.shift import shift_array
 
+from . import lag_tfms_map, min_samples, season_length, window_size
+
 lag = 2
-season_length = 7
-window_size = 4
-min_samples = 2
 lengths = np.random.randint(low=100, high=200, size=100)
 indptr = np.append(0, lengths.cumsum()).astype(np.int32)
 
@@ -59,40 +55,7 @@ def data():
     return 10 * np.random.rand(indptr[-1])
 
 
-combs_map = {
-    "rolling_mean": (wroll.rolling_mean, lag_tf.RollingMean, [window_size, min_samples]),
-    "rolling_std": (wroll.rolling_std, lag_tf.RollingStd, [window_size, min_samples]),
-    "rolling_min": (wroll.rolling_min, lag_tf.RollingMin, [window_size, min_samples]),
-    "rolling_max": (wroll.rolling_max, lag_tf.RollingMax, [window_size, min_samples]),
-    "seasonal_rolling_mean": (
-        wroll.seasonal_rolling_mean,
-        lag_tf.SeasonalRollingMean,
-        [season_length, window_size, min_samples],
-    ),
-    "seasonal_rolling_std": (
-        wroll.seasonal_rolling_std,
-        lag_tf.SeasonalRollingStd,
-        [season_length, window_size, min_samples],
-    ),
-    "seasonal_rolling_min": (
-        wroll.seasonal_rolling_min,
-        lag_tf.SeasonalRollingMin,
-        [season_length, window_size, min_samples],
-    ),
-    "seasonal_rolling_max": (
-        wroll.seasonal_rolling_max,
-        lag_tf.SeasonalRollingMax,
-        [season_length, window_size, min_samples],
-    ),
-    "expanding_mean": (wexp.expanding_mean, lag_tf.ExpandingMean, []),
-    "expanding_std": (wexp.expanding_std, lag_tf.ExpandingStd, []),
-    "expanding_min": (wexp.expanding_min, lag_tf.ExpandingMin, []),
-    "expanding_max": (wexp.expanding_max, lag_tf.ExpandingMax, []),
-    "ewm_mean": (ewm_mean, lag_tf.ExponentiallyWeightedMean, [0.8]),
-}
-
-
-@pytest.mark.parametrize("comb", list(combs_map.keys()))
+@pytest.mark.parametrize("comb", list(lag_tfms_map.keys()))
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 def test_correctness(data, comb, dtype):
     atol = 1e-4
@@ -104,7 +67,7 @@ def test_correctness(data, comb, dtype):
         rtol *= 100
     data = data.astype(dtype, copy=True)
     ga = GroupedArray(data, indptr)
-    wf, cf, args = combs_map[comb]
+    wf, cf, args = lag_tfms_map[comb]
     # transform
     wres = transform(data, indptr, False, lag, wf, *args)
     cobj = cf(lag, *args)
