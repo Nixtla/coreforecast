@@ -63,15 +63,20 @@ void init_ga(nb::module_ &m) {
 
   // Lag
   // Rolling
-  ga.def("rolling_mean_transform", [](const Vector<float> data,
-                                      const Vector<indptr_t> indptr,
-                                      int num_threads, int lag, int window_size,
-                                      int min_samples, Vector<float> out) {
-    auto ga = GroupedArray<float>(data.data(), indptr.data(),
-                                  static_cast<int>(indptr.size()), num_threads);
-    ga.Transform(RollingMeanTransform<float>, lag, out.data(), window_size,
-                 min_samples);
-  });
+  ga.def(
+      "rolling_mean_transform",
+      [](const Vector<float> data, const Vector<indptr_t> indptr,
+         int num_threads, int lag, int window_size, int min_samples,
+         Vector<float> out) {
+        auto ga =
+            GroupedArray<float>(data.data(), indptr.data(),
+                                static_cast<int>(indptr.size()), num_threads);
+        ga.Transform(RollingMeanTransform<float>, lag, out.data(), window_size,
+                     min_samples);
+      },
+      nb::arg("data").noconvert(), nb::arg("indptr").noconvert(),
+      nb::arg("num_threads"), nb::arg("lag"), nb::arg("window_size"),
+      nb::arg("min_samples"), nb::arg("out").noconvert());
   ga.def("rolling_std_transform", [](const Vector<float> data,
                                      const Vector<indptr_t> indptr,
                                      int num_threads, int lag, int window_size,
@@ -274,7 +279,7 @@ void init_ga(nb::module_ &m) {
            auto ga = GroupedArray<float>(data.data(), indptr.data(),
                                          static_cast<int>(indptr.size()),
                                          num_threads);
-           ga.TransformAndReduce(ExpandingMeanTransform<float>, lag, out.data(),
+           ga.TransformAndReduce(ExpandingStdTransform<float>, lag, out.data(),
                                  3, agg.data());
          });
   ga.def("expanding_min_transform",
@@ -515,16 +520,20 @@ void init_ga(nb::module_ &m) {
 
   // Lag
   // Rolling
-  ga.def("rolling_mean_transform",
-         [](const Vector<double> data, const Vector<indptr_t> indptr,
-            int num_threads, int lag, int window_size, int min_samples,
-            Vector<double> out) {
-           auto ga = GroupedArray<double>(data.data(), indptr.data(),
-                                          static_cast<int>(indptr.size()),
-                                          num_threads);
-           ga.Transform(RollingMeanTransform<double>, lag, out.data(),
-                        window_size, min_samples);
-         });
+  ga.def(
+      "rolling_mean_transform",
+      [](const Vector<double> data, const Vector<indptr_t> indptr,
+         int num_threads, int lag, int window_size, int min_samples,
+         Vector<double> out) {
+        auto ga =
+            GroupedArray<double>(data.data(), indptr.data(),
+                                 static_cast<int>(indptr.size()), num_threads);
+        ga.Transform(RollingMeanTransform<double>, lag, out.data(), window_size,
+                     min_samples);
+      },
+      nb::arg("data").noconvert(), nb::arg("indptr").noconvert(),
+      nb::arg("num_threads"), nb::arg("lag"), nb::arg("window_size"),
+      nb::arg("min_samples"), nb::arg("out").noconvert());
   ga.def("rolling_std_transform",
          [](const Vector<double> data, const Vector<indptr_t> indptr,
             int num_threads, int lag, int window_size, int min_samples,
@@ -734,8 +743,8 @@ void init_ga(nb::module_ &m) {
            auto ga = GroupedArray<double>(data.data(), indptr.data(),
                                           static_cast<int>(indptr.size()),
                                           num_threads);
-           ga.TransformAndReduce(ExpandingStdTransform<double>, lag,
-                                 out.data(), 3, agg.data());
+           ga.TransformAndReduce(ExpandingStdTransform<double>, lag, out.data(),
+                                 3, agg.data());
          });
   ga.def("expanding_min_transform",
          [](const Vector<double> data, const Vector<indptr_t> indptr,

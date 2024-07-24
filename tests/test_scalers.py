@@ -306,8 +306,8 @@ def test_seasonality_and_differences_correctness(dtype):
     # update
     new_n = 50
     new_data = np.arange(new_n, dtype=dtype)
-    first_diff = sc.diffs_[0][0]
-    second_diff = sc.diffs_[1][0]
+    first_diff = sc.diffs_[0][0].item()
+    second_diff = sc.diffs_[1][0].item()
     t1 = diff(np.append(sc.tails_[0][:first_diff], new_data), first_diff)[-new_n:]
     t2 = diff(np.append(sc.tails_[1][:second_diff], t1), second_diff)[-new_n:]
     expected_updates = np.hstack([t2, t2])

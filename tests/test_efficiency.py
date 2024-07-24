@@ -22,7 +22,7 @@ all_lag_tfms = {
 
 @pytest.fixture
 def indptr(rng):
-    lengths = rng.integers(low=1_000, high=2_000, size=1_000)
+    lengths = rng.integers(low=1_000, high=2_000, size=5_000)
     return np.append(0, lengths.cumsum()).astype(np.int32)
 
 
