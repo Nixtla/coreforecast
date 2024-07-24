@@ -3,14 +3,23 @@ project(coreforecast LANGUAGES CXX)
 
 include(FetchContent)
 
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-    set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
-    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+if(UNIX)
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fPIC -O0 -g -Wall -Wextra -Wpedantic")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fPIC -O3 -Wall -Wextra -Wpedantic")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unknown-pragmas")
+else()
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2 /Ob2 /Ot /Oy /W4")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4068")
 endif()
+
+find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
 
 execute_process(
     COMMAND "${Python_EXECUTABLE}" -m nanobind --cmake_dir
