@@ -71,4 +71,70 @@ void init_rolling(nb::module_ &m) {
                     x.data(), static_cast<int>(x.size()), out.data(),
                     season_length, window_size, min_samples, p);
               });
+
+  // Float64 Methods
+  //  Rolling
+  rolling.def("rolling_mean", [](const Vector<double> x, int window_size,
+                                 int min_samples, Vector<double> out) {
+    RollingMeanTransform<double>(x.data(), static_cast<int>(x.size()),
+                                 out.data(), window_size, min_samples);
+  });
+  rolling.def("rolling_std", [](const Vector<double> x, int window_size,
+                                int min_samples, Vector<double> out) {
+    RollingStdTransform<double>(x.data(), static_cast<int>(x.size()),
+                                out.data(), window_size, min_samples);
+  });
+  rolling.def("rolling_min", [](const Vector<double> x, int window_size,
+                                int min_samples, Vector<double> out) {
+    RollingMinTransform<double>(x.data(), static_cast<int>(x.size()),
+                                out.data(), window_size, min_samples);
+  });
+  rolling.def("rolling_max", [](const Vector<double> x, int window_size,
+                                int min_samples, Vector<double> out) {
+    RollingMaxTransform<double>(x.data(), static_cast<int>(x.size()),
+                                out.data(), window_size, min_samples);
+  });
+  rolling.def("rolling_quantile", [](const Vector<double> x, double p,
+                                     int window_size, int min_samples,
+                                     Vector<double> out) {
+    RollingQuantileTransform<double>(x.data(), static_cast<int>(x.size()),
+                                     out.data(), window_size, min_samples, p);
+  });
+
+  // Seasonal rolling
+  rolling.def("seasonal_rolling_mean", [](const Vector<double> x,
+                                          int season_length, int window_size,
+                                          int min_samples, Vector<double> out) {
+    SeasonalRollingMeanTransform<double>()(x.data(), static_cast<int>(x.size()),
+                                           out.data(), season_length,
+                                           window_size, min_samples);
+  });
+  rolling.def("seasonal_rolling_std", [](const Vector<double> x,
+                                         int season_length, int window_size,
+                                         int min_samples, Vector<double> out) {
+    SeasonalRollingStdTransform<double>()(x.data(), static_cast<int>(x.size()),
+                                          out.data(), season_length,
+                                          window_size, min_samples);
+  });
+  rolling.def("seasonal_rolling_min", [](const Vector<double> x,
+                                         int season_length, int window_size,
+                                         int min_samples, Vector<double> out) {
+    SeasonalRollingMinTransform<double>()(x.data(), static_cast<int>(x.size()),
+                                          out.data(), season_length,
+                                          window_size, min_samples);
+  });
+  rolling.def("seasonal_rolling_max", [](const Vector<double> x,
+                                         int season_length, int window_size,
+                                         int min_samples, Vector<double> out) {
+    SeasonalRollingMaxTransform<double>()(x.data(), static_cast<int>(x.size()),
+                                          out.data(), season_length,
+                                          window_size, min_samples);
+  });
+  rolling.def("seasonal_rolling_quantile",
+              [](const Vector<double> x, int season_length, double p,
+                 int window_size, int min_samples, Vector<double> out) {
+                SeasonalRollingQuantileTransform<double>()(
+                    x.data(), static_cast<int>(x.size()), out.data(),
+                    season_length, window_size, min_samples, p);
+              });
 }

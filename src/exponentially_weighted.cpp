@@ -13,4 +13,11 @@ void init_exp_weigh(nb::module_ &m) {
                   ExponentiallyWeightedMeanTransform<float>(
                       x.data(), static_cast<int>(x.size()), out.data(), alpha);
                 });
+
+  // Float64 Methods
+  exp_weigh.def("exponentially_weighted_mean",
+                [](const Vector<double> x, double alpha, Vector<double> out) {
+                  ExponentiallyWeightedMeanTransform<double>(
+                      x.data(), static_cast<int>(x.size()), out.data(), alpha);
+                });
 }
