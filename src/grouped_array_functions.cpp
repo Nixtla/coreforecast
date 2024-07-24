@@ -734,7 +734,7 @@ void init_ga(nb::module_ &m) {
            auto ga = GroupedArray<double>(data.data(), indptr.data(),
                                           static_cast<int>(indptr.size()),
                                           num_threads);
-           ga.TransformAndReduce(ExpandingMeanTransform<double>, lag,
+           ga.TransformAndReduce(ExpandingStdTransform<double>, lag,
                                  out.data(), 3, agg.data());
          });
   ga.def("expanding_min_transform",

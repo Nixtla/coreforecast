@@ -2,10 +2,7 @@
 name = "coreforecast"
 version = "0.0.12"
 requires-python = ">=3.8"
-dependencies = [
-    "importlib_resources ; python_version < '3.10'",
-    "numpy>=1.20.0",
-]
+dependencies = ["numpy>=1.20.0"]
 license = { text = "Apache-2.0" }
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -16,6 +13,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 description = "Fast implementations of common forecasting routines"
 authors = [{ name = "Jose Morales", email = "jmoralz92@gmail.com" }]
@@ -39,17 +37,17 @@ documentation = "https://nixtla.github.io/coreforecast"
 repository = "https://github.com/Nixtla/coreforecast"
 
 [build-system]
-requires = ["scikit-build-core"]
+requires = ["scikit-build-core >=0.4.3", "nanobind >=1.3.2"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
+build-dir = "build/{wheel_tag}"
 cmake.verbose = true
 logging.level = "INFO"
 sdist.exclude = ["tests", "*.yml"]
 sdist.reproducible = true
-wheel.install-dir = "coreforecast"
 wheel.packages = ["python/coreforecast"]
-wheel.py-api = "py3"
+wheel.py-api = "cp38"
 
 [tool.cibuildwheel]
 archs = "all"

@@ -7,7 +7,7 @@ void init_ga(nb::module_ &);
 void init_rolling(nb::module_ &);
 void init_scalers(nb::module_ &);
 
-NB_MODULE(_coreforecast, m) {
+NB_MODULE(_lib, m) {
   init_diff(m);
   init_exp_weigh(m);
   init_expanding(m);

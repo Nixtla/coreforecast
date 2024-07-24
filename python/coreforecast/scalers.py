@@ -4,14 +4,12 @@ from typing import List, Optional, Sequence
 
 import numpy as np
 
-from ._lib import _LIB, _indptr_dtype
+from ._lib import scalers as _scalers
 from .grouped_array import GroupedArray
 from .utils import (
-    _data_as_void_ptr,
     _diffs_to_indptr,
     _ensure_float,
-    _float_arr_to_prefix,
-    _pyfloat_to_np_c,
+    _indptr_dtype,
 )
 
 __all__ = [
@@ -27,12 +25,6 @@ __all__ = [
     "boxcox_lambda",
     "inv_boxcox",
 ]
-
-
-_LIB.Float32_BoxCoxLambdaGuerrero.restype = ctypes.c_float
-_LIB.Float64_BoxCoxLambdaGuerrero.restype = ctypes.c_double
-_LIB.Float32_BoxCoxLambdaLogLik.restype = ctypes.c_float
-_LIB.Float64_BoxCoxLambdaLogLik.restype = ctypes.c_double
 
 
 def _boxcox_lambda_checks(
@@ -82,24 +74,11 @@ def boxcox_lambda(
     if method == "loglik" and any(x <= 0):
         raise ValueError("All values in x must be positive when method='loglik'")
     x = _ensure_float(x)
-    prefix = _float_arr_to_prefix(x)
     if method == "guerrero":
         assert season_length is not None
-        # _LIB[fn] doesn't get the restype assignment (keeps c_int)
-        res = getattr(_LIB, f"{prefix}_BoxCoxLambdaGuerrero")(
-            _data_as_void_ptr(x),
-            ctypes.c_int(x.size),
-            ctypes.c_int(season_length),
-            _pyfloat_to_np_c(lower, x.dtype),
-            _pyfloat_to_np_c(upper, x.dtype),
-        )
+        res = _scalers.boxcox_lambda_guerrero(x, season_length, lower, upper)
     else:
-        res = getattr(_LIB, f"{prefix}_BoxCoxLambdaLogLik")(
-            _data_as_void_ptr(x),
-            ctypes.c_int(x.size),
-            _pyfloat_to_np_c(lower, x.dtype),
-            _pyfloat_to_np_c(upper, x.dtype),
-        )
+        res = _scalers.boxcox_lambda_loglik(x, lower, upper)
     return res
 
 
@@ -113,14 +92,8 @@ def boxcox(x: np.ndarray, lmbda: float) -> np.ndarray:
     Returns:
         np.ndarray: Array with the transformed data."""
     x = _ensure_float(x)
-    prefix = _float_arr_to_prefix(x)
     out = np.empty_like(x)
-    getattr(_LIB, f"{prefix}_BoxCoxTransform")(
-        _data_as_void_ptr(x),
-        ctypes.c_int(x.size),
-        _pyfloat_to_np_c(lmbda, x.dtype),
-        _data_as_void_ptr(out),
-    )
+    _scalers.boxcox(x, lmbda, out)
     return out
 
 
@@ -134,14 +107,8 @@ def inv_boxcox(x: np.ndarray, lmbda: float) -> np.ndarray:
     Returns:
         np.ndarray: Array with the inverted transformation."""
     x = _ensure_float(x)
-    prefix = _float_arr_to_prefix(x)
     out = np.empty_like(x)
-    getattr(_LIB, f"{prefix}_BoxCoxInverseTransform")(
-        _data_as_void_ptr(x),
-        ctypes.c_int(x.size),
-        _pyfloat_to_np_c(lmbda, x.dtype),
-        _data_as_void_ptr(out),
-    )
+    _scalers.inv_boxcox(x, lmbda, out)
     return out
 
 
@@ -214,13 +181,13 @@ class _BaseLocalScaler:
 class LocalMinMaxScaler(_BaseLocalScaler):
     """Scale each group to the [0, 1] interval"""
 
-    _scaler_type = "MinMax"
+    _scaler_type = "min_max"
 
 
 class LocalStandardScaler(_BaseLocalScaler):
     """Scale each group to have zero mean and unit variance"""
 
-    _scaler_type = "Standard"
+    _scaler_type = "standard"
 
 
 class LocalRobustScaler(_BaseLocalScaler):
@@ -232,10 +199,9 @@ class LocalRobustScaler(_BaseLocalScaler):
             If 'mad' will use median absolute deviation as the scale."""
 
     def __init__(self, scale: str):
-        if scale == "iqr":
-            self._scaler_type = "RobustIqr"
-        else:
-            self._scaler_type = "RobustMad"
+        if scale not in ("iqr", "mad"):
+            raise ValueError("scale must be one of ('iqr', 'mad')")
+        self._scaler_type = f"robust_{scale}"
 
 
 class LocalBoxCoxScaler(_BaseLocalScaler):

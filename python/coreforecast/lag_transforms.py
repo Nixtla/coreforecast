@@ -122,28 +122,28 @@ class _RollingBase(_BaseLagTransform):
 
 
 class RollingMean(_RollingBase):
-    stat_name = "Mean"
+    stat_name = "mean"
 
 
 RollingMean.__doc__ = _rolling_base_docstring.format(stat_name="Mean")
 
 
 class RollingStd(_RollingBase):
-    stat_name = "Std"
+    stat_name = "std"
 
 
 RollingStd.__doc__ = _rolling_base_docstring.format(stat_name="Standard Deviation")
 
 
 class RollingMin(_RollingBase):
-    stat_name = "Min"
+    stat_name = "min"
 
 
 RollingMin.__doc__ = _rolling_base_docstring.format(stat_name="Minimum")
 
 
 class RollingMax(_RollingBase):
-    stat_name = "Max"
+    stat_name = "max"
 
 
 RollingMax.__doc__ = _rolling_base_docstring.format(stat_name="Maximum")
@@ -219,14 +219,14 @@ class _SeasonalRollingBase(_RollingBase):
 
 
 class SeasonalRollingMean(_SeasonalRollingBase):
-    stat_name = "Mean"
+    stat_name = "mean"
 
 
 SeasonalRollingMean.__doc__ = _seasonal_rolling_docstring.format(stat_name="Mean")
 
 
 class SeasonalRollingStd(_SeasonalRollingBase):
-    stat_name = "Std"
+    stat_name = "std"
 
 
 SeasonalRollingStd.__doc__ = _seasonal_rolling_docstring.format(
@@ -235,14 +235,14 @@ SeasonalRollingStd.__doc__ = _seasonal_rolling_docstring.format(
 
 
 class SeasonalRollingMin(_SeasonalRollingBase):
-    stat_name = "Min"
+    stat_name = "min"
 
 
 SeasonalRollingMin.__doc__ = _seasonal_rolling_docstring.format(stat_name="Minimum")
 
 
 class SeasonalRollingMax(_SeasonalRollingBase):
-    stat_name = "Max"
+    stat_name = "max"
 
 
 SeasonalRollingMax.__doc__ = _seasonal_rolling_docstring.format(stat_name="Maximum")
@@ -315,7 +315,7 @@ class _ExpandingBase(_BaseLagTransform):
 class ExpandingMean(_ExpandingBase):
     def transform(self, ga: GroupedArray) -> np.ndarray:
         n = np.empty_like(ga.data, shape=len(ga))
-        out = ga._expanding_transform_with_aggs("Mean", self.lag, n)
+        out = ga._expanding_transform_with_aggs("mean", self.lag, n)
         cumsum = n * out[ga.indptr[1:] - 1]
         self.stats_ = np.hstack([n[:, None], cumsum[:, None]])
         return out
@@ -332,7 +332,7 @@ ExpandingMean.__doc__ = _expanding_docstring.format(stat_name="Mean")
 class ExpandingStd(_ExpandingBase):
     def transform(self, ga: GroupedArray) -> np.ndarray:
         self.stats_ = np.empty_like(ga.data, shape=(len(ga), 3))
-        out = ga._expanding_transform_with_aggs("Std", self.lag, self.stats_)
+        out = ga._expanding_transform_with_aggs("std", self.lag, self.stats_)
         return out
 
     def update(self, ga: GroupedArray) -> np.ndarray:
@@ -364,7 +364,7 @@ class _ExpandingComp(_ExpandingBase):
 
 
 class ExpandingMin(_ExpandingComp):
-    stat = "Min"
+    stat = "min"
     _comp_fn = np.minimum
 
 
@@ -372,7 +372,7 @@ ExpandingMin.__doc__ = _expanding_docstring.format(stat_name="Minimum")
 
 
 class ExpandingMax(_ExpandingComp):
-    stat = "Max"
+    stat = "max"
     _comp_fn = np.maximum
 
 
@@ -411,7 +411,7 @@ class ExponentiallyWeightedMean(_BaseLagTransform):
         self.alpha = alpha
 
     def transform(self, ga: GroupedArray) -> np.ndarray:
-        out = ga._exponentially_weighted_transform("Mean", self.lag, self.alpha)
+        out = ga._exponentially_weighted_transform("mean", self.lag, self.alpha)
         self.stats_ = out[ga.indptr[1:] - 1]
         return out
 

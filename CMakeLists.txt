@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(coreforecast)
+project(coreforecast LANGUAGES CXX)
 
 include(FetchContent)
 
@@ -45,4 +45,5 @@ if(NOT skiplist_POPULATED)
 endif()
 
 file(GLOB SOURCES src/*.cpp ${skiplist_SOURCE_DIR}/src/cpp/SkipList.cpp)
-nanobind_add_module(_coreforecast ${SOURCES})
+nanobind_add_module(_lib ${SOURCES})
+install(TARGETS _lib LIBRARY DESTINATION coreforecast)
