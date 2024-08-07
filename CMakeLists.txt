@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(coreforecast)
+project(coreforecast LANGUAGES CXX)
 
 include(FetchContent)
 
@@ -10,10 +10,6 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-if(APPLE)
-    set(CMAKE_SHARED_LIBRARY_SUFFIX ".so")
-endif()
-
 if(UNIX)
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fPIC -O0 -g -Wall -Wextra -Wpedantic")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fPIC -O3 -Wall -Wextra -Wpedantic")
@@ -23,11 +19,14 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4068")
 endif()
 
-if(SKBUILD)
-    set(LIBRARY_OUTPUT_PATH ${SKBUILD_PLATLIB_DIR}/coreforecast/lib)
-else()
-    set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/python/coreforecast/lib)
-endif()
+find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
+
+execute_process(
+    COMMAND "${Python_EXECUTABLE}" -m nanobind --cmake_dir
+    OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE NB_DIR
+)
+list(APPEND CMAKE_PREFIX_PATH "${NB_DIR}")
+find_package(nanobind CONFIG REQUIRED)
 
 include_directories(include)
 FetchContent_Declare(
@@ -55,8 +54,5 @@ if(NOT skiplist_POPULATED)
 endif()
 
 file(GLOB SOURCES src/*.cpp ${skiplist_SOURCE_DIR}/src/cpp/SkipList.cpp)
-add_library(coreforecast SHARED ${SOURCES})
-
-if(MSVC)
-    set_target_properties(coreforecast PROPERTIES OUTPUT_NAME "libcoreforecast")
-endif()
+nanobind_add_module(_lib ${SOURCES})
+install(TARGETS _lib LIBRARY DESTINATION coreforecast)
