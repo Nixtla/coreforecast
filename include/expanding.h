@@ -1,11 +1,11 @@
 #pragma once
 
-#include "grouped_array.h"
 #include "rolling.h"
 #include "stats.h"
 
+namespace expanding {
 template <typename T>
-inline void ExpandingMeanTransform(const T *data, int n, T *out, T *agg) {
+inline void MeanTransform(const T *data, int n, T *out, T *agg) {
   T accum = static_cast<T>(0.0);
   for (int i = 0; i < n; ++i) {
     accum += data[i];
@@ -15,31 +15,32 @@ inline void ExpandingMeanTransform(const T *data, int n, T *out, T *agg) {
 }
 
 template <typename T>
-inline void ExpandingStdTransform(const T *data, int n, T *out, T *agg) {
-  RollingStdTransformWithStats(data, n, out, agg, true, n, 2);
+inline void StdTransform(const T *data, int n, T *out, T *agg) {
+  rolling::StdTransformWithStats(data, n, out, agg, true, n, 2);
 }
 
-template <typename T> struct ExpandingMinTransform {
+template <typename T> struct MinTransform {
   void operator()(const T *data, int n, T *out) {
-    RollingMinTransform<T>(data, n, out, n, 1);
+    rolling::MinTransform<T>(data, n, out, n, 1);
   }
 };
 
-template <typename T> struct ExpandingMaxTransform {
+template <typename T> struct MaxTransform {
   void operator()(const T *data, int n, T *out) {
-    RollingMaxTransform<T>(data, n, out, n, 1);
+    rolling::MaxTransform<T>(data, n, out, n, 1);
   }
 };
 
 template <typename T>
-inline void ExpandingQuantileTransform(const T *data, int n, T *out, T p) {
-  RollingQuantileTransform(data, n, out, n, 1, p);
+inline void QuantileTransform(const T *data, int n, T *out, T p) {
+  rolling::QuantileTransform(data, n, out, n, 1, p);
 }
 
 template <typename T>
-inline void ExpandingQuantileUpdate(const T *data, int n, T *out, T p) {
+inline void QuantileUpdate(const T *data, int n, T *out, T p) {
   T *buffer = new T[n];
   std::copy(data, data + n, buffer);
   *out = Quantile(buffer, p, n);
   delete[] buffer;
 }
+} // namespace expanding

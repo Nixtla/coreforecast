@@ -5,29 +5,28 @@
 // Rolling
 int Float32_RollingMeanTransform(float *data, int length, int window_size,
                                  int min_samples, float *out) {
-  RollingMeanTransform<float>(data, length, out, window_size, min_samples);
+  MeanTransform<float>(data, length, out, window_size, min_samples);
   return 0;
 }
 int Float32_RollingStdTransform(float *data, int length, int window_size,
                                 int min_samples, float *out) {
-  RollingStdTransform<float>(data, length, out, window_size, min_samples);
+  StdTransform<float>(data, length, out, window_size, min_samples);
   return 0;
 }
 int Float32_RollingMinTransform(float *data, int length, int window_size,
                                 int min_samples, float *out) {
-  RollingMinTransform<float>(data, length, out, window_size, min_samples);
+  MinTransform<float>(data, length, out, window_size, min_samples);
   return 0;
 }
 int Float32_RollingMaxTransform(float *data, int length, int window_size,
                                 int min_samples, float *out) {
-  RollingMaxTransform<float>(data, length, out, window_size, min_samples);
+  MaxTransform<float>(data, length, out, window_size, min_samples);
   return 0;
 }
 int Float32_RollingQuantileTransform(float *data, int length, float p,
                                      int window_size, int min_samples,
                                      float *out) {
-  RollingQuantileTransform<float>(data, length, out, window_size, min_samples,
-                                  p);
+  QuantileTransform<float>(data, length, out, window_size, min_samples, p);
   return 0;
 }
 
@@ -72,12 +71,12 @@ int Float32_SeasonalRollingQuantileTransform(float *data, int length,
 // Expanding
 int Float32_ExpandingMeanTransform(float *data, int length, float *out) {
   float tmp;
-  ExpandingMeanTransform<float>(data, length, out, &tmp);
+  MeanTransform<float>(data, length, out, &tmp);
   return 0;
 }
 int Float32_ExpandingStdTransform(float *data, int length, float *out) {
   float tmp;
-  RollingStdTransformWithStats(data, length, out, &tmp, false, length, 2);
+  StdTransformWithStats(data, length, out, &tmp, false, length, 2);
   return 0;
 }
 int Float32_ExpandingMinTransform(float *data, int length, float *out) {
@@ -90,14 +89,14 @@ int Float32_ExpandingMaxTransform(float *data, int length, float *out) {
 }
 int Float32_ExpandingQuantileTransform(float *data, int length, float p,
                                        float *out) {
-  ExpandingQuantileTransform<float>(data, length, out, p);
+  QuantileTransform<float>(data, length, out, p);
   return 0;
 }
 
 // Exponentially weighted
 int Float32_ExponentiallyWeightedMeanTransform(float *data, int length,
                                                float alpha, float *out) {
-  ExponentiallyWeightedMeanTransform<float>(data, length, out, alpha);
+  MeanTransform<float>(data, length, out, alpha);
   return 0;
 }
 
@@ -105,7 +104,7 @@ int Float32_ExponentiallyWeightedMeanTransform(float *data, int length,
 float Float32_BoxCoxLambdaGuerrero(const float *x, int n, int period,
                                    float lower, float upper) {
   float out;
-  BoxCoxLambda_Guerrero<float>(x, n, &out, period, lower, upper);
+  BoxCoxLambdaGuerrero<float>(x, n, &out, period, lower, upper);
   return out;
 }
 float Float32_BoxCoxLambdaLogLik(const float *x, int n, float lower,

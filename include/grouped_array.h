@@ -6,6 +6,15 @@
 #include <thread>
 #include <vector>
 
+#include "diff.h"
+#include "expanding.h"
+#include "exponentially_weighted.h"
+#include "grouped_array_functions.h"
+#include "lag.h"
+#include "rolling.h"
+#include "scalers.h"
+#include "seasonal.h"
+
 using indptr_t = int32_t;
 
 template <typename T> inline indptr_t FirstNotNaN(const T *data, indptr_t n) {
@@ -194,5 +203,195 @@ public:
           out + out_indptr[i]);
       }
     });
+  }
+
+  // lag
+  void LagTransform(int k, T *out) { Transform(lag::LagTransform<T>, k, out); }
+
+  // manipulation
+  void IndexFromEnd(int k, T *out) {
+    Transform(grouped_array_functions::IndexFromEnd<T>, k, out);
+  }
+  void Head(int k, T *out) {
+    Reduce(grouped_array_functions::Head<T>, k, out, 0, k);
+  }
+  void Tail(int k, T *out) {
+    Reduce(grouped_array_functions::Tail<T>, k, out, 0, k);
+  }
+  void Tails(const indptr_t *out_indptr, T *out_data) {
+    VariableReduce(grouped_array_functions::Tail<T>, out_indptr, out_data);
+  }
+  void Append(GroupedArray<T> &other, const indptr_t *out_indptr, T *out_data) {
+    Zip(grouped_array_functions::Append<T>, other, out_indptr, out_data);
+  }
+
+  // rolling
+  void RollingMeanTransform(int lag, int window_size, int min_samples, T *out) {
+    Transform(rolling::MeanTransform<T>, lag, out, window_size, min_samples);
+  }
+  void RollingStdTransform(int lag, int window_size, int min_samples, T *out) {
+    Transform(rolling::StdTransform<T>, lag, out, window_size, min_samples);
+  }
+  void RollingMinTransform(int lag, int window_size, int min_samples, T *out) {
+    Transform(rolling::MinTransform<T>, lag, out, window_size, min_samples);
+  }
+  void RollingMaxTransform(int lag, int window_size, int min_samples, T *out) {
+    Transform(rolling::MaxTransform<T>, lag, out, window_size, min_samples);
+  }
+  void RollingQuantileTransform(int lag, T p, int window_size, int min_samples,
+                                T *out) {
+    Transform(rolling::QuantileTransform<T>, lag, out, window_size, min_samples,
+              p);
+  }
+  void RollingMeanUpdate(int lag, int window_size, int min_samples, T *out) {
+    Reduce(rolling::MeanUpdate<T>(), 1, out, lag, window_size, min_samples);
+  }
+  void RollingStdUpdate(int lag, int window_size, int min_samples, T *out) {
+    Reduce(rolling::StdUpdate<T>(), 1, out, lag, window_size, min_samples);
+  }
+  void RollingMinUpdate(int lag, int window_size, int min_samples, T *out) {
+    Reduce(rolling::MinUpdate<T>(), 1, out, lag, window_size, min_samples);
+  }
+  void RollingMaxUpdate(int lag, int window_size, int min_samples, T *out) {
+    Reduce(rolling::MaxUpdate<T>(), 1, out, lag, window_size, min_samples);
+  }
+  void RollingQuantileUpdate(int lag, T p, int window_size, int min_samples,
+                             T *out) {
+    Reduce(rolling::QuantileUpdate<T>(), 1, out, lag, window_size, min_samples,
+           p);
+  }
+
+  // seasonal rolling
+  void SeasonalRollingMeanTransform(int lag, int season_length, int window_size,
+                                    int min_samples, T *out) {
+    Transform(rolling::SeasonalMeanTransform<T>(), lag, out, season_length,
+              window_size, min_samples);
+  }
+  void SeasonalRollingStdTransform(int lag, int season_length, int window_size,
+                                   int min_samples, T *out) {
+    Transform(rolling::SeasonalStdTransform<T>(), lag, out, season_length,
+              window_size, min_samples);
+  }
+  void SeasonalRollingMinTransform(int lag, int season_length, int window_size,
+                                   int min_samples, T *out) {
+    Transform(rolling::SeasonalMinTransform<T>(), lag, out, season_length,
+              window_size, min_samples);
+  }
+  void SeasonalRollingMaxTransform(int lag, int season_length, int window_size,
+                                   int min_samples, T *out) {
+    Transform(rolling::SeasonalMaxTransform<T>(), lag, out, season_length,
+              window_size, min_samples);
+  }
+  void SeasonalRollingQuantileTransform(int lag, int season_length, T p,
+                                        int window_size, int min_samples,
+                                        T *out) {
+    Transform(rolling::SeasonalQuantileTransform<T>(), lag, out, season_length,
+              window_size, min_samples, p);
+  }
+  void SeasonalRollingMeanUpdate(int lag, int season_length, int window_size,
+                                 int min_samples, T *out) {
+    Reduce(rolling::SeasonalMeanUpdate<T>(), 1, out, lag, season_length,
+           window_size, min_samples);
+  }
+  void SeasonalRollingStdUpdate(int lag, int season_length, int window_size,
+                                int min_samples, T *out) {
+    Reduce(rolling::SeasonalStdUpdate<T>(), 1, out, lag, season_length,
+           window_size, min_samples);
+  }
+  void SeasonalRollingMinUpdate(int lag, int season_length, int window_size,
+                                int min_samples, T *out) {
+    Reduce(rolling::SeasonalMinUpdate<T>(), 1, out, lag, season_length,
+           window_size, min_samples);
+  }
+  void SeasonalRollingMaxUpdate(int lag, int season_length, int window_size,
+                                int min_samples, T *out) {
+    Reduce(rolling::SeasonalMaxUpdate<T>(), 1, out, lag, season_length,
+           window_size, min_samples);
+  }
+  void SeasonalRollingQuantileUpdate(int lag, int season_length, T p,
+                                     int window_size, int min_samples, T *out) {
+    Reduce(rolling::SeasonalQuantileUpdate<T>(), 1, out, lag, season_length,
+           window_size, min_samples, p);
+  }
+
+  // expanding
+  void ExpandingMeanTransform(int lag, T *out, T *agg) {
+    TransformAndReduce(expanding::MeanTransform<T>, lag, out, 1, agg);
+  }
+  void ExpandingStdTransform(int lag, T *out, T *agg) {
+    TransformAndReduce(expanding::StdTransform<T>, lag, out, 3, agg);
+  }
+  void ExpandingMinTransform(int lag, T *out) {
+    Transform(expanding::MinTransform<T>(), lag, out);
+  }
+  void ExpandingMaxTransform(int lag, T *out) {
+    Transform(expanding::MaxTransform<T>(), lag, out);
+  }
+  void ExpandingQuantileTransform(int lag, T p, T *out) {
+    Transform(expanding::MaxTransform<T>(), lag, out, p);
+  }
+  void ExpandingQuantileUpdate(int lag, T p, T *out) {
+    Reduce(expanding::QuantileUpdate<T>, 1, out, lag, p);
+  }
+
+  // exponentially weighted
+  void ExponentiallyWeightedMeanTransform(int lag, T alpha, T *out) {
+    Transform(exponentially_weighted::MeanTransform<T>, lag, out, alpha);
+  }
+
+  // scalers
+  void MinMaxScalerStats(T *out) {
+    Reduce(scalers::MinMaxScalerStats<T>, 2, out, 0);
+  }
+  void StandardScalerStats(T *out) {
+    Reduce(scalers::StandardScalerStats<T>, 2, out, 0);
+  }
+  void RobustIqrScalerStats(T *out) {
+    Reduce(scalers::RobustScalerIqrStats<T>, 2, out, 0);
+  }
+  void RobustMadScalerStats(T *out) {
+    Reduce(scalers::RobustScalerMadStats<T>, 2, out, 0);
+  }
+  void ApplyScaler(const T *stats, T *out) {
+    ScalerTransform(scalers::CommonScalerTransform<T>, stats, out);
+  }
+  void InvertScaler(const T *stats, T *out) {
+    ScalerTransform(scalers::CommonScalerInverseTransform<T>, stats, out);
+  }
+  void BoxCoxLambdaGuerrero(int period, T lower, T upper, T *out) {
+    Reduce(scalers::BoxCoxLambdaGuerrero<T>, 2, out, 0, period, lower, upper);
+  }
+  void BoxCoxLambdaLogLik(int period, T lower, T upper, T *out) {
+    Reduce(scalers::BoxCoxLambdaLogLik<T>, 2, out, 0, period, lower, upper);
+  }
+  void BoxCoxTransform(const T *lambdas, T *out) {
+    ScalerTransform(scalers::BoxCoxTransform<T>, lambdas, out);
+  }
+  void BoxCoxInverseTransform(const T *lambdas, T *out) {
+    ScalerTransform(scalers::BoxCoxInverseTransform<T>, lambdas, out);
+  }
+
+  // differences
+  void NumDiffs(int max_d, T *out) {
+    Reduce(diff::NumDiffs<T>, 1, out, 0, max_d);
+  }
+  void NumSeasDiffs(int period, int max_d, T *out) {
+    Reduce(diff::NumSeasDiffs<T>, 1, out, 0, period, max_d);
+  }
+  void NumSeasDiffsPeriods(int max_d, T *periods_and_out) {
+    Reduce(diff::NumSeasDiffsPeriods<T>, 2, periods_and_out, 0, max_d);
+  }
+  void Period(size_t max_lag, T *out) {
+    Reduce(seasonal::GreatestAutocovariance<T>, 1, out, 0, max_lag);
+  }
+  void Difference(int d, T *out) {
+    Transform(seasonal::Difference<T>, 0, out, d);
+  }
+  void Differences(const indptr_t *ds, T *out) {
+    VariableTransform(diff::Differences<T>, ds, out);
+  }
+  void InvertDifferences(const GroupedArray &other, const indptr_t out_indptr,
+                         T *out_data) {
+    Zip(diff::InvertDifference<T>, other, out_indptr, out_data);
   }
 };

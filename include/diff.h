@@ -1,9 +1,11 @@
 #pragma once
 
-#include "grouped_array.h"
 #include "kpss.h"
 #include "seasonal.h"
 
+using indptr_t = int32_t;
+
+namespace diff {
 template <typename T> void Differences(const T *data, int n, int d, T *out) {
   Difference(data, n, out, d);
 }
@@ -109,3 +111,4 @@ void NumSeasDiffsPeriods(const T *x, indptr_t n, T *period_and_out, int max_d) {
   T *out = period_and_out + 1;
   NumSeasDiffs(x, n, out, period, max_d);
 }
+} // namespace diff

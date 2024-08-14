@@ -1,5 +1,8 @@
-#include "grouped_array.h"
+#pragma once
 
+#include <algorithm>
+
+namespace grouped_array_functions {
 template <typename T>
 inline void IndexFromEnd(const T *data, int n, T *out, int k) {
   if (k > n) {
@@ -26,4 +29,5 @@ inline void Append(const T *data, int n, const T *other_data, int other_n,
                    T *out) {
   std::copy(data, data + n, out);
   std::copy(other_data, other_data + other_n, out + n);
+}
 }
