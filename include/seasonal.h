@@ -5,6 +5,8 @@
 
 #include <cmath>
 
+using indptr_t = int32_t;
+
 namespace seasonal {
 template <typename T> void Difference(const T *data, int n, T *out, int d) {
   if (d == 0) {
