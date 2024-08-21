@@ -1,9 +1,16 @@
 cmake_minimum_required(VERSION 3.25)
-project(ga LANGUAGES CXX)
+project(_lib LANGUAGES CXX)
 
 set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+if(SKBUILD)
+  set(LIBRARY_OUTPUT_PATH ${SKBUILD_PLATLIB_DIR}/coreforecast/lib)
+else()
+  set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/python/coreforecast)
+endif()
+
 find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
 set(PYBIND11_FINDPYTHON ON)
 execute_process(
@@ -15,5 +22,6 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE pybind11_INCLUDES)
 
 include_directories(include external/skiplist/src/cpp external/stl-cpp/include ${pybind11_INCLUDES})
-pybind11_add_module(ga src/coreforecast.cpp external/skiplist/src/cpp/SkipList.cpp)
-install(TARGETS ga DESTINATION .)
+file(GLOB SOURCES src/*.cpp external/skiplist/src/cpp/SkipList.cpp)
+pybind11_add_module(_lib ${SOURCES})
+install(TARGETS _lib DESTINATION .)
