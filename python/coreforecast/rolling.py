@@ -38,7 +38,9 @@ def _seasonal_rolling_stat(
 ) -> np.ndarray:
     if min_samples is None:
         min_samples = window_size
-    return getattr(_rolling, f"seasonal_rolling_{stat}")(x, window_size, min_samples)
+    return getattr(_rolling, f"seasonal_rolling_{stat}")(
+        x, season_length, window_size, min_samples
+    )
 
 
 def _rolling_docstring(*args, **kwargs) -> Callable:

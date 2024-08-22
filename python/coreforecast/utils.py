@@ -1,7 +1,6 @@
 import numpy as np
 
-
-_indptr_dtype = np.float32
+_indptr_dtype = np.int32
 
 
 def _diffs_to_indptr(diffs: np.ndarray) -> np.ndarray:

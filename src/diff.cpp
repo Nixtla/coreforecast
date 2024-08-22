@@ -3,19 +3,19 @@
 #include "seasonal.h"
 
 template <typename T>
-py::array_t<T> NumDiffs(const py::array_t<T> data, int max_d)
+int NumDiffs(const py::array_t<T> data, int max_d)
 {
-    py::array_t<T> out(data.size());
-    diff::NumDiffs(data.data(), data.size(), out.mutable_data(), max_d);
-    return out;
+    T out;
+    diff::NumDiffs(data.data(), data.size(), &out, max_d);
+    return static_cast<int>(out);
 }
 
 template <typename T>
-py::array_t<T> NumSeasDiffs(const py::array_t<T> data, int period, int max_d)
+int NumSeasDiffs(const py::array_t<T> data, int period, int max_d)
 {
-    py::array_t<T> out(data.size());
-    diff::NumSeasDiffs(data.data(), data.size(), out.mutable_data(), period, max_d);
-    return out;
+    T out;
+    diff::NumSeasDiffs(data.data(), data.size(), &out, period, max_d);
+    return static_cast<int>(out);
 }
 
 template <typename T>

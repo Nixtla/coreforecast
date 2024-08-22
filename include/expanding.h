@@ -14,10 +14,7 @@ namespace expanding
       accum += data[i];
       out[i] = accum / (i + 1);
     }
-    if (agg != nullptr)
-    {
-      *agg = static_cast<T>(n);
-    }
+    *agg = static_cast<T>(n);
   }
 
   template <typename T>

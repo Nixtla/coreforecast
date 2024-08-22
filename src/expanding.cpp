@@ -1,5 +1,6 @@
 #include "expanding.h"
 #include "common.h"
+#include "rolling.h"
 
 template <typename T, typename Func, typename... Args>
 py::array_t<T> ExpandingOp(Func f, const py::array_t<T> data, Args... args)
@@ -12,13 +13,15 @@ py::array_t<T> ExpandingOp(Func f, const py::array_t<T> data, Args... args)
 template <typename T>
 py::array_t<T> ExpandingMean(const py::array_t<T> data)
 {
-    return ExpandingOp(expanding::MeanTransform<T>, data, nullptr);
+    T tmp;
+    return ExpandingOp(expanding::MeanTransform<T>, data, &tmp);
 }
 
 template <typename T>
 py::array_t<T> ExpandingStd(const py::array_t<T> data)
 {
-    return ExpandingOp(expanding::StdTransform<T>, data, nullptr);
+    T tmp;
+    return ExpandingOp(rolling::StdTransformWithStats<T>, data, &tmp, false, data.size(), 2);
 }
 
 template <typename T>

@@ -33,25 +33,25 @@ public:
                int num_threads)
       : data_(data), indptr_(indptr), num_threads_(num_threads) {}
 
-  int num_groups() const noexcept
+  int NumGroups() const noexcept
   {
     return static_cast<int>(indptr_.size()) - 1;
   }
 
   py::array_t<T> operator[](int i) const
   {
-    int n_groups = num_groups();
-    if (i >= n_groups)
+    int num_groups = NumGroups();
+    if (i >= num_groups)
     {
       throw std::out_of_range("Index out of range");
     }
     if (i < 0)
     {
-      if (i < -n_groups)
+      if (i < -num_groups)
       {
         throw std::out_of_range("Index out of range");
       }
-      i += n_groups;
+      i += num_groups;
     }
     indptr_t start = indptr_.data()[i];
     indptr_t end = indptr_.data()[i + 1];
@@ -63,12 +63,35 @@ public:
         data_);
   }
 
+  py::array_t<T> Take(const py::array_t<indptr_t> indices) const
+  {
+    auto indices_data = indices.data();
+    auto indptr_data = indptr_.data();
+    indptr_t out_size = 0;
+    for (int i = 0; i < indices.size(); ++i)
+    {
+      indptr_t start = indptr_data[indices_data[i]];
+      indptr_t end = indptr_data[indices_data[i] + 1];
+      out_size += end - start;
+    }
+    py::array_t<T> out(out_size);
+    size_t j = 0;
+    for (int i = 0; i < indices.size(); ++i)
+    {
+      indptr_t start = indptr_data[indices_data[i]];
+      indptr_t end = indptr_data[indices_data[i] + 1];
+      std::copy(data_.data() + start, data_.data() + end, out.mutable_data() + j);
+      j += end - start;
+    }
+    return out;
+  }
+
   template <typename Func>
   void Parallelize(Func f) const noexcept
   {
     std::vector<std::thread> threads;
-    int groups_per_thread = num_groups() / num_threads_;
-    int remainder = num_groups() % num_threads_;
+    int groups_per_thread = NumGroups() / num_threads_;
+    int remainder = NumGroups() % num_threads_;
     for (int t = 0; t < num_threads_; ++t)
     {
       int start_group = t * groups_per_thread + std::min(t, remainder);
@@ -236,25 +259,25 @@ public:
 
   py::array_t<T> IndexFromEnd(int k)
   {
-    py::array_t<T> out(num_groups());
+    py::array_t<T> out(NumGroups());
     Reduce(grouped_array_functions::IndexFromEnd<T>, 1, out.mutable_data(), 0, k);
     return out;
   }
   py::array_t<T> Head(int k)
   {
-    py::array_t<T> out(k * num_groups());
+    py::array_t<T> out(k * NumGroups());
     Reduce(grouped_array_functions::Head<T>, k, out.mutable_data(), 0, k);
     return out;
   }
   py::array_t<T> Tail(int k)
   {
-    py::array_t<T> out(k * num_groups());
+    py::array_t<T> out(k * NumGroups());
     Reduce(grouped_array_functions::Tail<T>, k, out.mutable_data(), 0, k);
     return out;
   }
   std::unique_ptr<GroupedArray<T>> Append(const GroupedArray<T> &other)
   {
-    if (num_groups() != other.num_groups())
+    if (NumGroups() != other.NumGroups())
     {
       throw std::invalid_argument("Number of groups must be the same");
     }
@@ -269,7 +292,7 @@ public:
   }
   py::array_t<T> Tails(py::array_t<indptr_t> out_indptr)
   {
-    py::array_t<T> out(out_indptr.data()[num_groups()]);
+    py::array_t<T> out(out_indptr.data()[NumGroups()]);
     VariableReduce(grouped_array_functions::Tail<T>, out_indptr.data(),
                    out.mutable_data());
     return out;
@@ -320,7 +343,7 @@ public:
   py::array_t<T> RollingUpdate(Func transform, int lag, int window_size,
                                int min_samples)
   {
-    py::array_t<T> out(num_groups());
+    py::array_t<T> out(NumGroups());
     Reduce(transform, 1, out.mutable_data(), lag, window_size, min_samples);
     return out;
   }
@@ -347,7 +370,7 @@ public:
   py::array_t<T> RollingQuantileUpdate(int lag, T p, int window_size,
                                        int min_samples)
   {
-    py::array_t<T> out(num_groups());
+    py::array_t<T> out(NumGroups());
     Reduce(rolling::QuantileUpdate<T>(), 1, out.mutable_data(), lag,
            window_size, min_samples, p);
     return out;
@@ -403,7 +426,7 @@ public:
                                        int season_length, int window_size,
                                        int min_samples)
   {
-    py::array_t<T> out(num_groups());
+    py::array_t<T> out(NumGroups());
     Reduce(transform, 1, out.mutable_data(), lag, season_length, window_size,
            min_samples);
     return out;
@@ -436,7 +459,7 @@ public:
                                                int window_size,
                                                int min_samples)
   {
-    py::array_t<T> out(num_groups());
+    py::array_t<T> out(NumGroups());
     Reduce(rolling::SeasonalQuantileUpdate<T>(), 1, out.mutable_data(), lag,
            season_length, window_size, min_samples, p);
     return out;
@@ -445,7 +468,7 @@ public:
   std::tuple<py::array_t<T>, py::array_t<T>> ExpandingMeanTransform(int lag)
   {
     py::array_t<T> out(data_.size());
-    py::array_t<T> agg(num_groups());
+    py::array_t<T> agg(NumGroups());
     TransformAndReduce(expanding::MeanTransform<T>, lag, out.mutable_data(), 1,
                        agg.mutable_data());
     return std::make_tuple(out, agg);
@@ -453,7 +476,7 @@ public:
   std::tuple<py::array_t<T>, py::array_t<T>> ExpandingStdTransform(int lag)
   {
     py::array_t<T> out(data_.size());
-    py::array_t<T> agg({static_cast<int>(num_groups()), 3});
+    py::array_t<T> agg({static_cast<int>(NumGroups()), 3});
     TransformAndReduce(expanding::StdTransform<T>, lag, out.mutable_data(), 3,
                        agg.mutable_data());
     return std::make_tuple(out, agg);
@@ -478,7 +501,7 @@ public:
   }
   py::array_t<T> ExpandingQuantileUpdate(int lag, T p)
   {
-    py::array_t<T> out(num_groups());
+    py::array_t<T> out(NumGroups());
     Reduce(expanding::QuantileUpdate<T>, 1, out.mutable_data(), lag, p);
     return out;
   }
@@ -494,7 +517,7 @@ public:
   template <typename Func>
   py::array_t<T> ScalerStats(Func func)
   {
-    py::array_t<T> out({static_cast<int>(num_groups()), 2});
+    py::array_t<T> out({static_cast<int>(NumGroups()), 2});
     Reduce(func, 2, out.mutable_data(), 0);
     return out;
   }
@@ -530,14 +553,14 @@ public:
   }
   py::array_t<T> BoxCoxLambdaGuerrero(int period, T lower, T upper)
   {
-    py::array_t<T> out({num_groups(), 2});
+    py::array_t<T> out({NumGroups(), 2});
     Reduce(scalers::BoxCoxLambdaGuerrero<T>, 2, out.mutable_data(), 0, period,
            lower, upper);
     return out;
   }
   py::array_t<T> BoxCoxLambdaLogLik(T lower, T upper)
   {
-    py::array_t<T> out({num_groups(), 2});
+    py::array_t<T> out({NumGroups(), 2});
     Reduce(scalers::BoxCoxLambdaLogLik<T>, 2, out.mutable_data(), 0, lower,
            upper);
     return out;
@@ -559,25 +582,37 @@ public:
 
   py::array_t<T> NumDiffs(int max_d)
   {
-    py::array_t<T> out(num_groups());
+    py::array_t<T> out(NumGroups());
     Reduce(diff::NumDiffs<T>, 1, out.mutable_data(), 0, max_d);
     return out;
   }
   py::array_t<T> NumSeasDiffs(int period, int max_d)
   {
-    py::array_t<T> out(num_groups());
+    py::array_t<T> out(NumGroups());
     Reduce(diff::NumSeasDiffs<T>, 1, out.mutable_data(), 0, period, max_d);
     return out;
   }
-  py::array_t<T> NumSeasDiffsPeriods(int max_d)
+  py::array_t<T> NumSeasDiffsPeriods(int max_d, py::array_t<T> periods)
   {
-    py::array_t<T> periods_and_out({static_cast<int>(num_groups()), 2});
+    py::array_t<T> periods_and_out({static_cast<int>(NumGroups()), 2});
+    auto periods_ptr = periods.data();
+    auto periods_and_out_ptr = periods_and_out.mutable_data();
+    for (ssize_t i = 0; i < periods.size(); ++i)
+    {
+      periods_and_out_ptr[2 * i] = periods_ptr[i];
+    }
     Reduce(diff::NumSeasDiffsPeriods<T>, 2, periods_and_out.mutable_data(), 0, max_d);
-    return periods_and_out;
+    py::array_t<T> out(NumGroups());
+    auto out_ptr = out.mutable_data();
+    for (ssize_t i = 0; i < periods.size(); ++i)
+    {
+      out_ptr[i] = periods_and_out_ptr[2 * i + 1];
+    }
+    return out;
   }
-  py::array_t<T> Period(size_t max_lag)
+  py::array_t<T> Periods(size_t max_lag)
   {
-    py::array_t<T> out(num_groups());
+    py::array_t<T> out(NumGroups());
     Reduce(seasonal::GreatestAutocovariance<T>, 1, out.mutable_data(), 0,
            max_lag);
     return out;
@@ -590,14 +625,14 @@ public:
   }
   py::array_t<T> Differences(const py::array_t<indptr_t> ds)
   {
-    py::array_t<T> out(num_groups());
+    py::array_t<T> out(data_.size());
     VariableTransform(diff::Differences<T>, ds.data(), out.mutable_data());
     return out;
   }
   py::array_t<T>
   InvertDifference(int d, const py::array_t<T> tails)
   {
-    py::array_t<indptr_t> ds(num_groups());
+    py::array_t<indptr_t> ds(NumGroups());
     std::fill(ds.mutable_data(), ds.mutable_data() + ds.size(), d);
     return InvertDifferences(ds, tails);
   }
@@ -627,10 +662,12 @@ void bind_ga(py::module &m, const std::string &name)
       .def(py::init<const py::array_t<T> &, const py::array_t<indptr_t> &, int>())
       .def_readonly("data", &GroupedArray<T>::data_)
       .def_readonly("indptr", &GroupedArray<T>::indptr_)
+      .def_readwrite("num_threads", &GroupedArray<T>::num_threads_)
       .def("__getitem__", &GroupedArray<T>::operator[])
-      .def("__len__", &GroupedArray<T>::num_groups)
+      .def("__len__", &GroupedArray<T>::NumGroups)
       .def("_with_data", &GroupedArray<T>::WithData)
       .def("_index_from_end", &GroupedArray<T>::IndexFromEnd)
+      .def("_take", &GroupedArray<T>::Take)
       .def("_head", &GroupedArray<T>::Head)
       .def("_tail", &GroupedArray<T>::Tail)
       .def("_tails", &GroupedArray<T>::Tails)
@@ -683,7 +720,7 @@ void bind_ga(py::module &m, const std::string &name)
       .def("_num_diffs", &GroupedArray<T>::NumDiffs)
       .def("_num_seas_diffs", &GroupedArray<T>::NumSeasDiffs)
       .def("_num_seas_diffs_periods", &GroupedArray<T>::NumSeasDiffsPeriods)
-      .def("_period", &GroupedArray<T>::Period)
+      .def("_periods", &GroupedArray<T>::Periods)
       .def("_diff", &GroupedArray<T>::Difference)
       .def("_diffs", &GroupedArray<T>::Differences)
       .def("_inv_diff", &GroupedArray<T>::InvertDifference)
