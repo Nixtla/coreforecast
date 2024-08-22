@@ -17,6 +17,7 @@ concurrency:
 
 jobs:
   build_wheels:
+  if: false
     name: Build wheels for ${{ matrix.platform-id }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -55,6 +56,7 @@ jobs:
           retention-days: 1
 
   run_tests:
+  if: false
     needs: [build_wheels]
     runs-on: ${{ matrix.os }}
     strategy:

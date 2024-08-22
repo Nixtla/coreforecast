@@ -2,7 +2,11 @@
 
 #include <cstdint>
 
+#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+
 using indptr_t = int32_t;
+namespace py = pybind11;
 
 template <typename T>
 inline indptr_t FirstNotNaN(const T *data, indptr_t n)

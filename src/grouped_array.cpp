@@ -1,8 +1,5 @@
 #include <limits>
 
-#include <pybind11/numpy.h>
-#include <pybind11/pybind11.h>
-
 #include "common.h"
 #include "diff.h"
 #include "expanding.h"
@@ -12,7 +9,6 @@
 #include "scalers.h"
 #include "seasonal.h"
 
-namespace py = pybind11;
 using namespace pybind11::literals;
 
 template <typename T>
@@ -37,15 +33,42 @@ public:
                int num_threads)
       : data_(data), indptr_(indptr), num_threads_(num_threads) {}
 
-  size_t n_groups() const noexcept { return indptr_.size() - 1; }
+  int num_groups() const noexcept
+  {
+    return static_cast<int>(indptr_.size()) - 1;
+  }
+
+  py::array_t<T> operator[](int i) const
+  {
+    int n_groups = num_groups();
+    if (i >= n_groups)
+    {
+      throw std::out_of_range("Index out of range");
+    }
+    if (i < 0)
+    {
+      if (i < -n_groups)
+      {
+        throw std::out_of_range("Index out of range");
+      }
+      i += n_groups;
+    }
+    indptr_t start = indptr_.data()[i];
+    indptr_t end = indptr_.data()[i + 1];
+    auto buffer = data_.request();
+    return py::array_t<T>(
+        {end - start},
+        {buffer.strides[0]},
+        static_cast<T *>(buffer.ptr) + start,
+        data_);
+  }
 
   template <typename Func>
   void Parallelize(Func f) const noexcept
   {
     std::vector<std::thread> threads;
-    int num_groups = static_cast<int>(n_groups());
-    int groups_per_thread = num_groups / num_threads_;
-    int remainder = num_groups % num_threads_;
+    int groups_per_thread = num_groups() / num_threads_;
+    int remainder = num_groups() % num_threads_;
     for (int t = 0; t < num_threads_; ++t)
     {
       int start_group = t * groups_per_thread + std::min(t, remainder);
@@ -202,27 +225,36 @@ public:
       } });
   }
 
+  std::unique_ptr<GroupedArray<T>> WithData(const py::array_t<T> new_data)
+  {
+    if (new_data.size() != data_.size())
+    {
+      throw std::invalid_argument("Data must have the same size");
+    }
+    return std::make_unique<GroupedArray<T>>(new_data, indptr_, num_threads_);
+  }
+
   py::array_t<T> IndexFromEnd(int k)
   {
-    py::array_t<T> out(n_groups());
+    py::array_t<T> out(num_groups());
     Reduce(grouped_array_functions::IndexFromEnd<T>, 1, out.mutable_data(), 0, k);
     return out;
   }
   py::array_t<T> Head(int k)
   {
-    py::array_t<T> out(k * n_groups());
+    py::array_t<T> out(k * num_groups());
     Reduce(grouped_array_functions::Head<T>, k, out.mutable_data(), 0, k);
     return out;
   }
   py::array_t<T> Tail(int k)
   {
-    py::array_t<T> out(k * n_groups());
+    py::array_t<T> out(k * num_groups());
     Reduce(grouped_array_functions::Tail<T>, k, out.mutable_data(), 0, k);
     return out;
   }
   std::unique_ptr<GroupedArray<T>> Append(const GroupedArray<T> &other)
   {
-    if (n_groups() != other.n_groups())
+    if (num_groups() != other.num_groups())
     {
       throw std::invalid_argument("Number of groups must be the same");
     }
@@ -237,7 +269,7 @@ public:
   }
   py::array_t<T> Tails(py::array_t<indptr_t> out_indptr)
   {
-    py::array_t<T> out(out_indptr.data()[n_groups()]);
+    py::array_t<T> out(out_indptr.data()[num_groups()]);
     VariableReduce(grouped_array_functions::Tail<T>, out_indptr.data(),
                    out.mutable_data());
     return out;
@@ -288,7 +320,7 @@ public:
   py::array_t<T> RollingUpdate(Func transform, int lag, int window_size,
                                int min_samples)
   {
-    py::array_t<T> out(n_groups());
+    py::array_t<T> out(num_groups());
     Reduce(transform, 1, out.mutable_data(), lag, window_size, min_samples);
     return out;
   }
@@ -315,7 +347,7 @@ public:
   py::array_t<T> RollingQuantileUpdate(int lag, T p, int window_size,
                                        int min_samples)
   {
-    py::array_t<T> out(n_groups());
+    py::array_t<T> out(num_groups());
     Reduce(rolling::QuantileUpdate<T>(), 1, out.mutable_data(), lag,
            window_size, min_samples, p);
     return out;
@@ -356,8 +388,8 @@ public:
     return SeasonalRollingTransform(rolling::SeasonalMaxTransform<T>(), lag,
                                     season_length, window_size, min_samples);
   }
-  py::array_t<T> SeasonalRollingQuantileTransform(int lag, int season_length,
-                                                  T p, int window_size,
+  py::array_t<T> SeasonalRollingQuantileTransform(int lag, T p, int season_length,
+                                                  int window_size,
                                                   int min_samples)
   {
     py::array_t<T> out(data_.size());
@@ -371,7 +403,7 @@ public:
                                        int season_length, int window_size,
                                        int min_samples)
   {
-    py::array_t<T> out(n_groups());
+    py::array_t<T> out(num_groups());
     Reduce(transform, 1, out.mutable_data(), lag, season_length, window_size,
            min_samples);
     return out;
@@ -400,11 +432,11 @@ public:
     return SeasonalRollingUpdate(rolling::SeasonalMaxUpdate<T>(), lag,
                                  season_length, window_size, min_samples);
   }
-  py::array_t<T> SeasonalRollingQuantileUpdate(int lag, int season_length, T p,
+  py::array_t<T> SeasonalRollingQuantileUpdate(int lag, T p, int season_length,
                                                int window_size,
                                                int min_samples)
   {
-    py::array_t<T> out(n_groups());
+    py::array_t<T> out(num_groups());
     Reduce(rolling::SeasonalQuantileUpdate<T>(), 1, out.mutable_data(), lag,
            season_length, window_size, min_samples, p);
     return out;
@@ -413,7 +445,7 @@ public:
   std::tuple<py::array_t<T>, py::array_t<T>> ExpandingMeanTransform(int lag)
   {
     py::array_t<T> out(data_.size());
-    py::array_t<T> agg(n_groups());
+    py::array_t<T> agg(num_groups());
     TransformAndReduce(expanding::MeanTransform<T>, lag, out.mutable_data(), 1,
                        agg.mutable_data());
     return std::make_tuple(out, agg);
@@ -421,7 +453,7 @@ public:
   std::tuple<py::array_t<T>, py::array_t<T>> ExpandingStdTransform(int lag)
   {
     py::array_t<T> out(data_.size());
-    py::array_t<T> agg({static_cast<int>(n_groups()), 3});
+    py::array_t<T> agg({static_cast<int>(num_groups()), 3});
     TransformAndReduce(expanding::StdTransform<T>, lag, out.mutable_data(), 3,
                        agg.mutable_data());
     return std::make_tuple(out, agg);
@@ -446,7 +478,7 @@ public:
   }
   py::array_t<T> ExpandingQuantileUpdate(int lag, T p)
   {
-    py::array_t<T> out(n_groups());
+    py::array_t<T> out(num_groups());
     Reduce(expanding::QuantileUpdate<T>, 1, out.mutable_data(), lag, p);
     return out;
   }
@@ -462,7 +494,7 @@ public:
   template <typename Func>
   py::array_t<T> ScalerStats(Func func)
   {
-    py::array_t<T> out({static_cast<int>(n_groups()), 2});
+    py::array_t<T> out({static_cast<int>(num_groups()), 2});
     Reduce(func, 2, out.mutable_data(), 0);
     return out;
   }
@@ -498,14 +530,14 @@ public:
   }
   py::array_t<T> BoxCoxLambdaGuerrero(int period, T lower, T upper)
   {
-    py::array_t<T> out(n_groups());
+    py::array_t<T> out({num_groups(), 2});
     Reduce(scalers::BoxCoxLambdaGuerrero<T>, 2, out.mutable_data(), 0, period,
            lower, upper);
     return out;
   }
   py::array_t<T> BoxCoxLambdaLogLik(T lower, T upper)
   {
-    py::array_t<T> out(n_groups());
+    py::array_t<T> out({num_groups(), 2});
     Reduce(scalers::BoxCoxLambdaLogLik<T>, 2, out.mutable_data(), 0, lower,
            upper);
     return out;
@@ -527,25 +559,25 @@ public:
 
   py::array_t<T> NumDiffs(int max_d)
   {
-    py::array_t<T> out(n_groups());
+    py::array_t<T> out(num_groups());
     Reduce(diff::NumDiffs<T>, 1, out.mutable_data(), 0, max_d);
     return out;
   }
   py::array_t<T> NumSeasDiffs(int period, int max_d)
   {
-    py::array_t<T> out(n_groups());
+    py::array_t<T> out(num_groups());
     Reduce(diff::NumSeasDiffs<T>, 1, out.mutable_data(), 0, period, max_d);
     return out;
   }
   py::array_t<T> NumSeasDiffsPeriods(int max_d)
   {
-    py::array_t<T> periods_and_out({static_cast<int>(n_groups()), 2});
+    py::array_t<T> periods_and_out({static_cast<int>(num_groups()), 2});
     Reduce(diff::NumSeasDiffsPeriods<T>, 2, periods_and_out.mutable_data(), 0, max_d);
     return periods_and_out;
   }
   py::array_t<T> Period(size_t max_lag)
   {
-    py::array_t<T> out(n_groups());
+    py::array_t<T> out(num_groups());
     Reduce(seasonal::GreatestAutocovariance<T>, 1, out.mutable_data(), 0,
            max_lag);
     return out;
@@ -558,21 +590,33 @@ public:
   }
   py::array_t<T> Differences(const py::array_t<indptr_t> ds)
   {
-    py::array_t<T> out(n_groups());
+    py::array_t<T> out(num_groups());
     VariableTransform(diff::Differences<T>, ds.data(), out.mutable_data());
     return out;
   }
-  std::unique_ptr<GroupedArray<T>>
-  InvertDifferences(const GroupedArray<T> &other)
+  py::array_t<T>
+  InvertDifference(int d, const py::array_t<T> tails)
   {
-    auto data_buffer = data_.request();
-    py::array_t<T> out_data(data_buffer);
-    auto indptr_buffer = indptr_.request();
-    py::array_t<indptr_t> out_indptr(indptr_buffer);
-    Zip(diff::InvertDifference<T>, other, out_indptr.data(),
-        out_data.mutable_data());
-    return std::make_unique<GroupedArray<T>>(out_data, out_indptr,
-                                             num_threads_);
+    py::array_t<indptr_t> ds(num_groups());
+    std::fill(ds.mutable_data(), ds.mutable_data() + ds.size(), d);
+    return InvertDifferences(ds, tails);
+  }
+  py::array_t<T>
+  InvertDifferences(const py::array_t<indptr_t> ds, const py::array_t<T> tails)
+  {
+    py::array_t<indptr_t> tails_indptr(indptr_.size());
+    auto ds_data = ds.data();
+    auto tails_indptr_data = tails_indptr.mutable_data();
+    tails_indptr_data[0] = 0;
+    for (int i = 1; i < tails_indptr.size(); ++i)
+    {
+      tails_indptr_data[i] = tails_indptr_data[i - 1] + ds_data[i - 1];
+    }
+    auto tails_ga = GroupedArray<T>(tails, tails_indptr, num_threads_);
+    py::array_t<T> out(data_.size());
+    Zip(diff::InvertDifference<T>, tails_ga, indptr_.data(),
+        out.mutable_data());
+    return out;
   }
 };
 
@@ -583,6 +627,9 @@ void bind_ga(py::module &m, const std::string &name)
       .def(py::init<const py::array_t<T> &, const py::array_t<indptr_t> &, int>())
       .def_readonly("data", &GroupedArray<T>::data_)
       .def_readonly("indptr", &GroupedArray<T>::indptr_)
+      .def("__getitem__", &GroupedArray<T>::operator[])
+      .def("__len__", &GroupedArray<T>::num_groups)
+      .def("_with_data", &GroupedArray<T>::WithData)
       .def("_index_from_end", &GroupedArray<T>::IndexFromEnd)
       .def("_head", &GroupedArray<T>::Head)
       .def("_tail", &GroupedArray<T>::Tail)
@@ -610,6 +657,10 @@ void bind_ga(py::module &m, const std::string &name)
            &GroupedArray<T>::SeasonalRollingQuantileTransform)
       .def("_seasonal_rolling_mean_update",
            &GroupedArray<T>::SeasonalRollingMeanUpdate)
+      .def("_seasonal_rolling_std_update", &GroupedArray<T>::SeasonalRollingStdUpdate)
+      .def("_seasonal_rolling_min_update", &GroupedArray<T>::SeasonalRollingMinUpdate)
+      .def("_seasonal_rolling_max_update", &GroupedArray<T>::SeasonalRollingMaxUpdate)
+      .def("_seasonal_rolling_quantile_update", &GroupedArray<T>::SeasonalRollingQuantileUpdate)
       .def("_expanding_mean", &GroupedArray<T>::ExpandingMeanTransform)
       .def("_expanding_std", &GroupedArray<T>::ExpandingStdTransform)
       .def("_expanding_min", &GroupedArray<T>::ExpandingMinTransform)
@@ -635,6 +686,7 @@ void bind_ga(py::module &m, const std::string &name)
       .def("_period", &GroupedArray<T>::Period)
       .def("_diff", &GroupedArray<T>::Difference)
       .def("_diffs", &GroupedArray<T>::Differences)
+      .def("_inv_diff", &GroupedArray<T>::InvertDifference)
       .def("_inv_diffs", &GroupedArray<T>::InvertDifferences);
 }
 
@@ -645,6 +697,17 @@ void init_ga(py::module_ &m)
   bind_ga<double>(ga, "_GroupedArrayFloat64");
   ga.def("GroupedArray", [](py::array data, py::array_t<indptr_t, py::array::c_style | py::array::forcecast> indptr, int num_threads) -> py::object
          {
+           if (data.ndim() != 1) {
+            throw std::invalid_argument("data must be a 1d array");
+           }
+           if (indptr.ndim() != 1) {
+            throw std::invalid_argument("indptr must be a 1d array");
+           }
+           indptr_t last_indptr = indptr.data()[indptr.size() - 1];
+           if (data.size() != last_indptr) {
+            throw std::invalid_argument("Last element of indptr must be equal to the size of data");
+           }
+           data = py::array::ensure(data, py::array::c_style);
            if (data.dtype().kind() != 'f')
            {
              data = data.attr("astype")("float32");

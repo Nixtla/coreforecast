@@ -41,7 +41,6 @@ requires = ["scikit-build-core", "pybind11"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
-build-dir = "build/{wheel_tag}"
 cmake.verbose = true
 logging.level = "INFO"
 sdist.exclude = ["tests", "*.yml"]

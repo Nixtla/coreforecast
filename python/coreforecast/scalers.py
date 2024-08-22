@@ -126,7 +126,7 @@ class _BaseLocalScaler:
 
         Returns:
             self: The fitted scaler object."""
-        self.stats_ = getattr(ga, f"{self._scaler_type}_stats")()
+        self.stats_ = getattr(ga, f"_{self._scaler_type}_stats")()
         return self
 
     def transform(self, ga: "GroupedArray") -> np.ndarray:

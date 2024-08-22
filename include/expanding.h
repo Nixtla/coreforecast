@@ -3,44 +3,59 @@
 #include "rolling.h"
 #include "stats.h"
 
-namespace expanding {
-template <typename T>
-inline void MeanTransform(const T *data, int n, T *out, T *agg) {
-  T accum = static_cast<T>(0.0);
-  for (int i = 0; i < n; ++i) {
-    accum += data[i];
-    out[i] = accum / (i + 1);
+namespace expanding
+{
+  template <typename T>
+  inline void MeanTransform(const T *data, int n, T *out, T *agg)
+  {
+    T accum = static_cast<T>(0.0);
+    for (int i = 0; i < n; ++i)
+    {
+      accum += data[i];
+      out[i] = accum / (i + 1);
+    }
+    if (agg != nullptr)
+    {
+      *agg = static_cast<T>(n);
+    }
   }
-  *agg = static_cast<T>(n);
-}
 
-template <typename T>
-inline void StdTransform(const T *data, int n, T *out, T *agg) {
-  rolling::StdTransformWithStats(data, n, out, agg, true, n, 2);
-}
-
-template <typename T> struct MinTransform {
-  void operator()(const T *data, int n, T *out) {
-    rolling::MinTransform<T>(data, n, out, n, 1);
+  template <typename T>
+  inline void StdTransform(const T *data, int n, T *out, T *agg)
+  {
+    rolling::StdTransformWithStats(data, n, out, agg, true, n, 2);
   }
-};
 
-template <typename T> struct MaxTransform {
-  void operator()(const T *data, int n, T *out) {
-    rolling::MaxTransform<T>(data, n, out, n, 1);
+  template <typename T>
+  struct MinTransform
+  {
+    void operator()(const T *data, int n, T *out)
+    {
+      rolling::MinTransform<T>(data, n, out, n, 1);
+    }
+  };
+
+  template <typename T>
+  struct MaxTransform
+  {
+    void operator()(const T *data, int n, T *out)
+    {
+      rolling::MaxTransform<T>(data, n, out, n, 1);
+    }
+  };
+
+  template <typename T>
+  inline void QuantileTransform(const T *data, int n, T *out, T p)
+  {
+    rolling::QuantileTransform(data, n, out, n, 1, p);
   }
-};
 
-template <typename T>
-inline void QuantileTransform(const T *data, int n, T *out, T p) {
-  rolling::QuantileTransform(data, n, out, n, 1, p);
-}
-
-template <typename T>
-inline void QuantileUpdate(const T *data, int n, T *out, T p) {
-  T *buffer = new T[n];
-  std::copy(data, data + n, buffer);
-  *out = Quantile(buffer, p, n);
-  delete[] buffer;
-}
+  template <typename T>
+  inline void QuantileUpdate(const T *data, int n, T *out, T p)
+  {
+    T *buffer = new T[n];
+    std::copy(data, data + n, buffer);
+    *out = Quantile(buffer, p, n);
+    delete[] buffer;
+  }
 } // namespace expanding

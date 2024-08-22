@@ -1,10 +1,5 @@
-#include <pybind11/numpy.h>
-#include <pybind11/pybind11.h>
-
-#include "common.h"
 #include "scalers.h"
-
-namespace py = pybind11;
+#include "common.h"
 
 template <typename T>
 T BoxCoxLambdaGuerrero(py::array_t<T> data, int period, T lower, T upper)
@@ -41,7 +36,7 @@ py::array_t<T> BoxCoxInverseTransform(py::array_t<T> data, T lambda)
 }
 
 template <typename T>
-void init_fns(py::module_ &m)
+void init_sc_fns(py::module_ &m)
 {
     m.def("boxcox_lambda_guerrero", &BoxCoxLambdaGuerrero<T>);
     m.def("boxcox_lambda_loglik", &BoxCoxLambdaLogLik<T>);
@@ -49,9 +44,9 @@ void init_fns(py::module_ &m)
     m.def("inv_boxcox", &BoxCoxInverseTransform<T>);
 }
 
-void init_scalers(py::module_ &m)
+void init_sc(py::module_ &m)
 {
     py::module_ sc = m.def_submodule("scalers");
-    init_fns<float>(sc);
-    init_fns<double>(sc);
+    init_sc_fns<float>(sc);
+    init_sc_fns<double>(sc);
 }
