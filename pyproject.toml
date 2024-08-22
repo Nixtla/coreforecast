@@ -50,7 +50,6 @@ wheel.packages = ["python/coreforecast"]
 
 [tool.cibuildwheel]
 archs = "all"
-build-frontend = "build[uv]"
 build-verbosity = 3
 test-command = 'python -c "import coreforecast._lib"'
 
