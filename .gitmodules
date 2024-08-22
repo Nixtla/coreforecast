@@ -1,0 +1,6 @@
+[submodule "external/skiplist"]
+	path = external/skiplist
+	url = https://github.com/paulross/skiplist.git
+[submodule "external/stl-cpp"]
+	path = external/stl-cpp
+	url = https://github.com/jmoralez/stl-cpp.git
