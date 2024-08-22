@@ -349,29 +349,29 @@ public:
   }
   py::array_t<T> RollingMeanUpdate(int lag, int window_size, int min_samples)
   {
-    return RollingUpdate(rolling::MeanUpdate<T>(), lag, window_size,
+    return RollingUpdate(rolling::MeanUpdate<T>, lag, window_size,
                          min_samples);
   }
   py::array_t<T> RollingStdUpdate(int lag, int window_size, int min_samples)
   {
-    return RollingUpdate(rolling::StdUpdate<T>(), lag, window_size,
+    return RollingUpdate(rolling::StdUpdate<T>, lag, window_size,
                          min_samples);
   }
   py::array_t<T> RollingMaxUpdate(int lag, int window_size, int min_samples)
   {
-    return RollingUpdate(rolling::MaxUpdate<T>(), lag, window_size,
+    return RollingUpdate(rolling::MaxUpdate<T>, lag, window_size,
                          min_samples);
   }
   py::array_t<T> RollingMinUpdate(int lag, int window_size, int min_samples)
   {
-    return RollingUpdate(rolling::MinUpdate<T>(), lag, window_size,
+    return RollingUpdate(rolling::MinUpdate<T>, lag, window_size,
                          min_samples);
   }
   py::array_t<T> RollingQuantileUpdate(int lag, T p, int window_size,
                                        int min_samples)
   {
     py::array_t<T> out(NumGroups());
-    Reduce(rolling::QuantileUpdate<T>(), 1, out.mutable_data(), lag,
+    Reduce(rolling::QuantileUpdate<T>, 1, out.mutable_data(), lag,
            window_size, min_samples, p);
     return out;
   }
@@ -390,25 +390,25 @@ public:
                                               int window_size,
                                               int min_samples)
   {
-    return SeasonalRollingTransform(rolling::SeasonalMeanTransform<T>(), lag,
+    return SeasonalRollingTransform(rolling::SeasonalMeanTransform<T>, lag,
                                     season_length, window_size, min_samples);
   }
   py::array_t<T> SeasonalRollingStdTransform(int lag, int season_length,
                                              int window_size, int min_samples)
   {
-    return SeasonalRollingTransform(rolling::SeasonalStdTransform<T>(), lag,
+    return SeasonalRollingTransform(rolling::SeasonalStdTransform<T>, lag,
                                     season_length, window_size, min_samples);
   }
   py::array_t<T> SeasonalRollingMinTransform(int lag, int season_length,
                                              int window_size, int min_samples)
   {
-    return SeasonalRollingTransform(rolling::SeasonalMinTransform<T>(), lag,
+    return SeasonalRollingTransform(rolling::SeasonalMinTransform<T>, lag,
                                     season_length, window_size, min_samples);
   }
   py::array_t<T> SeasonalRollingMaxTransform(int lag, int season_length,
                                              int window_size, int min_samples)
   {
-    return SeasonalRollingTransform(rolling::SeasonalMaxTransform<T>(), lag,
+    return SeasonalRollingTransform(rolling::SeasonalMaxTransform<T>, lag,
                                     season_length, window_size, min_samples);
   }
   py::array_t<T> SeasonalRollingQuantileTransform(int lag, T p, int season_length,
@@ -416,7 +416,7 @@ public:
                                                   int min_samples)
   {
     py::array_t<T> out(data_.size());
-    Transform(rolling::SeasonalQuantileTransform<T>(), lag, out.mutable_data(),
+    Transform(rolling::SeasonalQuantileTransform<T>, lag, out.mutable_data(),
               season_length, window_size, min_samples, p);
     return out;
   }
@@ -434,25 +434,25 @@ public:
   py::array_t<T> SeasonalRollingMeanUpdate(int lag, int season_length,
                                            int window_size, int min_samples)
   {
-    return SeasonalRollingUpdate(rolling::SeasonalMeanUpdate<T>(), lag,
+    return SeasonalRollingUpdate(rolling::SeasonalMeanUpdate<T>, lag,
                                  season_length, window_size, min_samples);
   }
   py::array_t<T> SeasonalRollingStdUpdate(int lag, int season_length,
                                           int window_size, int min_samples)
   {
-    return SeasonalRollingUpdate(rolling::SeasonalStdUpdate<T>(), lag,
+    return SeasonalRollingUpdate(rolling::SeasonalStdUpdate<T>, lag,
                                  season_length, window_size, min_samples);
   }
   py::array_t<T> SeasonalRollingMinUpdate(int lag, int season_length,
                                           int window_size, int min_samples)
   {
-    return SeasonalRollingUpdate(rolling::SeasonalMinUpdate<T>(), lag,
+    return SeasonalRollingUpdate(rolling::SeasonalMinUpdate<T>, lag,
                                  season_length, window_size, min_samples);
   }
   py::array_t<T> SeasonalRollingMaxUpdate(int lag, int season_length,
                                           int window_size, int min_samples)
   {
-    return SeasonalRollingUpdate(rolling::SeasonalMaxUpdate<T>(), lag,
+    return SeasonalRollingUpdate(rolling::SeasonalMaxUpdate<T>, lag,
                                  season_length, window_size, min_samples);
   }
   py::array_t<T> SeasonalRollingQuantileUpdate(int lag, T p, int season_length,
@@ -460,7 +460,7 @@ public:
                                                int min_samples)
   {
     py::array_t<T> out(NumGroups());
-    Reduce(rolling::SeasonalQuantileUpdate<T>(), 1, out.mutable_data(), lag,
+    Reduce(rolling::SeasonalQuantileUpdate<T>, 1, out.mutable_data(), lag,
            season_length, window_size, min_samples, p);
     return out;
   }
@@ -484,13 +484,13 @@ public:
   py::array_t<T> ExpandingMinTransform(int lag)
   {
     py::array_t<T> out(data_.size());
-    Transform(expanding::MinTransform<T>(), lag, out.mutable_data());
+    Transform(expanding::MinTransform<T>, lag, out.mutable_data());
     return out;
   }
   py::array_t<T> ExpandingMaxTransform(int lag)
   {
     py::array_t<T> out(data_.size());
-    Transform(expanding::MaxTransform<T>(), lag, out.mutable_data());
+    Transform(expanding::MaxTransform<T>, lag, out.mutable_data());
     return out;
   }
   py::array_t<T> ExpandingQuantileTransform(int lag, T p)

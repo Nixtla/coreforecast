@@ -265,58 +265,43 @@ namespace rolling
   }
 
   template <typename T>
-  struct SeasonalMeanTransform
+  inline void SeasonalMeanTransform(const T *data, int n, T *out, int season_length,
+                                    int window_size, int min_samples)
   {
-    void operator()(const T *data, int n, T *out, int season_length,
-                    int window_size, int min_samples)
-    {
-      SeasonalTransform(MeanTransform<T>, data, n, out, season_length,
-                        window_size, min_samples);
-    }
+    SeasonalTransform(MeanTransform<T>, data, n, out, season_length,
+                      window_size, min_samples);
   };
 
   template <typename T>
-  struct SeasonalStdTransform
+  inline void SeasonalStdTransform(const T *data, int n, T *out, int season_length,
+                                   int window_size, int min_samples)
   {
-    void operator()(const T *data, int n, T *out, int season_length,
-                    int window_size, int min_samples)
-    {
-      SeasonalTransform(StdTransform<T>, data, n, out, season_length, window_size,
-                        min_samples);
-    }
+    SeasonalTransform(StdTransform<T>, data, n, out, season_length, window_size,
+                      min_samples);
   };
 
   template <typename T>
-  struct SeasonalMinTransform
+  inline void SeasonalMinTransform(const T *data, int n, T *out, int season_length,
+                                   int window_size, int min_samples)
   {
-    void operator()(const T *data, int n, T *out, int season_length,
-                    int window_size, int min_samples)
-    {
-      SeasonalTransform(MinTransform<T>, data, n, out, season_length, window_size,
-                        min_samples);
-    }
+    SeasonalTransform(MinTransform<T>, data, n, out, season_length, window_size,
+                      min_samples);
   };
 
   template <typename T>
-  struct SeasonalMaxTransform
+  inline void SeasonalMaxTransform(const T *data, int n, T *out, int season_length,
+                                   int window_size, int min_samples)
   {
-    void operator()(const T *data, int n, T *out, int season_length,
-                    int window_size, int min_samples)
-    {
-      SeasonalTransform(MaxTransform<T>, data, n, out, season_length, window_size,
-                        min_samples);
-    }
+    SeasonalTransform(MaxTransform<T>, data, n, out, season_length, window_size,
+                      min_samples);
   };
 
   template <typename T>
-  struct SeasonalQuantileTransform
+  void SeasonalQuantileTransform(const T *data, int n, T *out, int season_length,
+                                 int window_size, int min_samples, T p)
   {
-    void operator()(const T *data, int n, T *out, int season_length,
-                    int window_size, int min_samples, T p)
-    {
-      SeasonalTransform(QuantileTransform<T>, data, n, out, season_length,
-                        window_size, min_samples, p);
-    }
+    SeasonalTransform(QuantileTransform<T>, data, n, out, season_length,
+                      window_size, min_samples, p);
   };
 
   template <typename Func, typename T, typename... Args>
@@ -337,53 +322,38 @@ namespace rolling
   }
 
   template <typename T>
-  struct MeanUpdate
+  void MeanUpdate(const T *data, int n, T *out, int window_size,
+                  int min_samples)
   {
-    void operator()(const T *data, int n, T *out, int window_size,
-                    int min_samples)
-    {
-      Update(MeanTransform<T>, data, n, out, window_size, min_samples);
-    }
+    Update(MeanTransform<T>, data, n, out, window_size, min_samples);
   };
 
   template <typename T>
-  struct StdUpdate
+  void StdUpdate(const T *data, int n, T *out, int window_size,
+                 int min_samples)
   {
-    void operator()(const T *data, int n, T *out, int window_size,
-                    int min_samples)
-    {
-      Update(StdTransform<T>, data, n, out, window_size, min_samples);
-    }
+    Update(StdTransform<T>, data, n, out, window_size, min_samples);
   };
 
   template <typename T>
-  struct MinUpdate
+  void MinUpdate(const T *data, int n, T *out, int window_size,
+                 int min_samples)
   {
-    void operator()(const T *data, int n, T *out, int window_size,
-                    int min_samples)
-    {
-      Update(MinTransform<T>, data, n, out, window_size, min_samples);
-    }
+    Update(MinTransform<T>, data, n, out, window_size, min_samples);
   };
 
   template <typename T>
-  struct MaxUpdate
+  void MaxUpdate(const T *data, int n, T *out, int window_size,
+                 int min_samples)
   {
-    void operator()(const T *data, int n, T *out, int window_size,
-                    int min_samples)
-    {
-      Update(MaxTransform<T>, data, n, out, window_size, min_samples);
-    }
+    Update(MaxTransform<T>, data, n, out, window_size, min_samples);
   };
 
   template <typename T>
-  struct QuantileUpdate
+  void QuantileUpdate(const T *data, int n, T *out, int window_size,
+                      int min_samples, T p)
   {
-    void operator()(const T *data, int n, T *out, int window_size,
-                    int min_samples, T p)
-    {
-      Update(QuantileTransform<T>, data, n, out, window_size, min_samples, p);
-    }
+    Update(QuantileTransform<T>, data, n, out, window_size, min_samples, p);
   };
 
   template <typename Func, typename T, typename... Args>
@@ -410,57 +380,42 @@ namespace rolling
   }
 
   template <typename T>
-  struct SeasonalMeanUpdate
+  void SeasonalMeanUpdate(const T *data, int n, T *out, int season_length,
+                          int window_size, int min_samples)
   {
-    void operator()(const T *data, int n, T *out, int season_length,
-                    int window_size, int min_samples)
-    {
-      SeasonalUpdate(MeanUpdate<T>(), data, n, out, season_length, window_size,
-                     min_samples);
-    }
+    SeasonalUpdate(MeanUpdate<T>, data, n, out, season_length, window_size,
+                   min_samples);
   };
 
   template <typename T>
-  struct SeasonalStdUpdate
+  void SeasonalStdUpdate(const T *data, int n, T *out, int season_length,
+                         int window_size, int min_samples)
   {
-    void operator()(const T *data, int n, T *out, int season_length,
-                    int window_size, int min_samples)
-    {
-      SeasonalUpdate(StdUpdate<T>(), data, n, out, season_length, window_size,
-                     min_samples);
-    }
+    SeasonalUpdate(StdUpdate<T>, data, n, out, season_length, window_size,
+                   min_samples);
   };
 
   template <typename T>
-  struct SeasonalMinUpdate
+  void SeasonalMinUpdate(const T *data, int n, T *out, int season_length,
+                         int window_size, int min_samples)
   {
-    void operator()(const T *data, int n, T *out, int season_length,
-                    int window_size, int min_samples)
-    {
-      SeasonalUpdate(MinUpdate<T>(), data, n, out, season_length, window_size,
-                     min_samples);
-    }
+    SeasonalUpdate(MinUpdate<T>, data, n, out, season_length, window_size,
+                   min_samples);
   };
 
   template <typename T>
-  struct SeasonalMaxUpdate
+  void SeasonalMaxUpdate(const T *data, int n, T *out, int season_length,
+                         int window_size, int min_samples)
   {
-    void operator()(const T *data, int n, T *out, int season_length,
-                    int window_size, int min_samples)
-    {
-      SeasonalUpdate(MaxUpdate<T>(), data, n, out, season_length, window_size,
-                     min_samples);
-    }
+    SeasonalUpdate(MaxUpdate<T>, data, n, out, season_length, window_size,
+                   min_samples);
   };
 
   template <typename T>
-  struct SeasonalQuantileUpdate
+  void SeasonalQuantileUpdate(const T *data, int n, T *out, int season_length,
+                              int window_size, int min_samples, T p)
   {
-    void operator()(const T *data, int n, T *out, int season_length,
-                    int window_size, int min_samples, T p)
-    {
-      SeasonalUpdate(QuantileUpdate<T>(), data, n, out, season_length,
-                     window_size, min_samples, p);
-    }
+    SeasonalUpdate(QuantileUpdate<T>, data, n, out, season_length,
+                   window_size, min_samples, p);
   };
 } // namespace rolling

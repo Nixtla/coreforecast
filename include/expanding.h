@@ -24,21 +24,15 @@ namespace expanding
   }
 
   template <typename T>
-  struct MinTransform
+  inline void MinTransform(const T *data, int n, T *out)
   {
-    void operator()(const T *data, int n, T *out)
-    {
-      rolling::MinTransform<T>(data, n, out, n, 1);
-    }
-  };
+    rolling::MinTransform<T>(data, n, out, n, 1);
+  }
 
   template <typename T>
-  struct MaxTransform
+  inline void MaxTransform(const T *data, int n, T *out)
   {
-    void operator()(const T *data, int n, T *out)
-    {
-      rolling::MaxTransform<T>(data, n, out, n, 1);
-    }
+    rolling::MaxTransform<T>(data, n, out, n, 1);
   };
 
   template <typename T>

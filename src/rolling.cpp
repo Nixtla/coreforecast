@@ -50,31 +50,31 @@ py::array_t<T> SeasonalRollingOp(Func f, const py::array_t<T> data, int season_l
 template <typename T>
 py::array_t<T> SeasonalRollingMean(const py::array_t<T> data, int season_length, int window_size, int min_samples)
 {
-    return SeasonalRollingOp(rolling::SeasonalMeanTransform<T>(), data, season_length, window_size, min_samples);
+    return SeasonalRollingOp(rolling::SeasonalMeanTransform<T>, data, season_length, window_size, min_samples);
 }
 
 template <typename T>
 py::array_t<T> SeasonalRollingStd(const py::array_t<T> data, int season_length, int window_size, int min_samples)
 {
-    return SeasonalRollingOp(rolling::SeasonalStdTransform<T>(), data, season_length, window_size, min_samples);
+    return SeasonalRollingOp(rolling::SeasonalStdTransform<T>, data, season_length, window_size, min_samples);
 }
 
 template <typename T>
 py::array_t<T> SeasonalRollingMin(const py::array_t<T> data, int season_length, int window_size, int min_samples)
 {
-    return SeasonalRollingOp(rolling::SeasonalMinTransform<T>(), data, season_length, window_size, min_samples);
+    return SeasonalRollingOp(rolling::SeasonalMinTransform<T>, data, season_length, window_size, min_samples);
 }
 
 template <typename T>
 py::array_t<T> SeasonalRollingMax(const py::array_t<T> data, int season_length, int window_size, int min_samples)
 {
-    return SeasonalRollingOp(rolling::SeasonalMaxTransform<T>(), data, season_length, window_size, min_samples);
+    return SeasonalRollingOp(rolling::SeasonalMaxTransform<T>, data, season_length, window_size, min_samples);
 }
 
 template <typename T>
 py::array_t<T> SeasonalRollingQuantile(const py::array_t<T> data, int season_length, int window_size, int min_samples, T p)
 {
-    return SeasonalRollingOp(rolling::SeasonalQuantileTransform<T>(), data, season_length, window_size, min_samples, p);
+    return SeasonalRollingOp(rolling::SeasonalQuantileTransform<T>, data, season_length, window_size, min_samples, p);
 }
 
 template <typename T>

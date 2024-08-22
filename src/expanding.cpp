@@ -27,13 +27,13 @@ py::array_t<T> ExpandingStd(const py::array_t<T> data)
 template <typename T>
 py::array_t<T> ExpandingMin(const py::array_t<T> data)
 {
-    return ExpandingOp(expanding::MinTransform<T>(), data);
+    return ExpandingOp(expanding::MinTransform<T>, data);
 }
 
 template <typename T>
 py::array_t<T> ExpandingMax(const py::array_t<T> data)
 {
-    return ExpandingOp(expanding::MaxTransform<T>(), data);
+    return ExpandingOp(expanding::MaxTransform<T>, data);
 }
 
 template <typename T>
