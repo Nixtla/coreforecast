@@ -24,7 +24,7 @@ keywords = ["forecasting", "time-series"]
 
 [project.optional-dependencies]
 dev = [
-    "numba>=0.60.0",
+    "numba>=0.58.0",
     "pandas",
     "pre-commit",
     "pytest",
