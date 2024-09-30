@@ -7,29 +7,56 @@
 namespace rolling
 {
   template <typename T>
-  inline void MeanTransform(const T *data, int n, T *out, int window_size,
-                            int min_samples)
+  class MeanAccumulator
   {
-    T accum = static_cast<T>(0.0);
-    int upper_limit = std::min(window_size, n);
-    for (int i = 0; i < upper_limit; ++i)
+  public:
+    MeanAccumulator(int window_size) : window_size_(window_size) {}
+    void Update(T x)
     {
-      accum += data[i];
-      if (i + 1 < min_samples)
-      {
-        out[i] = std::numeric_limits<T>::quiet_NaN();
-      }
-      else
-      {
-        out[i] = accum / (i + 1);
-      }
+      accum_ += x;
+    }
+    T Update(T x, int n)
+    {
+      accum_ += x;
+      return accum_ / static_cast<T>(n);
+    }
+    T Update(T new_x, T old_x)
+    {
+      accum_ += new_x - old_x;
+      return accum_ / static_cast<T>(window_size_);
     }
 
+  private:
+    int window_size_;
+    T accum_ = 0.0;
+  };
+
+  template <typename T, typename Accumulator, typename... Args>
+  inline void Transform(const T *data, int n, T *out, int window_size,
+                        int min_samples, Args &&...args)
+  {
+    Accumulator accumulator(window_size, std::forward<Args>(args)...);
+    window_size = std::min(window_size, n);
+    min_samples = std::min(min_samples, window_size);
+    for (int i = 0; i < min_samples - 1; ++i)
+    {
+      accumulator.Update(data[i]);
+      out[i] = std::numeric_limits<T>::quiet_NaN();
+    }
+    for (int i = min_samples - 1; i < window_size; ++i)
+    {
+      out[i] = accumulator.Update(data[i], i + 1);
+    }
     for (int i = window_size; i < n; ++i)
     {
-      accum += data[i] - data[i - window_size];
-      out[i] = accum / window_size;
+      out[i] = accumulator.Update(data[i], data[i - window_size]);
     }
+  }
+
+  template <typename T>
+  inline void MeanTransform(const T *data, int n, T *out, int window_size, int min_samples)
+  {
+    Transform<T, MeanAccumulator<T>>(data, n, out, window_size, min_samples);
   }
 
   template <typename T>
@@ -81,16 +108,15 @@ namespace rolling
   }
 
   template <typename T, typename Comp>
-  class SortedDeque
+  class CompAccumulator
   {
   public:
-    SortedDeque(int window_size, Comp comp = Comp())
-        : window_size_(window_size), comp_(comp)
+    CompAccumulator(int window_size) : window_size_(window_size)
     {
       buffer_.reserve(window_size);
     }
-    inline bool empty() const noexcept { return tail_ == -1; }
-    inline void push_back(int i, T x) noexcept
+    inline bool Empty() const noexcept { return tail_ == -1; }
+    inline void PushBack(int i, T x) noexcept
     {
       if (tail_ == -1)
       {
@@ -107,7 +133,7 @@ namespace rolling
       }
       buffer_[tail_] = {i, x};
     }
-    inline void pop_back() noexcept
+    inline void PopBack() noexcept
     {
       if (head_ == tail_)
       {
@@ -123,7 +149,7 @@ namespace rolling
         --tail_;
       }
     }
-    inline void pop_front() noexcept
+    inline void PopFront() noexcept
     {
       if (head_ == tail_)
       {
@@ -139,28 +165,41 @@ namespace rolling
         ++head_;
       }
     }
-    inline const std::pair<int, T> &front() const noexcept
+    inline const std::pair<int, T> &Front() const noexcept
     {
       return buffer_[head_];
     }
-    inline const std::pair<int, T> &back() const noexcept
+    inline const std::pair<int, T> &Back() const noexcept
     {
       return buffer_[tail_];
     }
-    void update(T x) noexcept
+    void Insert(T x) noexcept
     {
-      while (!empty() && comp_(back().second, x))
+      while (!Empty() && comp_(Back().second, x))
       {
-        pop_back();
+        PopBack();
       }
-      if (!empty() && front().first <= i_)
+      if (!Empty() && Front().first <= i_)
       {
-        pop_front();
+        PopFront();
       }
-      push_back(window_size_ + i_, x);
+      PushBack(window_size_ + i_, x);
       ++i_;
     }
-    T get() const noexcept { return front().second; }
+    void Update(T x) noexcept
+    {
+      Insert(x);
+    }
+    T Update(T x, int n) noexcept
+    {
+      Insert(x);
+      return Front().second;
+    }
+    T Update(T new_x, T old_x) noexcept
+    {
+      Insert(new_x);
+      return Front().second;
+    }
 
   private:
     std::vector<std::pair<int, T>> buffer_;
@@ -168,73 +207,56 @@ namespace rolling
     int head_ = 0;
     int tail_ = -1;
     int i_ = 0;
-    Comp comp_;
+    Comp comp_ = Comp();
   };
-
-  template <typename T, typename Comp>
-  inline void CompTransform(const T *data, int n, T *out, int window_size,
-                            int min_samples)
-  {
-    int upper_limit = std::min(window_size, n);
-    SortedDeque<T, Comp> sdeque(window_size);
-    for (int i = 0; i < upper_limit; ++i)
-    {
-      sdeque.update(data[i]);
-      if (i + 1 < min_samples)
-      {
-        out[i] = std::numeric_limits<T>::quiet_NaN();
-      }
-      else
-      {
-        out[i] = sdeque.get();
-      }
-    }
-    for (int i = upper_limit; i < n; ++i)
-    {
-      sdeque.update(data[i]);
-      out[i] = sdeque.get();
-    }
-  }
 
   template <typename T>
   void MinTransform(const T *data, int n, T *out, int window_size,
                     int min_samples)
   {
-    CompTransform<T, std::greater_equal<T>>(data, n, out, window_size,
-                                            min_samples);
+    Transform<T, CompAccumulator<T, std::greater_equal<T>>>(data, n, out, window_size,
+                                                            min_samples);
   }
 
   template <typename T>
   void MaxTransform(const T *data, int n, T *out, int window_size,
                     int min_samples)
   {
-    CompTransform<T, std::less_equal<T>>(data, n, out, window_size, min_samples);
+    Transform<T, CompAccumulator<T, std::less_equal<T>>>(data, n, out, window_size, min_samples);
   }
+
+  template <typename T>
+  class QuantileAccumulator
+  {
+  public:
+    QuantileAccumulator(int window_size, T p) : window_size_(window_size), p_(p) {}
+    void Update(T x)
+    {
+      skip_list_.insert(x);
+    }
+    T Update(T x, int n)
+    {
+      skip_list_.insert(x);
+      return SortedQuantile(skip_list_, p_, n);
+    }
+    T Update(T new_x, T old_x)
+    {
+      skip_list_.remove(old_x);
+      skip_list_.insert(new_x);
+      return SortedQuantile(skip_list_, p_, window_size_);
+    }
+
+  private:
+    int window_size_;
+    T p_;
+    OrderedStructs::SkipList::HeadNode<T> skip_list_;
+  };
 
   template <typename T>
   inline void QuantileTransform(const T *data, int n, T *out, int window_size,
                                 int min_samples, T p)
   {
-    int upper_limit = std::min(window_size, n);
-    OrderedStructs::SkipList::HeadNode<T> sl;
-    for (int i = 0; i < upper_limit; ++i)
-    {
-      sl.insert(data[i]);
-      if (i + 1 < min_samples)
-      {
-        out[i] = std::numeric_limits<T>::quiet_NaN();
-      }
-      else
-      {
-        out[i] = SortedQuantile(sl, p, i + 1);
-      }
-    }
-    for (int i = window_size; i < n; ++i)
-    {
-      sl.remove(data[i - window_size]);
-      sl.insert(data[i]);
-      out[i] = SortedQuantile(sl, p, window_size);
-    }
+    Transform<T, QuantileAccumulator<T>>(data, n, out, window_size, min_samples, p);
   }
 
   template <typename Func, typename T, typename... Args>
