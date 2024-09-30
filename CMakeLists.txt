@@ -21,7 +21,7 @@ execute_process(
   COMMAND "${Python_EXECUTABLE}" -m pybind11 --includes
   OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE pybind11_INCLUDES)
 
-include_directories(include external/skiplist/src/cpp external/stl-cpp/include ${pybind11_INCLUDES})
-file(GLOB SOURCES src/*.cpp external/skiplist/src/cpp/SkipList.cpp)
+include_directories(include/coreforecast external_libs/skiplist/src/cpp external_libs/stl-cpp/include ${pybind11_INCLUDES})
+file(GLOB SOURCES src/*.cpp external_libs/skiplist/src/cpp/SkipList.cpp)
 pybind11_add_module(_lib ${SOURCES})
 install(TARGETS _lib DESTINATION .)

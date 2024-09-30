@@ -597,14 +597,14 @@ public:
     py::array_t<T> periods_and_out({static_cast<int>(NumGroups()), 2});
     auto periods_ptr = periods.data();
     auto periods_and_out_ptr = periods_and_out.mutable_data();
-    for (ssize_t i = 0; i < periods.size(); ++i)
+    for (py::ssize_t i = 0; i < periods.size(); ++i)
     {
       periods_and_out_ptr[2 * i] = periods_ptr[i];
     }
     Reduce(diff::NumSeasDiffsPeriods<T>, 2, periods_and_out.mutable_data(), 0, max_d);
     py::array_t<T> out(NumGroups());
     auto out_ptr = out.mutable_data();
-    for (ssize_t i = 0; i < periods.size(); ++i)
+    for (py::ssize_t i = 0; i < periods.size(); ++i)
     {
       out_ptr[i] = periods_and_out_ptr[2 * i + 1];
     }
