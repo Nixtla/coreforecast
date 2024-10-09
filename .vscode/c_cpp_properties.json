@@ -3,10 +3,7 @@
         {
             "name": "CMake deps",
             "includePath": [
-                "${workspaceFolder}/include",
-                "${workspaceFolder}/build/_deps/**/include",
-                "${workspaceFolder}/build/_deps/**/cpp",
-                "${workspaceFolder}/.venv/lib/python3.10/site-packages/pybind11/include"
+                "${workspaceFolder}/**"
             ]
         }
     ],
