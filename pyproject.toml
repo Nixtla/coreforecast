@@ -51,6 +51,7 @@ wheel.packages = ["python/coreforecast"]
 [tool.cibuildwheel]
 archs = "all"
 build-verbosity = 3
+test-extras = "dev"
 test-command = "pytest {project}/tests -k 'not efficiency'"
 
 [tool.pyright]
