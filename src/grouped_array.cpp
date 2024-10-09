@@ -87,9 +87,15 @@ public:
   }
 
   template <typename Func>
-  void Parallelize(Func f) const noexcept
+  void ForEach(Func f) const noexcept
   {
+    if (num_threads_ < 2)
+    {
+      f(0, NumGroups());
+      return;
+    }
     std::vector<std::thread> threads;
+    threads.reserve(num_threads_);
     int groups_per_thread = NumGroups() / num_threads_;
     int remainder = NumGroups() % num_threads_;
     for (int t = 0; t < num_threads_; ++t)
@@ -108,9 +114,9 @@ public:
   void Reduce(Func f, int n_out, T *out, int lag,
               Args &&...args) const noexcept
   {
-    Parallelize([data = data_.data(), indptr = indptr_.data(), &f, n_out, out,
-                 lag, &args...](int start_group, int end_group)
-                {
+    ForEach([data = data_.data(), indptr = indptr_.data(), &f, n_out, out,
+             lag, &args...](int start_group, int end_group)
+            {
       for (int i = start_group; i < end_group; ++i) {
         indptr_t start = indptr[i];
         indptr_t end = indptr[i + 1];
@@ -132,9 +138,9 @@ public:
   void VariableReduce(Func f, const indptr_t *indptr_out, T *out,
                       Args &&...args) const noexcept
   {
-    Parallelize([data = data_.data(), indptr = indptr_.data(), &f, indptr_out,
-                 out, &args...](int start_group, int end_group)
-                {
+    ForEach([data = data_.data(), indptr = indptr_.data(), &f, indptr_out,
+             out, &args...](int start_group, int end_group)
+            {
       for (int i = start_group; i < end_group; ++i) {
         indptr_t start = indptr[i];
         indptr_t end = indptr[i + 1];
@@ -148,9 +154,9 @@ public:
   template <typename Func>
   void ScalerTransform(Func f, const T *stats, T *out) const noexcept
   {
-    Parallelize([data = data_.data(), indptr = indptr_.data(), &f, stats,
-                 out](int start_group, int end_group)
-                {
+    ForEach([data = data_.data(), indptr = indptr_.data(), &f, stats,
+             out](int start_group, int end_group)
+            {
       for (int i = start_group; i < end_group; ++i) {
         indptr_t start = indptr[i];
         indptr_t end = indptr[i + 1];
@@ -168,9 +174,9 @@ public:
   template <typename Func, typename... Args>
   void Transform(Func f, int lag, T *out, Args &&...args) const noexcept
   {
-    Parallelize([data = data_.data(), indptr = indptr_.data(), &f, lag, out,
-                 &args...](int start_group, int end_group)
-                {
+    ForEach([data = data_.data(), indptr = indptr_.data(), &f, lag, out,
+             &args...](int start_group, int end_group)
+            {
       for (int i = start_group; i < end_group; ++i) {
         indptr_t start = indptr[i];
         indptr_t end = indptr[i + 1];
@@ -190,9 +196,9 @@ public:
   void VariableTransform(Func f, const indptr_t *params,
                          T *out) const noexcept
   {
-    Parallelize([data = data_.data(), indptr = indptr_.data(), &f, params,
-                 out](int start_group, int end_group)
-                {
+    ForEach([data = data_.data(), indptr = indptr_.data(), &f, params,
+             out](int start_group, int end_group)
+            {
       for (int i = start_group; i < end_group; ++i) {
         indptr_t start = indptr[i];
         indptr_t end = indptr[i + 1];
@@ -210,9 +216,9 @@ public:
   void TransformAndReduce(Func f, int lag, T *out, int n_agg, T *agg,
                           Args &&...args) const noexcept
   {
-    Parallelize([data = data_.data(), indptr = indptr_.data(), &f, lag, out,
-                 n_agg, agg, &args...](int start_group, int end_group)
-                {
+    ForEach([data = data_.data(), indptr = indptr_.data(), &f, lag, out,
+             n_agg, agg, &args...](int start_group, int end_group)
+            {
       for (int i = start_group; i < end_group; ++i) {
         indptr_t start = indptr[i];
         indptr_t end = indptr[i + 1];
@@ -231,11 +237,11 @@ public:
   void Zip(Func f, const GroupedArray<T> &other, const indptr_t *out_indptr,
            T *out) const noexcept
   {
-    Parallelize([data = data_.data(), indptr = indptr_.data(), &f,
-                 other_data = other.data_.data(),
-                 other_indptr = other.indptr_.data(), out_indptr,
-                 out](int start_group, int end_group)
-                {
+    ForEach([data = data_.data(), indptr = indptr_.data(), &f,
+             other_data = other.data_.data(),
+             other_indptr = other.indptr_.data(), out_indptr,
+             out](int start_group, int end_group)
+            {
       for (int i = start_group; i < end_group; ++i) {
         indptr_t start = indptr[i];
         indptr_t end = indptr[i + 1];
