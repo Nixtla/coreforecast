@@ -1,5 +1,5 @@
-#include "scalers.h"
 #include "common.h"
+#include "scalers.h"
 
 template <typename T>
 T BoxCoxLambdaGuerrero(py::array_t<T> data, int period, T lower, T upper)
@@ -27,7 +27,7 @@ py::array_t<T> BoxCoxTransform(py::array_t<T> data, T lambda)
 }
 
 template <typename T>
-py::array_t<T> BoxCoxInverseTransform(py::array_t<T> data, T lambda)
+py::array_t<T> BoxCoxInverseTransform(const py::array_t<T> data, T lambda)
 {
     py::array_t<T> out(data.size());
     std::transform(data.data(), data.data() + data.size(), out.mutable_data(), [lambda](T x)

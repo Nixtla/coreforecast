@@ -1,5 +1,5 @@
-#include "rolling.h"
 #include "common.h"
+#include "rolling.h"
 
 template <typename T, typename Func, typename... Args>
 py::array_t<T> RollingOp(Func f, const py::array_t<T> data, int window_size, int min_samples, Args... args)

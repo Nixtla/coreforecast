@@ -1,5 +1,5 @@
-#include "expanding.h"
 #include "common.h"
+#include "expanding.h"
 #include "rolling.h"
 
 template <typename T, typename Func, typename... Args>

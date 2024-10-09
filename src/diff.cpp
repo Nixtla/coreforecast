@@ -1,5 +1,5 @@
-#include "diff.h"
 #include "common.h"
+#include "diff.h"
 #include "seasonal.h"
 
 template <typename T>
