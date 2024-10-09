@@ -51,7 +51,7 @@ wheel.packages = ["python/coreforecast"]
 [tool.cibuildwheel]
 archs = "all"
 build-verbosity = 3
-test-command = 'python -c "import coreforecast._lib"'
+test-command = "pytest {project}/tests -k 'not efficiency'"
 
 [tool.pyright]
 venvPath = "."
