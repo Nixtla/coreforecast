@@ -1,6 +1,7 @@
-#include "diff.h"
 #include "common.h"
 #include "seasonal.h"
+
+#include "diff.h"
 
 template <typename T> int NumDiffs(const py::array_t<T> data, int max_d) {
   T out;

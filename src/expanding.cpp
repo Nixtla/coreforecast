@@ -1,6 +1,7 @@
-#include "expanding.h"
 #include "common.h"
 #include "rolling.h"
+
+#include "expanding.h"
 
 template <typename T, typename Func, typename... Args>
 py::array_t<T> ExpandingOp(Func f, const py::array_t<T> data, Args... args) {

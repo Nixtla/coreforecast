@@ -1,5 +1,6 @@
-#include "seasonal.h"
 #include "common.h"
+
+#include "seasonal.h"
 
 template <typename T> int Period(const py::array_t<T> data, int max_lag) {
   T out;

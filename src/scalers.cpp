@@ -1,5 +1,6 @@
-#include "scalers.h"
 #include "common.h"
+
+#include "scalers.h"
 
 template <typename T>
 T BoxCoxLambdaGuerrero(py::array_t<T> data, int period, T lower, T upper) {
