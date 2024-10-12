@@ -26,7 +26,7 @@ file(GLOB SOURCES src/*.cpp external_libs/skiplist/src/cpp/SkipList.cpp)
 pybind11_add_module(_lib ${SOURCES})
 
 if(MSVC)
-  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${OUTPUT_DIRECTORY}")
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${LIBRARY_OUTPUT_PATH}")
 endif()
 
 install(TARGETS _lib DESTINATION .)
