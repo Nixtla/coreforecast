@@ -3,8 +3,11 @@ project(${SKBUILD_PROJECT_NAME} LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 set(PYBIND11_NEWPYTHON ON)
+if(SKBUILD)
+  set(LIBRARY_OUTPUT_PATH ${SKBUILD_PLATLIB_DIR}/coreforecast)
+endif()
+
 find_package(pybind11 CONFIG REQUIRED)
 
 include_directories(
@@ -14,4 +17,4 @@ include_directories(
 file(GLOB SOURCES src/*.cpp external_libs/skiplist/src/cpp/SkipList.cpp)
 pybind11_add_module(_lib ${SOURCES})
 
-install(TARGETS _lib LIBRARY DESTINATION .)
+install(TARGETS _lib DESTINATION .)

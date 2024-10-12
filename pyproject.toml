@@ -45,7 +45,9 @@ cmake.verbose = true
 logging.level = "INFO"
 sdist.exclude = ["tests", "*.yml"]
 sdist.reproducible = true
+wheel.exclude = ["Release"]
 wheel.expand-macos-universal-tags = true
+wheel.install-dir = "coreforecast"
 wheel.packages = ["python/coreforecast"]
 
 [tool.cibuildwheel]
