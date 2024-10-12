@@ -20,21 +20,21 @@ __all__ = [
 
 import abc
 import copy
-from typing import TYPE_CHECKING, Callable, Sequence
+from typing import TYPE_CHECKING, Callable, Optional, Sequence
 
 import numpy as np
 
 if TYPE_CHECKING:
     from ._lib.grouped_array import _GroupedArrayFloat32, _GroupedArrayFloat64
 
-    GroupedArrayT = _GroupedArrayFloat32 | _GroupedArrayFloat64
+    GroupedArray = _GroupedArrayFloat32 | _GroupedArrayFloat64
 
 
 class _BaseLagTransform(abc.ABC):
     stats_: np.ndarray
 
     @abc.abstractmethod
-    def transform(self, ga: "GroupedArrayT") -> np.ndarray:
+    def transform(self, ga: "GroupedArray") -> np.ndarray:
         """Apply the transformation by group.
 
         Args:
@@ -45,7 +45,7 @@ class _BaseLagTransform(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def update(self, ga: "GroupedArrayT") -> np.ndarray:
+    def update(self, ga: "GroupedArray") -> np.ndarray:
         """Compute the most recent value of the transformation for each group.
 
         Args:
@@ -82,10 +82,10 @@ class Lag(_BaseLagTransform):
     def __init__(self, lag: int):
         self.lag = lag
 
-    def transform(self, ga: "GroupedArrayT") -> np.ndarray:
+    def transform(self, ga: "GroupedArray") -> np.ndarray:
         return ga._lag(self.lag)
 
-    def update(self, ga: "GroupedArrayT") -> np.ndarray:
+    def update(self, ga: "GroupedArray") -> np.ndarray:
         return ga._index_from_end(self.lag - 1)
 
 
@@ -104,7 +104,7 @@ class _RollingBase(_BaseLagTransform):
     window_size: int
     min_samples: int
 
-    def __init__(self, lag: int, window_size: int, min_samples: int | None = None):
+    def __init__(self, lag: int, window_size: int, min_samples: Optional[int] = None):
         self.lag = lag
         if min_samples is None:
             min_samples = window_size
@@ -113,12 +113,12 @@ class _RollingBase(_BaseLagTransform):
         self.window_size = window_size
         self.min_samples = min_samples
 
-    def transform(self, ga: "GroupedArrayT") -> np.ndarray:
+    def transform(self, ga: "GroupedArray") -> np.ndarray:
         return getattr(ga, f"_rolling_{self.stat_name}")(
             self.lag, self.window_size, self.min_samples
         )
 
-    def update(self, ga: "GroupedArrayT") -> np.ndarray:
+    def update(self, ga: "GroupedArray") -> np.ndarray:
         return getattr(ga, f"_rolling_{self.stat_name}_update")(
             self.lag - 1, self.window_size, self.min_samples
         )
@@ -163,17 +163,17 @@ class RollingQuantile(_RollingBase):
             If None, defaults to window_size."""
 
     def __init__(
-        self, lag: int, p: float, window_size: int, min_samples: int | None = None
+        self, lag: int, p: float, window_size: int, min_samples: Optional[int] = None
     ):
         super().__init__(lag=lag, window_size=window_size, min_samples=min_samples)
         self.p = p
 
-    def transform(self, ga: "GroupedArrayT") -> np.ndarray:
+    def transform(self, ga: "GroupedArray") -> np.ndarray:
         return ga._rolling_quantile(
             self.lag, self.p, self.window_size, self.min_samples
         )
 
-    def update(self, ga: "GroupedArrayT") -> np.ndarray:
+    def update(self, ga: "GroupedArray") -> np.ndarray:
         return ga._rolling_quantile_update(
             self.lag - 1, self.p, self.window_size, self.min_samples
         )
@@ -197,12 +197,12 @@ class _SeasonalRollingBase(_RollingBase):
         lag: int,
         season_length: int,
         window_size: int,
-        min_samples: int | None = None,
+        min_samples: Optional[int] = None,
     ):
         super().__init__(lag, window_size, min_samples)
         self.season_length = season_length
 
-    def transform(self, ga: "GroupedArrayT") -> np.ndarray:
+    def transform(self, ga: "GroupedArray") -> np.ndarray:
         return getattr(ga, f"_seasonal_rolling_{self.stat_name}")(
             self.lag,
             self.season_length,
@@ -210,7 +210,7 @@ class _SeasonalRollingBase(_RollingBase):
             self.min_samples,
         )
 
-    def update(self, ga: "GroupedArrayT") -> np.ndarray:
+    def update(self, ga: "GroupedArray") -> np.ndarray:
         return getattr(ga, f"_seasonal_rolling_{self.stat_name}_update")(
             self.lag - 1,
             self.season_length,
@@ -266,7 +266,7 @@ class SeasonalRollingQuantile(_SeasonalRollingBase):
         p: float,
         season_length: int,
         window_size: int,
-        min_samples: int | None = None,
+        min_samples: Optional[int] = None,
     ):
         super().__init__(
             lag=lag,
@@ -276,7 +276,7 @@ class SeasonalRollingQuantile(_SeasonalRollingBase):
         )
         self.p = p
 
-    def transform(self, ga: "GroupedArrayT") -> np.ndarray:
+    def transform(self, ga: "GroupedArray") -> np.ndarray:
         return ga._seasonal_rolling_quantile(
             self.lag,
             self.p,
@@ -285,7 +285,7 @@ class SeasonalRollingQuantile(_SeasonalRollingBase):
             self.min_samples,
         )
 
-    def update(self, ga: "GroupedArrayT") -> np.ndarray:
+    def update(self, ga: "GroupedArray") -> np.ndarray:
         return ga._seasonal_rolling_quantile_update(
             self.lag - 1,
             self.p,
@@ -314,13 +314,13 @@ class _ExpandingBase(_BaseLagTransform):
 
 
 class ExpandingMean(_ExpandingBase):
-    def transform(self, ga: "GroupedArrayT") -> np.ndarray:
+    def transform(self, ga: "GroupedArray") -> np.ndarray:
         out, n = ga._expanding_mean(self.lag)
         cumsum = n * out[ga.indptr[1:] - 1]
         self.stats_ = np.hstack([n[:, None], cumsum[:, None]])
         return out
 
-    def update(self, ga: "GroupedArrayT") -> np.ndarray:
+    def update(self, ga: "GroupedArray") -> np.ndarray:
         self.stats_[:, 0] += 1.0
         self.stats_[:, 1] += ga._index_from_end(self.lag - 1)
         return self.stats_[:, 1] / self.stats_[:, 0]
@@ -330,11 +330,11 @@ ExpandingMean.__doc__ = _expanding_docstring.format(stat_name="Mean")
 
 
 class ExpandingStd(_ExpandingBase):
-    def transform(self, ga: "GroupedArrayT") -> np.ndarray:
+    def transform(self, ga: "GroupedArray") -> np.ndarray:
         out, self.stats_ = ga._expanding_std(self.lag)
         return out
 
-    def update(self, ga: "GroupedArrayT") -> np.ndarray:
+    def update(self, ga: "GroupedArray") -> np.ndarray:
         x = ga._index_from_end(self.lag - 1)
         self.stats_[:, 0] += 1.0
         n = self.stats_[:, 0]
@@ -352,12 +352,12 @@ class _ExpandingComp(_ExpandingBase):
     stat: str
     _comp_fn: Callable
 
-    def transform(self, ga: "GroupedArrayT") -> np.ndarray:
+    def transform(self, ga: "GroupedArray") -> np.ndarray:
         out = getattr(ga, f"_expanding_{self.stat}")(self.lag)
         self.stats_ = out[ga.indptr[1:] - 1]
         return out
 
-    def update(self, ga: "GroupedArrayT") -> np.ndarray:
+    def update(self, ga: "GroupedArray") -> np.ndarray:
         self.stats_ = self._comp_fn(self.stats_, ga._index_from_end(self.lag - 1))
         return self.stats_
 
@@ -391,10 +391,10 @@ class ExpandingQuantile(_BaseLagTransform):
         self.lag = lag
         self.p = p
 
-    def transform(self, ga: "GroupedArrayT") -> np.ndarray:
+    def transform(self, ga: "GroupedArray") -> np.ndarray:
         return ga._expanding_quantile(self.lag, self.p)
 
-    def update(self, ga: "GroupedArrayT") -> np.ndarray:
+    def update(self, ga: "GroupedArray") -> np.ndarray:
         return ga._expanding_quantile_update(self.lag - 1, self.p)
 
 
@@ -409,12 +409,12 @@ class ExponentiallyWeightedMean(_BaseLagTransform):
         self.lag = lag
         self.alpha = alpha
 
-    def transform(self, ga: "GroupedArrayT") -> np.ndarray:
+    def transform(self, ga: "GroupedArray") -> np.ndarray:
         out = ga._exponentially_weighted_mean(self.lag, self.alpha)
         self.stats_ = out[ga.indptr[1:] - 1]
         return out
 
-    def update(self, ga: "GroupedArrayT") -> np.ndarray:
+    def update(self, ga: "GroupedArray") -> np.ndarray:
         x = ga._index_from_end(self.lag - 1)
         self.stats_ = self.alpha * x + (1 - self.alpha) * self.stats_
         return self.stats_

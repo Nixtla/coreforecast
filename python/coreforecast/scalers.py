@@ -13,7 +13,7 @@ __all__ = [
 ]
 
 import copy
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, List, Optional, Sequence, TypeVar, Union
 
 import numpy as np
 
@@ -24,11 +24,14 @@ from .utils import _diffs_to_indptr, _indptr_dtype
 if TYPE_CHECKING:
     from ._lib.grouped_array import _GroupedArrayFloat32, _GroupedArrayFloat64
 
-    GroupedArrayT = _GroupedArrayFloat32 | _GroupedArrayFloat64
+    GroupedArrayT = Union["_GroupedArrayFloat32", "_GroupedArrayFloat64"]
+
+
+T = TypeVar("T", "_GroupedArrayFloat32", "_GroupedArrayFloat64")
 
 
 def _boxcox_lambda_checks(
-    season_length: int | None,
+    season_length: Optional[int],
     lower: float,
     upper: float,
     method: str,
@@ -47,7 +50,7 @@ def _boxcox_lambda_checks(
 def boxcox_lambda(
     x: np.ndarray,
     method: str,
-    season_length: int | None = None,
+    season_length: Optional[int] = None,
     lower: float = -0.9,
     upper: float = 2.0,
 ) -> float:
@@ -213,7 +216,7 @@ class LocalBoxCoxScaler(_BaseLocalScaler):
     def __init__(
         self,
         method: str,
-        season_length: int | None = None,
+        season_length: Optional[int] = None,
         lower: float = -0.9,
         upper: float = 2.0,
     ):
@@ -345,7 +348,7 @@ class AutoDifferences:
     def _transform(self, ga: "GroupedArrayT", season_length: int) -> np.ndarray:
         max_d = int(self.diffs_.max())
         transformed = ga.data.copy()
-        self.tails_: list[np.ndarray] = []
+        self.tails_: List[np.ndarray] = []
         for i in range(max_d):
             ga = ga._with_data(transformed)
             mask = self.diffs_ > i
@@ -458,7 +461,7 @@ class AutoSeasonalDifferences(AutoDifferences):
         self,
         season_length: int,
         max_diffs: int,
-        n_seasons: int | None = 10,
+        n_seasons: Optional[int] = 10,
     ):
         self.season_length = season_length
         self.max_diffs = max_diffs
@@ -522,7 +525,7 @@ class AutoSeasonalityAndDifferences:
     """
 
     def __init__(
-        self, max_season_length: int, max_diffs: int, n_seasons: int | None = 10
+        self, max_season_length: int, max_diffs: int, n_seasons: Optional[int] = 10
     ):
         self.max_season_length = max_season_length
         if not isinstance(max_diffs, int) or max_diffs < 1:
@@ -540,8 +543,8 @@ class AutoSeasonalityAndDifferences:
 
         Returns:
             np.ndarray: Array with the transformed data."""
-        self.diffs_: list[np.ndarray] = []
-        self.tails_: list[np.ndarray] = []
+        self.diffs_: List[np.ndarray] = []
+        self.tails_: List[np.ndarray] = []
         transformed = ga.data.copy()
         for _ in range(self.max_diffs):
             ga = ga._with_data(transformed)

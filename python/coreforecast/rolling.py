@@ -11,7 +11,7 @@ __all__ = [
     "seasonal_rolling_quantile",
 ]
 
-from typing import Callable
+from typing import Callable, Optional
 
 import numpy as np
 
@@ -22,7 +22,7 @@ def _rolling_stat(
     x: np.ndarray,
     stat: str,
     window_size: int,
-    min_samples: int | None = None,
+    min_samples: Optional[int] = None,
 ) -> np.ndarray:
     if min_samples is None:
         min_samples = window_size
@@ -34,7 +34,7 @@ def _seasonal_rolling_stat(
     stat: str,
     season_length: int,
     window_size: int,
-    min_samples: int | None = None,
+    min_samples: Optional[int] = None,
 ) -> np.ndarray:
     if min_samples is None:
         min_samples = window_size
@@ -86,34 +86,34 @@ def _seasonal_rolling_docstring(*args, **kwargs) -> Callable:
 
 @_rolling_docstring
 def rolling_mean(
-    x: np.ndarray, window_size: int, min_samples: int | None = None
+    x: np.ndarray, window_size: int, min_samples: Optional[int] = None
 ) -> np.ndarray:
     return _rolling_stat(x, "mean", window_size, min_samples)
 
 
 @_rolling_docstring
 def rolling_std(
-    x: np.ndarray, window_size: int, min_samples: int | None = None
+    x: np.ndarray, window_size: int, min_samples: Optional[int] = None
 ) -> np.ndarray:
     return _rolling_stat(x, "std", window_size, min_samples)
 
 
 @_rolling_docstring
 def rolling_min(
-    x: np.ndarray, window_size: int, min_samples: int | None = None
+    x: np.ndarray, window_size: int, min_samples: Optional[int] = None
 ) -> np.ndarray:
     return _rolling_stat(x, "min", window_size, min_samples)
 
 
 @_rolling_docstring
 def rolling_max(
-    x: np.ndarray, window_size: int, min_samples: int | None = None
+    x: np.ndarray, window_size: int, min_samples: Optional[int] = None
 ) -> np.ndarray:
     return _rolling_stat(x, "max", window_size, min_samples)
 
 
 def rolling_quantile(
-    x: np.ndarray, p: float, window_size: int, min_samples: int | None = None
+    x: np.ndarray, p: float, window_size: int, min_samples: Optional[int] = None
 ) -> np.ndarray:
     """Compute the rolling_quantile of the input array.
 
@@ -137,7 +137,7 @@ def seasonal_rolling_mean(
     x: np.ndarray,
     season_length: int,
     window_size: int,
-    min_samples: int | None = None,
+    min_samples: Optional[int] = None,
 ) -> np.ndarray:
     return _seasonal_rolling_stat(x, "mean", season_length, window_size, min_samples)
 
@@ -147,7 +147,7 @@ def seasonal_rolling_std(
     x: np.ndarray,
     season_length: int,
     window_size: int,
-    min_samples: int | None = None,
+    min_samples: Optional[int] = None,
 ) -> np.ndarray:
     return _seasonal_rolling_stat(x, "std", season_length, window_size, min_samples)
 
@@ -157,7 +157,7 @@ def seasonal_rolling_min(
     x: np.ndarray,
     season_length: int,
     window_size: int,
-    min_samples: int | None = None,
+    min_samples: Optional[int] = None,
 ) -> np.ndarray:
     return _seasonal_rolling_stat(x, "min", season_length, window_size, min_samples)
 
@@ -167,7 +167,7 @@ def seasonal_rolling_max(
     x: np.ndarray,
     season_length: int,
     window_size: int,
-    min_samples: int | None = None,
+    min_samples: Optional[int] = None,
 ) -> np.ndarray:
     return _seasonal_rolling_stat(x, "max", season_length, window_size, min_samples)
 
@@ -177,7 +177,7 @@ def seasonal_rolling_quantile(
     p: float,
     season_length: int,
     window_size: int,
-    min_samples: int | None = None,
+    min_samples: Optional[int] = None,
 ) -> np.ndarray:
     """Compute the seasonal_rolling_quantile of the input array.
 
