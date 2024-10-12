@@ -7,6 +7,9 @@
 
 
 
+**Global Variables**
+---------------
+- **TYPE_CHECKING**
 
 ---
 
@@ -112,7 +115,7 @@ Scale each group to the [0, 1] interval
 ### <kbd>method</kbd> `fit`
 
 ```python
-fit(ga: GroupedArray) → _BaseLocalScaler
+fit(ga: 'GroupedArrayT') → _BaseLocalScaler
 ```
 
 Compute the statistics for each group. 
@@ -136,7 +139,7 @@ Compute the statistics for each group.
 ### <kbd>method</kbd> `fit_transform`
 
 ```python
-fit_transform(ga: GroupedArray) → ndarray
+fit_transform(ga: 'GroupedArrayT') → ndarray
 ```
 
 "Compute the statistics for each group and apply the transformation. 
@@ -160,7 +163,7 @@ fit_transform(ga: GroupedArray) → ndarray
 ### <kbd>method</kbd> `inverse_transform`
 
 ```python
-inverse_transform(ga: GroupedArray) → ndarray
+inverse_transform(ga: 'GroupedArrayT') → ndarray
 ```
 
 Use the computed statistics to invert the transformation. 
@@ -212,7 +215,7 @@ take(idxs: ndarray) → _BaseLocalScaler
 ### <kbd>method</kbd> `transform`
 
 ```python
-transform(ga: GroupedArray) → ndarray
+transform(ga: 'GroupedArrayT') → ndarray
 ```
 
 Use the computed statistics to apply the transformation. 
@@ -247,7 +250,7 @@ Scale each group to have zero mean and unit variance
 ### <kbd>method</kbd> `fit`
 
 ```python
-fit(ga: GroupedArray) → _BaseLocalScaler
+fit(ga: 'GroupedArrayT') → _BaseLocalScaler
 ```
 
 Compute the statistics for each group. 
@@ -271,7 +274,7 @@ Compute the statistics for each group.
 ### <kbd>method</kbd> `fit_transform`
 
 ```python
-fit_transform(ga: GroupedArray) → ndarray
+fit_transform(ga: 'GroupedArrayT') → ndarray
 ```
 
 "Compute the statistics for each group and apply the transformation. 
@@ -295,7 +298,7 @@ fit_transform(ga: GroupedArray) → ndarray
 ### <kbd>method</kbd> `inverse_transform`
 
 ```python
-inverse_transform(ga: GroupedArray) → ndarray
+inverse_transform(ga: 'GroupedArrayT') → ndarray
 ```
 
 Use the computed statistics to invert the transformation. 
@@ -347,7 +350,7 @@ take(idxs: ndarray) → _BaseLocalScaler
 ### <kbd>method</kbd> `transform`
 
 ```python
-transform(ga: GroupedArray) → ndarray
+transform(ga: 'GroupedArrayT') → ndarray
 ```
 
 Use the computed statistics to apply the transformation. 
@@ -400,7 +403,7 @@ __init__(scale: str)
 ### <kbd>method</kbd> `fit`
 
 ```python
-fit(ga: GroupedArray) → _BaseLocalScaler
+fit(ga: 'GroupedArrayT') → _BaseLocalScaler
 ```
 
 Compute the statistics for each group. 
@@ -424,7 +427,7 @@ Compute the statistics for each group.
 ### <kbd>method</kbd> `fit_transform`
 
 ```python
-fit_transform(ga: GroupedArray) → ndarray
+fit_transform(ga: 'GroupedArrayT') → ndarray
 ```
 
 "Compute the statistics for each group and apply the transformation. 
@@ -448,7 +451,7 @@ fit_transform(ga: GroupedArray) → ndarray
 ### <kbd>method</kbd> `inverse_transform`
 
 ```python
-inverse_transform(ga: GroupedArray) → ndarray
+inverse_transform(ga: 'GroupedArrayT') → ndarray
 ```
 
 Use the computed statistics to invert the transformation. 
@@ -500,7 +503,7 @@ take(idxs: ndarray) → _BaseLocalScaler
 ### <kbd>method</kbd> `transform`
 
 ```python
-transform(ga: GroupedArray) → ndarray
+transform(ga: 'GroupedArrayT') → ndarray
 ```
 
 Use the computed statistics to apply the transformation. 
@@ -561,7 +564,7 @@ __init__(
 ### <kbd>method</kbd> `fit`
 
 ```python
-fit(ga: GroupedArray) → _BaseLocalScaler
+fit(ga: 'GroupedArrayT') → _BaseLocalScaler
 ```
 
 Compute the statistics for each group. 
@@ -585,7 +588,7 @@ Compute the statistics for each group.
 ### <kbd>method</kbd> `fit_transform`
 
 ```python
-fit_transform(ga: GroupedArray) → ndarray
+fit_transform(ga: 'GroupedArrayT') → ndarray
 ```
 
 "Compute the statistics for each group and apply the transformation. 
@@ -609,7 +612,7 @@ fit_transform(ga: GroupedArray) → ndarray
 ### <kbd>method</kbd> `inverse_transform`
 
 ```python
-inverse_transform(ga: GroupedArray) → ndarray
+inverse_transform(ga: 'GroupedArrayT') → ndarray
 ```
 
 Use the computed lambdas to invert the transformation. 
@@ -661,7 +664,7 @@ take(idxs: ndarray) → _BaseLocalScaler
 ### <kbd>method</kbd> `transform`
 
 ```python
-transform(ga: GroupedArray) → ndarray
+transform(ga: 'GroupedArrayT') → ndarray
 ```
 
 Use the computed lambdas to apply the transformation. 
@@ -714,7 +717,7 @@ __init__(d: int)
 ### <kbd>method</kbd> `fit_transform`
 
 ```python
-fit_transform(ga: GroupedArray) → ndarray
+fit_transform(ga: 'GroupedArrayT') → ndarray
 ```
 
 Apply the transformation 
@@ -738,7 +741,7 @@ Apply the transformation
 ### <kbd>method</kbd> `inverse_transform`
 
 ```python
-inverse_transform(ga: GroupedArray) → ndarray
+inverse_transform(ga: 'GroupedArrayT') → ndarray
 ```
 
 Invert the transformation 
@@ -790,7 +793,7 @@ take(idxs: ndarray) → Difference
 ### <kbd>method</kbd> `update`
 
 ```python
-update(ga: GroupedArray) → ndarray
+update(ga: 'GroupedArrayT') → ndarray
 ```
 
 Update the last observations from each serie 
@@ -843,7 +846,7 @@ __init__(max_diffs: int)
 ### <kbd>method</kbd> `fit_transform`
 
 ```python
-fit_transform(ga: GroupedArray) → ndarray
+fit_transform(ga: 'GroupedArrayT') → ndarray
 ```
 
 Compute and apply the optimal number of differences for each group 
@@ -867,7 +870,7 @@ Compute and apply the optimal number of differences for each group
 ### <kbd>method</kbd> `inverse_transform`
 
 ```python
-inverse_transform(ga: GroupedArray) → ndarray
+inverse_transform(ga: 'GroupedArrayT') → ndarray
 ```
 
 Invert the differences 
@@ -919,7 +922,7 @@ take(idxs: ndarray) → AutoDifferences
 ### <kbd>method</kbd> `update`
 
 ```python
-update(ga: GroupedArray) → ndarray
+update(ga: 'GroupedArrayT') → ndarray
 ```
 
 Update the last observations from each serie 
@@ -974,7 +977,7 @@ __init__(season_length: int, max_diffs: int, n_seasons: Optional[int] = 10)
 ### <kbd>method</kbd> `fit_transform`
 
 ```python
-fit_transform(ga: GroupedArray) → ndarray
+fit_transform(ga: 'GroupedArrayT') → ndarray
 ```
 
 Compute and apply the optimal number of seasonal differences for each group 
@@ -998,7 +1001,7 @@ Compute and apply the optimal number of seasonal differences for each group
 ### <kbd>method</kbd> `inverse_transform`
 
 ```python
-inverse_transform(ga: GroupedArray) → ndarray
+inverse_transform(ga: 'GroupedArrayT') → ndarray
 ```
 
 Invert the seasonal differences 
@@ -1050,7 +1053,7 @@ take(idxs: ndarray) → AutoDifferences
 ### <kbd>method</kbd> `update`
 
 ```python
-update(ga: GroupedArray) → ndarray
+update(ga: 'GroupedArrayT') → ndarray
 ```
 
 Update the last observations from each serie 
@@ -1105,7 +1108,7 @@ __init__(max_season_length: int, max_diffs: int, n_seasons: Optional[int] = 10)
 ### <kbd>method</kbd> `fit_transform`
 
 ```python
-fit_transform(ga: GroupedArray) → ndarray
+fit_transform(ga: 'GroupedArrayT') → ndarray
 ```
 
 Compute the optimal length of the seasonal period and apply the optimal number of differences for each group 
@@ -1129,7 +1132,7 @@ Compute the optimal length of the seasonal period and apply the optimal number o
 ### <kbd>method</kbd> `inverse_transform`
 
 ```python
-inverse_transform(ga: GroupedArray) → ndarray
+inverse_transform(ga: 'GroupedArrayT') → ndarray
 ```
 
 Invert the seasonal differences 
@@ -1183,7 +1186,7 @@ take(idxs: ndarray) → AutoSeasonalityAndDifferences
 ### <kbd>method</kbd> `update`
 
 ```python
-update(ga: GroupedArray) → ndarray
+update(ga: 'GroupedArrayT') → ndarray
 ```
 
 
