@@ -48,7 +48,7 @@ jobs:
         uses: pypa/cibuildwheel@f1859528322d7b29d4493ee241a167807661dfb4 # v2.21.2
         env:
           CIBW_BUILD: cp${{ matrix.python-version }}-${{ matrix.os-platform[1] }}
-          CIBW_TEST_SKIP: "*linux_aarch64"
+          CIBW_TEST_COMMAND: pytest {project}/tests -k "not efficiency"
 
       - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         if: github.event_name == 'push'

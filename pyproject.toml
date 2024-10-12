@@ -54,7 +54,7 @@ wheel.packages = ["python/coreforecast"]
 archs = "all"
 build-verbosity = 3
 test-extras = "dev"
-test-command = "pytest {project}/tests -k 'not efficiency'"
+test-skip = "*linux_aarch64"
 
 [tool.pyright]
 venvPath = "."
