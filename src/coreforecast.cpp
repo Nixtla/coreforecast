@@ -10,13 +10,12 @@ void init_roll(py::module_ &);
 void init_sc(py::module_ &);
 void init_seas(py::module_ &);
 
-PYBIND11_MODULE(_lib, m)
-{
-    init_diffs(m);
-    init_exp(m);
-    init_ew(m);
-    init_ga(m);
-    init_roll(m);
-    init_sc(m);
-    init_seas(m);
+PYBIND11_MODULE(_lib, m) {
+  init_diffs(m);
+  init_exp(m);
+  init_ew(m);
+  init_ga(m);
+  init_roll(m);
+  init_sc(m);
+  init_seas(m);
 }

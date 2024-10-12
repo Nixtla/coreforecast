@@ -30,4 +30,4 @@ inline void Append(const T *data, int n, const T *other_data, int other_n,
   std::copy(data, data + n, out);
   std::copy(other_data, other_data + other_n, out + n);
 }
-}
+} // namespace grouped_array_functions
