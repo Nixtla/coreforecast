@@ -35,7 +35,7 @@ build-backend = "scikit_build_core.build"
 [tool.scikit-build]
 cmake.verbose = true
 logging.level = "INFO"
-sdist.exclude = ["tests", "*.yml"]
+sdist.exclude = ["docs", "tests", "*.yml"]
 sdist.reproducible = true
 wheel.exclude = ["Release"]
 wheel.expand-macos-universal-tags = true
