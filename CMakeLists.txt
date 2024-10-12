@@ -24,4 +24,9 @@ execute_process(
 include_directories(include/coreforecast external_libs/skiplist/src/cpp external_libs/stl-cpp/include ${pybind11_INCLUDES})
 file(GLOB SOURCES src/*.cpp external_libs/skiplist/src/cpp/SkipList.cpp)
 pybind11_add_module(_lib ${SOURCES})
+
+if(MSVC)
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${OUTPUT_DIRECTORY}")
+endif()
+
 install(TARGETS _lib DESTINATION .)
