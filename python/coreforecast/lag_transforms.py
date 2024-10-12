@@ -20,14 +20,14 @@ __all__ = [
 
 import abc
 import copy
-from typing import TYPE_CHECKING, Callable, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Callable, Optional, Sequence
 
 import numpy as np
 
 if TYPE_CHECKING:
     from ._lib.grouped_array import _GroupedArrayFloat32, _GroupedArrayFloat64
 
-    GroupedArray = Union["_GroupedArrayFloat32", "_GroupedArrayFloat64"]
+    GroupedArray = _GroupedArrayFloat32 | _GroupedArrayFloat64
 
 
 class _BaseLagTransform(abc.ABC):
