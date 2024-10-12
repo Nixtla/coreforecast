@@ -50,13 +50,6 @@ jobs:
           CIBW_BUILD: cp${{ matrix.python-version }}-${{ matrix.os-platform[1] }}
           CIBW_TEST_COMMAND: pytest {project}/tests -k "not efficiency"
 
-      - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
-        if: github.event_name == 'push'
-        with:
-          name: artifact-cp${{ matrix.python-version }}-${{ matrix.os-platform[1] }}
-          path: ./wheelhouse/*.whl
-          retention-days: 1
-
   run_benchmarks:
     runs-on: ubuntu-22.04
     steps:
