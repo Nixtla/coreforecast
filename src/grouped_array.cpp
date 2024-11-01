@@ -660,7 +660,7 @@ template <typename T> void bind_ga(py::module &m, const std::string &name) {
       .def("_inv_diff", &GroupedArray<T>::InvertDifference)
       .def("_inv_diffs", &GroupedArray<T>::InvertDifferences)
       .def("_greatest_autocovariance",
-           &GroupedArray<T>::GreatestAutoCovariance);
+           &GroupedArray<T>::GreatestAutocovariance);
 }
 
 void init_ga(py::module_ &m) {
