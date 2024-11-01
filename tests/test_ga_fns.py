@@ -9,7 +9,7 @@ def test_greatest_autocovariance(dtype, season_length):
     sizes = np.random.randint(2 * season_length, 100, 500)
     data = np.hstack([np.arange(size, dtype=dtype) % season_length for size in sizes])
     ga = GroupedArray(data, np.append(0, sizes.cumsum()))
-    lengths = ga._greatest_auto_covariance(50)
+    lengths = ga._greatest_autocovariance(50)
     unique_lengths = np.unique(lengths)
     assert unique_lengths.size == 1
     assert unique_lengths.item() == season_length
