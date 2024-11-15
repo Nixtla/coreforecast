@@ -36,9 +36,13 @@ def test_rolling(op, min_samples, dtype):
             n = season_length * (min_samples - 1)
         else:
             n = min_samples - 1
-        x = np.random.rand(n)
-        res = getattr(cf_rolling, op)(x, *args)
-        np.testing.assert_array_equal(res, np.full_like(x, np.nan))
+        x2 = np.random.rand(n)
+        res2 = getattr(cf_rolling, op)(x2, *args)
+        np.testing.assert_array_equal(res2, np.full_like(x2, np.nan))
+
+        x3 = np.random.rand(n + 1)
+        res3 = getattr(cf_rolling, op)(x3, *args)
+        assert np.sum(~np.isnan(res3)) == 1
 
 
 @pytest.mark.parametrize("op", quantile_ops)
