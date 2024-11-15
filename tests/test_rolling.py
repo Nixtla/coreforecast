@@ -31,6 +31,15 @@ def test_rolling(op, min_samples, dtype):
         pd_res = pd_res.reset_index(level=0, drop=True).sort_index()
     np.testing.assert_allclose(cf_res, pd_res, rtol=1e-5)
 
+    if min_samples is not None:
+        if op.startswith("seasonal"):
+            n = season_length * (min_samples - 1)
+        else:
+            n = min_samples - 1
+        x = np.random.rand(n)
+        res = getattr(cf_rolling, op)(x, *args)
+        np.testing.assert_array_equal(res, np.full_like(x, np.nan))
+
 
 @pytest.mark.parametrize("op", quantile_ops)
 @pytest.mark.parametrize("min_samples", [None, 5])
