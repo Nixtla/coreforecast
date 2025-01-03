@@ -32,9 +32,9 @@ inline void StandardScalerStats(const T *data, int n, T *stats) {
   const Eigen::Map<const Eigen::Vector<T, Eigen::Dynamic>> v(data, n);
   auto double_v = v.template cast<double>().array();
   double mean = double_v.mean();
-  double var = (double_v - mean).square().mean();
-  stats[0] = T{mean};
-  stats[1] = T{std::sqrt(var)};
+  double std = std::sqrt((double_v - mean).square().mean());
+  stats[0] = static_cast<T>(mean);
+  stats[1] = static_cast<T>(std);
 }
 
 template <typename T>
