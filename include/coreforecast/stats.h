@@ -7,30 +7,24 @@
 #include <cmath>
 #include <concepts>
 #include <iterator>
-#include <limits>
-#include <ranges>
 
 namespace stats {
 template <std::contiguous_iterator Iterator>
   requires std::totally_ordered<std::iter_value_t<Iterator>>
 auto Quantile(Iterator begin, Iterator end, std::iter_value_t<Iterator> p) {
   using T = std::iter_value_t<Iterator>;
-  auto range = std::ranges::subrange(begin, end);
+  auto n = std::distance(begin, end);
 
-  if (range.empty()) {
-    return std::numeric_limits<T>::quiet_NaN();
-  }
-
-  T i_plus_g = p * (range.size() - 1);
+  T i_plus_g = p * (n - 1);
   auto i = static_cast<size_t>(i_plus_g);
   T g = i_plus_g - i;
 
   auto nth = begin + i;
-  std::ranges::nth_element(range, nth);
+  std::nth_element(begin, nth, end);
   T out = *nth;
 
   if (g > T{0}) {
-    auto min = std::ranges::min_element(std::ranges::subrange(nth + 1, end));
+    auto min = std::min_element(nth + 1, end);
     out += g * (*min - out);
   }
   return out;
