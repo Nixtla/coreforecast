@@ -49,9 +49,10 @@ inline void RobustScalerIqrStats(const T *data, int n, T *stats) {
 
 template <typename T>
 inline void RobustScalerMadStats(const T *data, int n, T *stats) {
-  Eigen::VectorX<T> buffer = Eigen::VectorX<T>::Map(data, n);
+  std::vector<T> buffer(data, data + n);
   const T median = stats::Quantile(buffer.begin(), buffer.end(), T{0.5});
-  buffer = (buffer.array() - median).abs().eval();
+  std::transform(buffer.begin(), buffer.end(), buffer.begin(),
+                 [median](auto x) { return std::abs(x - median); });
   const T mad = stats::Quantile(buffer.begin(), buffer.end(), T{0.5});
   stats[0] = median;
   stats[1] = mad;
