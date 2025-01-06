@@ -14,7 +14,7 @@ auto KPSS(Iterator begin, Iterator end, size_t lags) {
   T mean = v.mean();
   Eigen::VectorX<T> resids = v.array() - mean;
   Eigen::VectorX<T> cresids(n);
-  std::partial_sum(resids.begin(), resids.end(), cresids.begin(), std::plus{});
+  std::partial_sum(resids.begin(), resids.end(), cresids.begin());
   T eta = cresids.squaredNorm() / (n * n);
   T s = resids.array().square().sum();
   for (size_t i = 1; i < lags + 1; ++i) {

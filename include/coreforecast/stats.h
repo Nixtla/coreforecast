@@ -11,7 +11,7 @@
 #include <ranges>
 
 namespace stats {
-template <std::contiguous_iterator Iterator>
+template <std::random_access_iterator Iterator>
   requires std::totally_ordered<std::iter_value_t<Iterator>>
 auto Quantile(Iterator begin, Iterator end, std::iter_value_t<Iterator> p) {
   using T = std::iter_value_t<Iterator>;
