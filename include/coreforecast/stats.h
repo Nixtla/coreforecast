@@ -8,7 +8,7 @@
 #include <iterator>
 
 namespace stats {
-template <typename Iterator>
+template <std::contiguous_iterator Iterator>
 auto Quantile(Iterator begin, Iterator end, std::iter_value_t<Iterator> p) {
   using T = std::iter_value_t<Iterator>;
   auto n = std::distance(begin, end);
