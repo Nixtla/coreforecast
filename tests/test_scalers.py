@@ -92,7 +92,7 @@ def test_boxcox_correctness(data, indptr, dtype, method):
     np.testing.assert_allclose(first_restored, restored[first_grp])
 
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
-def test_guerrero_correctness():
+def test_guerrero_correctness(dtype):
     data = [194, 229, 249, 203, 196, 238, 252, 210, 205, 236]
     expected_lambda = 1.99 # value from R's BoxCox.lambda function (forecast package)
     calculated_lambda = boxcox_lambda(data, method="guerrero", season_length=4)
