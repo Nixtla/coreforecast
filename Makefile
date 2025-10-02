@@ -5,7 +5,7 @@ load_docs_scripts:
 	fi
 
 api_docs:
-	python docs/process.py docs
+	python docs/to_mdx.py docs
 
 examples_docs:
 	mkdir -p nbs/_extensions
