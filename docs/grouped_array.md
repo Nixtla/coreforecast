@@ -1,1 +1,3 @@
-# Grouped Array
+---
+title: Grouped Array
+---
