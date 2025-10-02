@@ -1,89 +1,64 @@
+# Differences
 
-
-
-
-# <kbd>module</kbd> `coreforecast.differences`
-
-
-
-
-
----
-
-
-
-## <kbd>function</kbd> `num_diffs`
+### `num_diffs`
 
 ```python
-num_diffs(x: ndarray, max_d: int = 1) → int
+num_diffs(x, max_d=1)
 ```
 
-Find the optimal number of differences 
+Find the optimal number of differences
 
+**Parameters:**
 
-
-**Args:**
- 
- - <b>`x`</b> (np.ndarray):  Array with the time series. 
- - <b>`max_d`</b> (int, optional):  Maximum number of differences to consider. Defaults to 1. 
-
-
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`x` | <code>[ndarray](#numpy.ndarray)</code> | Array with the time series. | *required*
+`max_d` | <code>[int](#int)</code> | Maximum number of differences to consider. Defaults to 1. | <code>1</code>
 
 **Returns:**
- 
- - <b>`int`</b>:  Optimal number of differences. 
 
+Name | Type | Description
+---- | ---- | -----------
+`int` | <code>[int](#int)</code> | Optimal number of differences.
 
----
-
-
-
-## <kbd>function</kbd> `num_seas_diffs`
+### `num_diffs`
 
 ```python
-num_seas_diffs(x: ndarray, season_length: int, max_d: int = 1) → int
+num_diffs(x, max_d=1)
 ```
 
-Find the optimal number of seasonal differences 
+Find the optimal number of differences
 
+**Parameters:**
 
-
-**Args:**
- 
- - <b>`x`</b> (np.ndarray):  Array with the time series. 
- - <b>`season_length`</b> (int):  Length of the seasonal pattern. 
- - <b>`max_d`</b> (int, optional):  Maximum number of differences to consider. Defaults to 1. 
-
-
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`x` | <code>[ndarray](#numpy.ndarray)</code> | Array with the time series. | *required*
+`max_d` | <code>[int](#int)</code> | Maximum number of differences to consider. Defaults to 1. | <code>1</code>
 
 **Returns:**
- 
- - <b>`int`</b>:  Optimal number of seasonal differences. 
 
+Name | Type | Description
+---- | ---- | -----------
+`int` | <code>[int](#int)</code> | Optimal number of differences.
 
----
-
-
-
-## <kbd>function</kbd> `diff`
+### `diff`
 
 ```python
-diff(x: ndarray, d: int) → ndarray
+diff(x, d)
 ```
 
-Subtract previous values of the series 
+Subtract previous values of the series
 
+**Parameters:**
 
-
-**Args:**
- 
- - <b>`x`</b> (np.ndarray):  Array with the time series. 
- - <b>`d`</b> (int):  Lag to subtract 
-
-
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`x` | <code>[ndarray](#numpy.ndarray)</code> | Array with the time series. | *required*
+`d` | <code>[int](#int)</code> | Lag to subtract | *required*
 
 **Returns:**
- 
- - <b>`np.ndarray`</b>:  Differenced time series. 
 
-
+Type | Description
+---- | -----------
+<code>[ndarray](#numpy.ndarray)</code> | np.ndarray: Differenced time series.

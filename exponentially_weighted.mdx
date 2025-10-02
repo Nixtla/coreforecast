@@ -1,36 +1,22 @@
+# Exponentially weighted
 
-
-
-
-# <kbd>module</kbd> `coreforecast.exponentially_weighted`
-
-
-
-
-
----
-
-
-
-## <kbd>function</kbd> `exponentially_weighted_mean`
+### `exponentially_weighted_mean`
 
 ```python
-exponentially_weighted_mean(x: ndarray, alpha: float) → ndarray
+exponentially_weighted_mean(x, alpha)
 ```
 
-Compute the exponentially weighted mean of the input array. 
+Compute the exponentially weighted mean of the input array.
 
+**Parameters:**
 
-
-**Args:**
- 
- - <b>`x`</b> (np.ndarray):  Input array. 
- - <b>`alpha`</b> (float):  Weight parameter. 
-
-
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`x` | <code>[ndarray](#numpy.ndarray)</code> | Input array. | *required*
+`alpha` | <code>[float](#float)</code> | Weight parameter. | *required*
 
 **Returns:**
- 
- - <b>`np.ndarray`</b>:  Array with the exponentially weighted mean. 
 
-
+Type | Description
+---- | -----------
+<code>[ndarray](#numpy.ndarray)</code> | np.ndarray: Array with the exponentially weighted mean.
