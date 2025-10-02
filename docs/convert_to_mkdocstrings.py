@@ -6,8 +6,9 @@ from typing import Any, Dict, Optional
 import griffe
 import yaml
 from griffe2md import ConfigDict, render_object_docs
-from rich.console import Console
-from rich.markdown import Markdown
+
+# from rich.console import Console
+# from rich.markdown import Markdown
 
 # Suppress griffe warnings
 logging.getLogger("griffe").setLevel(logging.ERROR)
@@ -210,9 +211,10 @@ if __name__ == "__main__":
     print(parser.process_markdown(test_class))
     print("\n" + "=" * 50 + "\n")
     print("Function documentation:")
-    console = Console()
     fn = parser.process_markdown(test_function)
-    console.print(Markdown(fn))
+    print(fn)
+    # console = Console()
+    # console.print(Markdown(fn))
 
     # args = parser.get_args()
     # parser.process_file(args.input_file, args.output_file)
