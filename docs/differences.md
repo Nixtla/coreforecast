@@ -1,6 +1,4 @@
----
-title: Differences
----
+# Differences
 
 ::: coreforecast.differences.num_diffs
     handler: python

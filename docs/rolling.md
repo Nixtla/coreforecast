@@ -1,6 +1,4 @@
----
-title: Rolling
----
+# Rolling
 
 ::: coreforecast.rolling.rolling_mean
     handler: python

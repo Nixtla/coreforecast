@@ -1,6 +1,4 @@
----
-title: Lag transforms
----
+# Lag transforms
 
 ::: coreforecast.lag_transforms.Lag
     handler: python

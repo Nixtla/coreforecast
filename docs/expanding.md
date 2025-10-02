@@ -1,6 +1,4 @@
----
-title: Expanding
----
+# Expanding
 
 ::: coreforecast.expanding.expanding_mean
     handler: python
