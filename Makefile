@@ -5,8 +5,7 @@ load_docs_scripts:
 	fi
 
 api_docs:
-	lazydocs .coreforecast --no-watermark
-	python docs/to_mdx.py
+	python docs/process.py docs
 
 examples_docs:
 	mkdir -p nbs/_extensions
