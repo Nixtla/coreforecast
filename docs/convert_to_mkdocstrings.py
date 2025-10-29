@@ -7,10 +7,6 @@ import griffe
 import yaml
 from griffe2md import ConfigDict, render_object_docs
 
-# from rich.console import Console
-# from rich.markdown import Markdown
-
-# Suppress griffe warnings
 logging.getLogger("griffe").setLevel(logging.ERROR)
 
 
@@ -24,10 +20,7 @@ class MkDocstringsParser:
         """Parse a ::: block to extract module path, handler, and options"""
         lines = block_content.strip().split("\n")
 
-        # First line contains the module path
         module_path = lines[0].replace(":::", "").strip()
-
-        # Parse YAML configuration
         yaml_content = "\n".join(lines[1:]) if len(lines) > 1 else ""
 
         try:
