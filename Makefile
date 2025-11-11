@@ -22,7 +22,7 @@ preview_docs:
 	cd docs/mintlify && mintlify dev
 
 clean:
-	rm -f docs/*.md
+# 	rm -f docs/*.md
 	find docs/mintlify -name "*.mdx" -exec rm -f {} +
 
 
