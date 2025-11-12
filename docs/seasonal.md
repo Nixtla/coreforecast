@@ -1,4 +1,9 @@
-# Seasonal
+---
+title: Seasonal
+description: Find the seasonal period
+---
+
+##
 
 ::: coreforecast.seasonal.find_season_length
     handler: python

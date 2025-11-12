@@ -1,4 +1,9 @@
-# Rolling
+---
+title: Rolling
+description: Compute rolling mean, std, min, max, and quantile
+---
+
+##
 
 ::: coreforecast.rolling.rolling_mean
     handler: python

@@ -1,4 +1,9 @@
-# Scalers
+---
+title: Scalers
+description: Scale arrays
+---
+
+##
 
 ::: coreforecast.scalers.LocalMinMaxScaler
     handler: python

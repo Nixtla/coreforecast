@@ -1,4 +1,9 @@
-# Differences
+---
+title: Differences
+description: Find the optimal number of differences
+---
+
+##
 
 ::: coreforecast.differences.num_diffs
     handler: python

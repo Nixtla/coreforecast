@@ -1,4 +1,9 @@
-# Exponentially weighted
+---
+title: Exponentially weighted
+description: Compute exponentially weighted mean
+---
+
+##
 
 ::: coreforecast.exponentially_weighted.exponentially_weighted_mean
     handler: python

@@ -1,4 +1,9 @@
-# Expanding
+---
+title: Expanding
+description: Compute expanding mean, std, min, max, and quantile
+---
+
+##
 
 ::: coreforecast.expanding.expanding_mean
     handler: python

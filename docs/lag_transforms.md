@@ -1,4 +1,9 @@
-# Lag transforms
+---
+title: Lag transforms
+description: Compute lag transforms
+---
+
+##
 
 ::: coreforecast.lag_transforms.Lag
     handler: python
