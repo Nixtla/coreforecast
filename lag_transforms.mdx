@@ -1,4 +1,9 @@
-# Lag transforms
+---
+title: Lag transforms
+description: Compute lag transforms
+---
+
+##
 
 ### `Lag`
 
@@ -169,8 +174,7 @@ Name | Type | Description | Default
 `lag` | <code>[int](#int)</code> | Number of periods to offset by before applying the transformation | *required*
 `p` | <code>[float](#float)</code> | Quantile to compute | *required*
 `window_size` | <code>[int](#int)</code> | Length of the rolling window | *required*
-`min_samples` | <code>[int](#int)</code> | Minimum number of samples required to compute the statistic.
-If None, defaults to window_size. | <code>None</code>
+`min_samples` | <code>[int](#int)</code> | Minimum number of samples required to compute the statistic. If None, defaults to window_size. | <code>None</code>
 
 #### `RollingQuantile.stack`
 
@@ -326,8 +330,7 @@ Name | Type | Description | Default
 `p` | <code>[float](#float)</code> | Quantile to compute | *required*
 `season_length` | <code>[int](#int)</code> | Length of the seasonal period, e.g. 7 for weekly data | *required*
 `window_size` | <code>[int](#int)</code> | Length of the rolling window | *required*
-`min_samples` | <code>[int](#int)</code> | Minimum number of samples required to compute the statistic.
-If None, defaults to window_size. | <code>None</code>
+`min_samples` | <code>[int](#int)</code> | Minimum number of samples required to compute the statistic. If None, defaults to window_size. | <code>None</code>
 
 #### `SeasonalRollingQuantile.stack`
 
@@ -479,10 +482,8 @@ Expanding quantile
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`lag` | <code>[int](#int)</code> |
-Number of periods to offset by before applying the transformation | *required*
-`p` | <code>[float](#float)</code> |
-Quantile to compute | *required*
+`lag` | <code>[int](#int)</code> | Number of periods to offset by before applying the transformation | *required*
+`p` | <code>[float](#float)</code> | Quantile to compute | *required*
 
 #### `ExpandingQuantile.stack`
 

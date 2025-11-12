@@ -1,4 +1,9 @@
-# Scalers
+---
+title: Scalers
+description: Scale arrays
+---
+
+##
 
 ### `LocalMinMaxScaler`
 
@@ -162,9 +167,7 @@ Scale each group using robust statistics
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`scale` | <code>[str](#str)</code> | Type of robust scaling to use. Valid options are 'iqr' and 'mad'.
-If 'iqr' will use the inter quartile range as the scale.
-If 'mad' will use median absolute deviation as the scale. | *required*
+`scale` | <code>[str](#str)</code> | Type of robust scaling to use. Valid options are 'iqr' and 'mad'. If 'iqr' will use the inter quartile range as the scale. If 'mad' will use median absolute deviation as the scale. | *required*
 
 #### `LocalRobustScaler.fit`
 
@@ -248,13 +251,10 @@ Find the optimum lambda for the Box-Cox transformation by group and apply it
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`season_length` | <code>[int](#int)</code> | Length of the seasonal period.
-Only required if method='guerrero'. | <code>None</code>
+`season_length` | <code>[int](#int)</code> | Length of the seasonal period. Only required if method='guerrero'. | <code>None</code>
 `lower` | <code>[float](#float)</code> | Lower bound for the lambda. | <code>-0.9</code>
 `upper` | <code>[float](#float)</code> | Upper bound for the lambda. | <code>2.0</code>
-`method` | <code>[str](#str)</code> | Method to use. Valid options are 'guerrero' and 'loglik'.
-'guerrero' minimizes the coefficient of variation for subseries of `x` and supports negative values.
-'loglik' maximizes the log-likelihood function. | *required*
+`method` | <code>[str](#str)</code> | Method to use. Valid options are 'guerrero' and 'loglik'. 'guerrero' minimizes the coefficient of variation for subseries of `x` and supports negative values. 'loglik' maximizes the log-likelihood function. | *required*
 
 #### `LocalBoxCoxScaler.fit`
 
