@@ -5,6 +5,12 @@ description: Scale arrays
 
 ##
 
+::: coreforecast.scalers.boxcox_lambda
+
+::: coreforecast.scalers.boxcox
+
+::: coreforecast.scalers.inv_boxcox
+
 ::: coreforecast.scalers.LocalMinMaxScaler
     handler: python
     options:
