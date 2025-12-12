@@ -3,7 +3,6 @@ description: Fast implementations of common forecasting routines
 title: "coreforecast"
 ---
 ## Motivation
-
 At Nixtla we have implemented several libraries to deal with time series data. We often have to apply some transformation over all of the series, which can prove time consuming even for simple operations like performing some kind of scaling.
 
 We've used [numba](https://numba.pydata.org/) to speed up our expensive computations, however that comes with other issues such as cold starts and more dependencies (LLVM). That's why we developed this library, which implements several operators in C++ to transform time series data (or other kind of data that can be thought of as independent groups), with the possibility to use multithreading to get the best performance possible.
@@ -13,19 +12,16 @@ You probably won't need to use this library directly but rather use one of our h
 ## Installation
 
 ### PyPI
-
 ```python
 pip install coreforecast
 ```
 
 ### conda-forge
-
 ```python
 conda install -c conda-forge coreforecast
 ```
 
 ## Minimal example
-
 The base data structure is the "grouped array" which holds two numpy 1d arrays:
 
 * **data**: values of the series.
@@ -52,7 +48,6 @@ standardized = scaler.transform(ga)
 ```
 
 ## Single-array functions
-
 We've also implemented some functions that work on single arrays, you can refer to the following pages:
 
 * [differences](https://nixtlaverse.nixtla.io/coreforecast/differences)
