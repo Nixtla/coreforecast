@@ -1,35 +1,27 @@
-
-
-
-
-# <kbd>module</kbd> `coreforecast.seasonal`
-
-
-
-
-
+---
+title: Seasonal
+description: Find the seasonal period
 ---
 
+##
 
-
-## <kbd>function</kbd> `find_season_length`
+### `find_season_length`
 
 ```python
-find_season_length(x: ndarray, max_season_length: int) → int
+find_season_length(x, max_season_length)
 ```
 
-Find the length of the seasonal period of the time series. Returns 0 if no seasonality is found. 
+Find the length of the seasonal period of the time series.
+Returns 0 if no seasonality is found.
 
+**Parameters:**
 
-
-**Args:**
- 
- - <b>`x`</b> (np.ndarray):  Array with the time series. 
-
-
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`x` | <code>[ndarray](#numpy.ndarray)</code> | Array with the time series. | *required*
 
 **Returns:**
- 
- - <b>`int`</b>:  Season period. 
 
-
+Name | Type | Description
+---- | ---- | -----------
+`int` | <code>[int](#int)</code> | Season period.

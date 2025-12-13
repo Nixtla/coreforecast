@@ -1,334 +1,233 @@
-
-
-
-
-# <kbd>module</kbd> `coreforecast.rolling`
-
-
-
-
-
+---
+title: Rolling
+description: Compute rolling mean, std, min, max, and quantile
 ---
 
+##
 
-
-## <kbd>function</kbd> `rolling_mean`
-
-```python
-rolling_mean(
-    x: ndarray,
-    window_size: int,
-    min_samples: Optional[int] = None
-) → ndarray
-```
-
-Compute the rolling_mean of the input array. 
-
-
-
-**Args:**
- 
- - <b>`x`</b> (np.ndarray):  Input array. 
- - <b>`window_size`</b> (int):  The size of the rolling window. 
- - <b>`min_samples`</b> (int, optional):  The minimum number of samples required to compute the statistic.  If None, it is set to `window_size`. 
-
-
-
-**Returns:**
- 
- - <b>`np.ndarray`</b>:  Array with the rolling statistic 
-
-
----
-
-
-
-## <kbd>function</kbd> `rolling_std`
+### `rolling_mean`
 
 ```python
-rolling_std(
-    x: ndarray,
-    window_size: int,
-    min_samples: Optional[int] = None
-) → ndarray
+rolling_mean(x, window_size, min_samples=None)
 ```
 
-Compute the rolling_std of the input array. 
+Compute the rolling_mean of the input array.
 
+**Parameters:**
 
-
-**Args:**
- 
- - <b>`x`</b> (np.ndarray):  Input array. 
- - <b>`window_size`</b> (int):  The size of the rolling window. 
- - <b>`min_samples`</b> (int, optional):  The minimum number of samples required to compute the statistic.  If None, it is set to `window_size`. 
-
-
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`x` | <code>np.ndarray</code> | Input array. | *required*
+`window_size` | <code>int</code> | The size of the rolling window. | *required*
+`min_samples` | <code>int</code> | The minimum number of samples required to compute the statistic. If None, it is set to `window_size`. | *required*
 
 **Returns:**
- 
- - <b>`np.ndarray`</b>:  Array with the rolling statistic 
 
+Type | Description
+---- | -----------
+| np.ndarray: Array with the rolling statistic
 
----
-
-
-
-## <kbd>function</kbd> `rolling_min`
+### `rolling_std`
 
 ```python
-rolling_min(
-    x: ndarray,
-    window_size: int,
-    min_samples: Optional[int] = None
-) → ndarray
+rolling_std(x, window_size, min_samples=None)
 ```
 
-Compute the rolling_min of the input array. 
+Compute the rolling_std of the input array.
 
+**Parameters:**
 
-
-**Args:**
- 
- - <b>`x`</b> (np.ndarray):  Input array. 
- - <b>`window_size`</b> (int):  The size of the rolling window. 
- - <b>`min_samples`</b> (int, optional):  The minimum number of samples required to compute the statistic.  If None, it is set to `window_size`. 
-
-
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`x` | <code>np.ndarray</code> | Input array. | *required*
+`window_size` | <code>int</code> | The size of the rolling window. | *required*
+`min_samples` | <code>int</code> | The minimum number of samples required to compute the statistic. If None, it is set to `window_size`. | *required*
 
 **Returns:**
- 
- - <b>`np.ndarray`</b>:  Array with the rolling statistic 
 
+Type | Description
+---- | -----------
+| np.ndarray: Array with the rolling statistic
 
----
-
-
-
-## <kbd>function</kbd> `rolling_max`
+### `rolling_min`
 
 ```python
-rolling_max(
-    x: ndarray,
-    window_size: int,
-    min_samples: Optional[int] = None
-) → ndarray
+rolling_min(x, window_size, min_samples=None)
 ```
 
-Compute the rolling_max of the input array. 
+Compute the rolling_min of the input array.
 
+**Parameters:**
 
-
-**Args:**
- 
- - <b>`x`</b> (np.ndarray):  Input array. 
- - <b>`window_size`</b> (int):  The size of the rolling window. 
- - <b>`min_samples`</b> (int, optional):  The minimum number of samples required to compute the statistic.  If None, it is set to `window_size`. 
-
-
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`x` | <code>np.ndarray</code> | Input array. | *required*
+`window_size` | <code>int</code> | The size of the rolling window. | *required*
+`min_samples` | <code>int</code> | The minimum number of samples required to compute the statistic. If None, it is set to `window_size`. | *required*
 
 **Returns:**
- 
- - <b>`np.ndarray`</b>:  Array with the rolling statistic 
 
+Type | Description
+---- | -----------
+| np.ndarray: Array with the rolling statistic
 
----
-
-
-
-## <kbd>function</kbd> `rolling_quantile`
+### `rolling_max`
 
 ```python
-rolling_quantile(
-    x: ndarray,
-    p: float,
-    window_size: int,
-    min_samples: Optional[int] = None
-) → ndarray
+rolling_max(x, window_size, min_samples=None)
 ```
 
-Compute the rolling_quantile of the input array. 
+Compute the rolling_max of the input array.
 
+**Parameters:**
 
-
-**Args:**
- 
- - <b>`x`</b> (np.ndarray):  Input array. 
- - <b>`q`</b> (float):  Quantile to compute. 
- - <b>`window_size`</b> (int):  The size of the rolling window. 
- - <b>`min_samples`</b> (int, optional):  The minimum number of samples required to compute the statistic.  If None, it is set to `window_size`. 
-
-
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`x` | <code>np.ndarray</code> | Input array. | *required*
+`window_size` | <code>int</code> | The size of the rolling window. | *required*
+`min_samples` | <code>int</code> | The minimum number of samples required to compute the statistic. If None, it is set to `window_size`. | *required*
 
 **Returns:**
- 
- - <b>`np.ndarray`</b>:  Array with rolling statistic 
 
+Type | Description
+---- | -----------
+| np.ndarray: Array with the rolling statistic
 
----
-
-
-
-## <kbd>function</kbd> `seasonal_rolling_mean`
+### `rolling_quantile`
 
 ```python
-seasonal_rolling_mean(
-    x: ndarray,
-    season_length: int,
-    window_size: int,
-    min_samples: Optional[int] = None
-) → ndarray
+rolling_quantile(x, p, window_size, min_samples=None)
 ```
 
-Compute the seasonal_rolling_mean of the input array 
+Compute the rolling_quantile of the input array.
 
+**Parameters:**
 
-
-**Args:**
- 
- - <b>`x`</b> (np.ndarray):  Input array. 
- - <b>`season_length`</b> (int):  The length of the seasonal period. 
- - <b>`window_size`</b> (int):  The size of the rolling window. 
- - <b>`min_samples`</b> (int, optional):  The minimum number of samples required to compute the statistic.  If None, it is set to `window_size`. 
-
-
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`x` | <code>[ndarray](#numpy.ndarray)</code> | Input array. | *required*
+`q` | <code>[float](#float)</code> | Quantile to compute. | *required*
+`window_size` | <code>[int](#int)</code> | The size of the rolling window. | *required*
+`min_samples` | <code>[int](#int)</code> | The minimum number of samples required to compute the statistic. If None, it is set to `window_size`. | <code>None</code>
 
 **Returns:**
- 
- - <b>`np.ndarray`</b>:  Array with the seasonal rolling statistic 
 
+Type | Description
+---- | -----------
+<code>[ndarray](#numpy.ndarray)</code> | np.ndarray: Array with rolling statistic
 
----
-
-
-
-## <kbd>function</kbd> `seasonal_rolling_std`
+### `seasonal_rolling_mean`
 
 ```python
-seasonal_rolling_std(
-    x: ndarray,
-    season_length: int,
-    window_size: int,
-    min_samples: Optional[int] = None
-) → ndarray
+seasonal_rolling_mean(x, season_length, window_size, min_samples=None)
 ```
 
-Compute the seasonal_rolling_std of the input array 
+Compute the seasonal_rolling_mean of the input array
 
+**Parameters:**
 
-
-**Args:**
- 
- - <b>`x`</b> (np.ndarray):  Input array. 
- - <b>`season_length`</b> (int):  The length of the seasonal period. 
- - <b>`window_size`</b> (int):  The size of the rolling window. 
- - <b>`min_samples`</b> (int, optional):  The minimum number of samples required to compute the statistic.  If None, it is set to `window_size`. 
-
-
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`x` | <code>np.ndarray</code> | Input array. | *required*
+`season_length` | <code>int</code> | The length of the seasonal period. | *required*
+`window_size` | <code>int</code> | The size of the rolling window. | *required*
+`min_samples` | <code>int</code> | The minimum number of samples required to compute the statistic. If None, it is set to `window_size`. | *required*
 
 **Returns:**
- 
- - <b>`np.ndarray`</b>:  Array with the seasonal rolling statistic 
 
+Type | Description
+---- | -----------
+| np.ndarray: Array with the seasonal rolling statistic
 
----
-
-
-
-## <kbd>function</kbd> `seasonal_rolling_min`
+### `seasonal_rolling_std`
 
 ```python
-seasonal_rolling_min(
-    x: ndarray,
-    season_length: int,
-    window_size: int,
-    min_samples: Optional[int] = None
-) → ndarray
+seasonal_rolling_std(x, season_length, window_size, min_samples=None)
 ```
 
-Compute the seasonal_rolling_min of the input array 
+Compute the seasonal_rolling_std of the input array
 
+**Parameters:**
 
-
-**Args:**
- 
- - <b>`x`</b> (np.ndarray):  Input array. 
- - <b>`season_length`</b> (int):  The length of the seasonal period. 
- - <b>`window_size`</b> (int):  The size of the rolling window. 
- - <b>`min_samples`</b> (int, optional):  The minimum number of samples required to compute the statistic.  If None, it is set to `window_size`. 
-
-
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`x` | <code>np.ndarray</code> | Input array. | *required*
+`season_length` | <code>int</code> | The length of the seasonal period. | *required*
+`window_size` | <code>int</code> | The size of the rolling window. | *required*
+`min_samples` | <code>int</code> | The minimum number of samples required to compute the statistic. If None, it is set to `window_size`. | *required*
 
 **Returns:**
- 
- - <b>`np.ndarray`</b>:  Array with the seasonal rolling statistic 
 
+Type | Description
+---- | -----------
+| np.ndarray: Array with the seasonal rolling statistic
 
----
-
-
-
-## <kbd>function</kbd> `seasonal_rolling_max`
+### `seasonal_rolling_min`
 
 ```python
-seasonal_rolling_max(
-    x: ndarray,
-    season_length: int,
-    window_size: int,
-    min_samples: Optional[int] = None
-) → ndarray
+seasonal_rolling_min(x, season_length, window_size, min_samples=None)
 ```
 
-Compute the seasonal_rolling_max of the input array 
+Compute the seasonal_rolling_min of the input array
 
+**Parameters:**
 
-
-**Args:**
- 
- - <b>`x`</b> (np.ndarray):  Input array. 
- - <b>`season_length`</b> (int):  The length of the seasonal period. 
- - <b>`window_size`</b> (int):  The size of the rolling window. 
- - <b>`min_samples`</b> (int, optional):  The minimum number of samples required to compute the statistic.  If None, it is set to `window_size`. 
-
-
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`x` | <code>np.ndarray</code> | Input array. | *required*
+`season_length` | <code>int</code> | The length of the seasonal period. | *required*
+`window_size` | <code>int</code> | The size of the rolling window. | *required*
+`min_samples` | <code>int</code> | The minimum number of samples required to compute the statistic. If None, it is set to `window_size`. | *required*
 
 **Returns:**
- 
- - <b>`np.ndarray`</b>:  Array with the seasonal rolling statistic 
 
+Type | Description
+---- | -----------
+| np.ndarray: Array with the seasonal rolling statistic
 
----
-
-
-
-## <kbd>function</kbd> `seasonal_rolling_quantile`
+### `seasonal_rolling_max`
 
 ```python
-seasonal_rolling_quantile(
-    x: ndarray,
-    p: float,
-    season_length: int,
-    window_size: int,
-    min_samples: Optional[int] = None
-) → ndarray
+seasonal_rolling_max(x, season_length, window_size, min_samples=None)
 ```
 
-Compute the seasonal_rolling_quantile of the input array. 
+Compute the seasonal_rolling_max of the input array
 
+**Parameters:**
 
-
-**Args:**
- 
- - <b>`x`</b> (np.ndarray):  Input array. 
- - <b>`q`</b> (float):  Quantile to compute. 
- - <b>`season_length`</b> (int):  The length of the seasonal period. 
- - <b>`window_size`</b> (int):  The size of the rolling window. 
- - <b>`min_samples`</b> (int, optional):  The minimum number of samples required to compute the statistic.  If None, it is set to `window_size`. 
-
-
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`x` | <code>np.ndarray</code> | Input array. | *required*
+`season_length` | <code>int</code> | The length of the seasonal period. | *required*
+`window_size` | <code>int</code> | The size of the rolling window. | *required*
+`min_samples` | <code>int</code> | The minimum number of samples required to compute the statistic. If None, it is set to `window_size`. | *required*
 
 **Returns:**
- 
- - <b>`np.ndarray`</b>:  Array with rolling statistic 
 
+Type | Description
+---- | -----------
+| np.ndarray: Array with the seasonal rolling statistic
 
+### `seasonal_rolling_quantile`
+
+```python
+seasonal_rolling_quantile(x, p, season_length, window_size, min_samples=None)
+```
+
+Compute the seasonal_rolling_quantile of the input array.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`x` | <code>[ndarray](#numpy.ndarray)</code> | Input array. | *required*
+`q` | <code>[float](#float)</code> | Quantile to compute. | *required*
+`season_length` | <code>[int](#int)</code> | The length of the seasonal period. | *required*
+`window_size` | <code>[int](#int)</code> | The size of the rolling window. | *required*
+`min_samples` | <code>[int](#int)</code> | The minimum number of samples required to compute the statistic. If None, it is set to `window_size`. | <code>None</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[ndarray](#numpy.ndarray)</code> | np.ndarray: Array with rolling statistic

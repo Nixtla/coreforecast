@@ -1,1517 +1,551 @@
-
-
-
-
-# <kbd>module</kbd> `coreforecast.lag_transforms`
-
-
-
-
-**Global Variables**
----------------
-- **TYPE_CHECKING**
-
-
----
-
-
-
-## <kbd>class</kbd> `Lag`
-Simple lag operator 
-
-
-
-**Args:**
- 
- - <b>`lag`</b> (int):  Number of periods to offset 
-
-
-
-### <kbd>method</kbd> `__init__`
-
-```python
-__init__(lag: int)
-```
-
-
-
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `stack`
-
-```python
-stack(transforms: Sequence[ForwardRef('_BaseLagTransform')]) → _BaseLagTransform
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `take`
-
-```python
-take(_idxs: ndarray) → _BaseLagTransform
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `transform`
-
-```python
-transform(ga: 'GroupedArray') → ndarray
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `update`
-
-```python
-update(ga: 'GroupedArray') → ndarray
-```
-
-
-
-
-
-
----
-
-
-
-## <kbd>class</kbd> `RollingMean`
-Rolling Mean 
-
-
-
-**Args:**
- 
- - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation. 
- - <b>`window_size`</b> (int):  Length of the rolling window. 
- - <b>`min_samples`</b> (int, optional):  Minimum number of samples required to compute the statistic.  If None, defaults to window_size. 
-
-
-
-### <kbd>method</kbd> `__init__`
-
-```python
-__init__(lag: int, window_size: int, min_samples: Optional[int] = None)
-```
-
-
-
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `stack`
-
-```python
-stack(transforms: Sequence[ForwardRef('_BaseLagTransform')]) → _BaseLagTransform
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `take`
-
-```python
-take(_idxs: ndarray) → _BaseLagTransform
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `transform`
-
-```python
-transform(ga: 'GroupedArray') → ndarray
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `update`
-
-```python
-update(ga: 'GroupedArray') → ndarray
-```
-
-
-
-
-
-
----
-
-
-
-## <kbd>class</kbd> `RollingStd`
-Rolling Standard Deviation 
-
-
-
-**Args:**
- 
- - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation. 
- - <b>`window_size`</b> (int):  Length of the rolling window. 
- - <b>`min_samples`</b> (int, optional):  Minimum number of samples required to compute the statistic.  If None, defaults to window_size. 
-
-
-
-### <kbd>method</kbd> `__init__`
-
-```python
-__init__(lag: int, window_size: int, min_samples: Optional[int] = None)
-```
-
-
-
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `stack`
-
-```python
-stack(transforms: Sequence[ForwardRef('_BaseLagTransform')]) → _BaseLagTransform
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `take`
-
-```python
-take(_idxs: ndarray) → _BaseLagTransform
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `transform`
-
-```python
-transform(ga: 'GroupedArray') → ndarray
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `update`
-
-```python
-update(ga: 'GroupedArray') → ndarray
-```
-
-
-
-
-
-
----
-
-
-
-## <kbd>class</kbd> `RollingMin`
-Rolling Minimum 
-
-
-
-**Args:**
- 
- - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation. 
- - <b>`window_size`</b> (int):  Length of the rolling window. 
- - <b>`min_samples`</b> (int, optional):  Minimum number of samples required to compute the statistic.  If None, defaults to window_size. 
-
-
-
-### <kbd>method</kbd> `__init__`
-
-```python
-__init__(lag: int, window_size: int, min_samples: Optional[int] = None)
-```
-
-
-
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `stack`
-
-```python
-stack(transforms: Sequence[ForwardRef('_BaseLagTransform')]) → _BaseLagTransform
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `take`
-
-```python
-take(_idxs: ndarray) → _BaseLagTransform
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `transform`
-
-```python
-transform(ga: 'GroupedArray') → ndarray
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `update`
-
-```python
-update(ga: 'GroupedArray') → ndarray
-```
-
-
-
-
-
-
----
-
-
-
-## <kbd>class</kbd> `RollingMax`
-Rolling Maximum 
-
-
-
-**Args:**
- 
- - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation. 
- - <b>`window_size`</b> (int):  Length of the rolling window. 
- - <b>`min_samples`</b> (int, optional):  Minimum number of samples required to compute the statistic.  If None, defaults to window_size. 
-
-
-
-### <kbd>method</kbd> `__init__`
-
-```python
-__init__(lag: int, window_size: int, min_samples: Optional[int] = None)
-```
-
-
-
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `stack`
-
-```python
-stack(transforms: Sequence[ForwardRef('_BaseLagTransform')]) → _BaseLagTransform
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `take`
-
-```python
-take(_idxs: ndarray) → _BaseLagTransform
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `transform`
-
-```python
-transform(ga: 'GroupedArray') → ndarray
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `update`
-
-```python
-update(ga: 'GroupedArray') → ndarray
-```
-
-
-
-
-
-
----
-
-
-
-## <kbd>class</kbd> `RollingQuantile`
-Rolling quantile 
-
-
-
-**Args:**
- 
- - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation 
- - <b>`p`</b> (float):  Quantile to compute 
- - <b>`window_size`</b> (int):  Length of the rolling window 
- - <b>`min_samples`</b> (int, optional):  Minimum number of samples required to compute the statistic.  If None, defaults to window_size. 
-
-
-
-### <kbd>method</kbd> `__init__`
-
-```python
-__init__(
-    lag: int,
-    p: float,
-    window_size: int,
-    min_samples: Optional[int] = None
-)
-```
-
-
-
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `stack`
-
-```python
-stack(transforms: Sequence[ForwardRef('_BaseLagTransform')]) → _BaseLagTransform
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `take`
-
-```python
-take(_idxs: ndarray) → _BaseLagTransform
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `transform`
-
-```python
-transform(ga: 'GroupedArray') → ndarray
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `update`
-
-```python
-update(ga: 'GroupedArray') → ndarray
-```
-
-
-
-
-
-
----
-
-
-
-## <kbd>class</kbd> `SeasonalRollingMean`
-Seasonal rolling Mean 
-
-
-
-**Args:**
- 
- - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation 
- - <b>`season_length`</b> (int):  Length of the seasonal period, e.g. 7 for weekly data 
- - <b>`window_size`</b> (int):  Length of the rolling window 
- - <b>`min_samples`</b> (int, optional):  Minimum number of samples required to compute the statistic.  If None, defaults to window_size. 
-
-
-
-### <kbd>method</kbd> `__init__`
-
-```python
-__init__(
-    lag: int,
-    season_length: int,
-    window_size: int,
-    min_samples: Optional[int] = None
-)
-```
-
-
-
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `stack`
-
-```python
-stack(transforms: Sequence[ForwardRef('_BaseLagTransform')]) → _BaseLagTransform
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `take`
-
-```python
-take(_idxs: ndarray) → _BaseLagTransform
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `transform`
-
-```python
-transform(ga: 'GroupedArray') → ndarray
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `update`
-
-```python
-update(ga: 'GroupedArray') → ndarray
-```
-
-
-
-
-
-
----
-
-
-
-## <kbd>class</kbd> `SeasonalRollingStd`
-Seasonal rolling Standard Deviation 
-
-
-
-**Args:**
- 
- - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation 
- - <b>`season_length`</b> (int):  Length of the seasonal period, e.g. 7 for weekly data 
- - <b>`window_size`</b> (int):  Length of the rolling window 
- - <b>`min_samples`</b> (int, optional):  Minimum number of samples required to compute the statistic.  If None, defaults to window_size. 
-
-
-
-### <kbd>method</kbd> `__init__`
-
-```python
-__init__(
-    lag: int,
-    season_length: int,
-    window_size: int,
-    min_samples: Optional[int] = None
-)
-```
-
-
-
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `stack`
-
-```python
-stack(transforms: Sequence[ForwardRef('_BaseLagTransform')]) → _BaseLagTransform
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `take`
-
-```python
-take(_idxs: ndarray) → _BaseLagTransform
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `transform`
-
-```python
-transform(ga: 'GroupedArray') → ndarray
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `update`
-
-```python
-update(ga: 'GroupedArray') → ndarray
-```
-
-
-
-
-
-
----
-
-
-
-## <kbd>class</kbd> `SeasonalRollingMin`
-Seasonal rolling Minimum 
-
-
-
-**Args:**
- 
- - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation 
- - <b>`season_length`</b> (int):  Length of the seasonal period, e.g. 7 for weekly data 
- - <b>`window_size`</b> (int):  Length of the rolling window 
- - <b>`min_samples`</b> (int, optional):  Minimum number of samples required to compute the statistic.  If None, defaults to window_size. 
-
-
-
-### <kbd>method</kbd> `__init__`
-
-```python
-__init__(
-    lag: int,
-    season_length: int,
-    window_size: int,
-    min_samples: Optional[int] = None
-)
-```
-
-
-
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `stack`
-
-```python
-stack(transforms: Sequence[ForwardRef('_BaseLagTransform')]) → _BaseLagTransform
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `take`
-
-```python
-take(_idxs: ndarray) → _BaseLagTransform
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `transform`
-
-```python
-transform(ga: 'GroupedArray') → ndarray
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `update`
-
-```python
-update(ga: 'GroupedArray') → ndarray
-```
-
-
-
-
-
-
----
-
-
-
-## <kbd>class</kbd> `SeasonalRollingMax`
-Seasonal rolling Maximum 
-
-
-
-**Args:**
- 
- - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation 
- - <b>`season_length`</b> (int):  Length of the seasonal period, e.g. 7 for weekly data 
- - <b>`window_size`</b> (int):  Length of the rolling window 
- - <b>`min_samples`</b> (int, optional):  Minimum number of samples required to compute the statistic.  If None, defaults to window_size. 
-
-
-
-### <kbd>method</kbd> `__init__`
-
-```python
-__init__(
-    lag: int,
-    season_length: int,
-    window_size: int,
-    min_samples: Optional[int] = None
-)
-```
-
-
-
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `stack`
-
-```python
-stack(transforms: Sequence[ForwardRef('_BaseLagTransform')]) → _BaseLagTransform
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `take`
-
-```python
-take(_idxs: ndarray) → _BaseLagTransform
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `transform`
-
-```python
-transform(ga: 'GroupedArray') → ndarray
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `update`
-
-```python
-update(ga: 'GroupedArray') → ndarray
-```
-
-
-
-
-
-
----
-
-
-
-## <kbd>class</kbd> `SeasonalRollingQuantile`
-Seasonal rolling statistic 
-
-
-
-**Args:**
- 
- - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation 
- - <b>`p`</b> (float):  Quantile to compute 
- - <b>`season_length`</b> (int):  Length of the seasonal period, e.g. 7 for weekly data 
- - <b>`window_size`</b> (int):  Length of the rolling window 
- - <b>`min_samples`</b> (int, optional):  Minimum number of samples required to compute the statistic.  If None, defaults to window_size. 
-
-
-
-### <kbd>method</kbd> `__init__`
-
-```python
-__init__(
-    lag: int,
-    p: float,
-    season_length: int,
-    window_size: int,
-    min_samples: Optional[int] = None
-)
-```
-
-
-
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `stack`
-
-```python
-stack(transforms: Sequence[ForwardRef('_BaseLagTransform')]) → _BaseLagTransform
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `take`
-
-```python
-take(_idxs: ndarray) → _BaseLagTransform
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `transform`
-
-```python
-transform(ga: 'GroupedArray') → ndarray
-```
-
-
-
-
-
----
-
-
-
-### <kbd>method</kbd> `update`
-
-```python
-update(ga: 'GroupedArray') → ndarray
-```
-
-
-
-
-
-
 ---
-
-
-
-## <kbd>class</kbd> `ExpandingMean`
-Expanding Mean 
-
-
-
-**Args:**
- 
- - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation 
-
+title: Lag transforms
+description: Compute lag transforms
+---
 
+##
 
-### <kbd>method</kbd> `__init__`
+### `Lag`
 
 ```python
-__init__(lag: int)
+Lag(lag)
 ```
-
-
-
 
+Bases: <code>[\_BaseLagTransform](#coreforecast.lag_transforms._BaseLagTransform)</code>
 
-
-
-
----
+Simple lag operator
 
+**Parameters:**
 
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`lag` | <code>[int](#int)</code> | Number of periods to offset | *required*
 
-### <kbd>method</kbd> `stack`
+#### `Lag.stack`
 
 ```python
-stack(transforms: Sequence[ForwardRef('_BaseLagTransform')]) → _BaseLagTransform
+stack(transforms)
 ```
 
+#### `Lag.take`
 
-
-
-
----
-
-
-
-### <kbd>method</kbd> `take`
-
 ```python
-take(idxs: ndarray) → _ExpandingBase
+take(_idxs)
 ```
-
-
-
-
-
----
-
-
 
-### <kbd>method</kbd> `transform`
+#### `Lag.transform`
 
 ```python
-transform(ga: 'GroupedArray') → ndarray
+transform(ga)
 ```
 
+#### `Lag.update`
 
-
-
-
----
-
-
-
-### <kbd>method</kbd> `update`
-
 ```python
-update(ga: 'GroupedArray') → ndarray
+update(ga)
 ```
-
-
-
-
-
-
----
-
 
+### `RollingMean`
 
-## <kbd>class</kbd> `ExpandingStd`
-Expanding Standard Deviation 
+Bases: <code>[\_RollingBase](#coreforecast.lag_transforms._RollingBase)</code>
 
+#### `RollingMean.stack`
 
-
-**Args:**
- 
- - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation 
-
-
-
-### <kbd>method</kbd> `__init__`
-
 ```python
-__init__(lag: int)
+stack(transforms)
 ```
-
-
-
-
-
-
-
-
----
-
-
 
-### <kbd>method</kbd> `stack`
+#### `RollingMean.take`
 
 ```python
-stack(transforms: Sequence[ForwardRef('_BaseLagTransform')]) → _BaseLagTransform
+take(_idxs)
 ```
 
+#### `RollingMean.transform`
 
-
-
-
----
-
-
-
-### <kbd>method</kbd> `take`
-
 ```python
-take(idxs: ndarray) → _ExpandingBase
+transform(ga)
 ```
-
-
-
-
-
----
-
-
 
-### <kbd>method</kbd> `transform`
+#### `RollingMean.update`
 
 ```python
-transform(ga: 'GroupedArray') → ndarray
+update(ga)
 ```
 
+### `RollingStd`
 
+Bases: <code>[\_RollingBase](#coreforecast.lag_transforms._RollingBase)</code>
 
+#### `RollingStd.stack`
 
-
----
-
-
-
-### <kbd>method</kbd> `update`
-
 ```python
-update(ga: 'GroupedArray') → ndarray
+stack(transforms)
 ```
-
-
-
-
-
-
----
-
-
-
-## <kbd>class</kbd> `ExpandingMin`
-Expanding Minimum 
 
+#### `RollingStd.take`
 
-
-**Args:**
- 
- - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation 
-
-
-
-### <kbd>method</kbd> `__init__`
-
 ```python
-__init__(lag: int)
+take(_idxs)
 ```
-
-
-
-
-
-
-
-
----
-
-
 
-### <kbd>method</kbd> `stack`
+#### `RollingStd.transform`
 
 ```python
-stack(transforms: Sequence[ForwardRef('_BaseLagTransform')]) → _BaseLagTransform
+transform(ga)
 ```
 
+#### `RollingStd.update`
 
-
-
-
----
-
-
-
-### <kbd>method</kbd> `take`
-
 ```python
-take(idxs: ndarray) → _ExpandingBase
+update(ga)
 ```
 
+### `RollingMin`
 
+Bases: <code>[\_RollingBase](#coreforecast.lag_transforms._RollingBase)</code>
 
+#### `RollingMin.stack`
 
-
----
-
-
-
-### <kbd>method</kbd> `transform`
-
 ```python
-transform(ga: 'GroupedArray') → ndarray
+stack(transforms)
 ```
-
-
 
+#### `RollingMin.take`
 
-
----
-
-
-
-### <kbd>method</kbd> `update`
-
 ```python
-update(ga: 'GroupedArray') → ndarray
+take(_idxs)
 ```
-
-
 
+#### `RollingMin.transform`
 
-
-
----
-
-
+```python
+transform(ga)
+```
 
-## <kbd>class</kbd> `ExpandingMax`
-Expanding Maximum 
+#### `RollingMin.update`
 
+```python
+update(ga)
+```
 
+### `RollingMax`
 
-**Args:**
- 
- - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation 
+Bases: <code>[\_RollingBase](#coreforecast.lag_transforms._RollingBase)</code>
 
+#### `RollingMax.stack`
 
+```python
+stack(transforms)
+```
 
-### <kbd>method</kbd> `__init__`
+#### `RollingMax.take`
 
 ```python
-__init__(lag: int)
+take(_idxs)
 ```
 
+#### `RollingMax.transform`
 
+```python
+transform(ga)
+```
 
+#### `RollingMax.update`
 
+```python
+update(ga)
+```
 
+### `RollingQuantile`
 
+```python
+RollingQuantile(lag, p, window_size, min_samples=None)
+```
 
+Bases: <code>[\_RollingBase](#coreforecast.lag_transforms._RollingBase)</code>
 
----
+Rolling quantile
 
+**Parameters:**
 
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`lag` | <code>[int](#int)</code> | Number of periods to offset by before applying the transformation | *required*
+`p` | <code>[float](#float)</code> | Quantile to compute | *required*
+`window_size` | <code>[int](#int)</code> | Length of the rolling window | *required*
+`min_samples` | <code>[int](#int)</code> | Minimum number of samples required to compute the statistic. If None, defaults to window_size. | <code>None</code>
 
-### <kbd>method</kbd> `stack`
+#### `RollingQuantile.stack`
 
 ```python
-stack(transforms: Sequence[ForwardRef('_BaseLagTransform')]) → _BaseLagTransform
+stack(transforms)
 ```
-
-
-
-
-
----
 
+#### `RollingQuantile.take`
 
+```python
+take(_idxs)
+```
 
-### <kbd>method</kbd> `take`
+#### `RollingQuantile.transform`
 
 ```python
-take(idxs: ndarray) → _ExpandingBase
+transform(ga)
 ```
 
+#### `RollingQuantile.update`
 
-
+```python
+update(ga)
+```
 
+### `SeasonalRollingMean`
 
----
+Bases: <code>[\_SeasonalRollingBase](#coreforecast.lag_transforms._SeasonalRollingBase)</code>
 
+#### `SeasonalRollingMean.stack`
 
+```python
+stack(transforms)
+```
 
-### <kbd>method</kbd> `transform`
+#### `SeasonalRollingMean.take`
 
 ```python
-transform(ga: 'GroupedArray') → ndarray
+take(_idxs)
 ```
 
+#### `SeasonalRollingMean.transform`
 
-
+```python
+transform(ga)
+```
 
+#### `SeasonalRollingMean.update`
 
----
+```python
+update(ga)
+```
 
+### `SeasonalRollingStd`
 
+Bases: <code>[\_SeasonalRollingBase](#coreforecast.lag_transforms._SeasonalRollingBase)</code>
 
-### <kbd>method</kbd> `update`
+#### `SeasonalRollingStd.stack`
 
 ```python
-update(ga: 'GroupedArray') → ndarray
+stack(transforms)
 ```
 
+#### `SeasonalRollingStd.take`
 
+```python
+take(_idxs)
+```
 
+#### `SeasonalRollingStd.transform`
 
+```python
+transform(ga)
+```
 
+#### `SeasonalRollingStd.update`
 
----
+```python
+update(ga)
+```
 
+### `SeasonalRollingMin`
 
+Bases: <code>[\_SeasonalRollingBase](#coreforecast.lag_transforms._SeasonalRollingBase)</code>
 
-## <kbd>class</kbd> `ExpandingQuantile`
-Expanding quantile 
+#### `SeasonalRollingMin.stack`
 
+```python
+stack(transforms)
+```
 
+#### `SeasonalRollingMin.take`
 
-**Args:**
-  lag (int):  Number of periods to offset by before applying the transformation  p (float):  Quantile to compute 
+```python
+take(_idxs)
+```
 
+#### `SeasonalRollingMin.transform`
 
+```python
+transform(ga)
+```
 
-### <kbd>method</kbd> `__init__`
+#### `SeasonalRollingMin.update`
 
 ```python
-__init__(lag: int, p: float)
+update(ga)
 ```
 
+### `SeasonalRollingMax`
 
+Bases: <code>[\_SeasonalRollingBase](#coreforecast.lag_transforms._SeasonalRollingBase)</code>
 
+#### `SeasonalRollingMax.stack`
 
+```python
+stack(transforms)
+```
 
+#### `SeasonalRollingMax.take`
 
+```python
+take(_idxs)
+```
 
+#### `SeasonalRollingMax.transform`
 
----
+```python
+transform(ga)
+```
 
+#### `SeasonalRollingMax.update`
 
+```python
+update(ga)
+```
 
-### <kbd>method</kbd> `stack`
+### `SeasonalRollingQuantile`
 
 ```python
-stack(transforms: Sequence[ForwardRef('_BaseLagTransform')]) → _BaseLagTransform
+SeasonalRollingQuantile(lag, p, season_length, window_size, min_samples=None)
 ```
 
+Bases: <code>[\_SeasonalRollingBase](#coreforecast.lag_transforms._SeasonalRollingBase)</code>
 
+Seasonal rolling statistic
 
+**Parameters:**
 
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`lag` | <code>[int](#int)</code> | Number of periods to offset by before applying the transformation | *required*
+`p` | <code>[float](#float)</code> | Quantile to compute | *required*
+`season_length` | <code>[int](#int)</code> | Length of the seasonal period, e.g. 7 for weekly data | *required*
+`window_size` | <code>[int](#int)</code> | Length of the rolling window | *required*
+`min_samples` | <code>[int](#int)</code> | Minimum number of samples required to compute the statistic. If None, defaults to window_size. | <code>None</code>
 
----
-
+#### `SeasonalRollingQuantile.stack`
 
+```python
+stack(transforms)
+```
 
-### <kbd>method</kbd> `take`
+#### `SeasonalRollingQuantile.take`
 
 ```python
-take(_idxs: ndarray) → _BaseLagTransform
+take(_idxs)
 ```
 
+#### `SeasonalRollingQuantile.transform`
 
+```python
+transform(ga)
+```
 
+#### `SeasonalRollingQuantile.update`
 
+```python
+update(ga)
+```
+  
+### `ExpandingMean`
 
----
+Bases: <code>[\_ExpandingBase](#coreforecast.lag_transforms._ExpandingBase)</code>
 
+#### `ExpandingMean.stack`
 
+```python
+stack(transforms)
+```
 
-### <kbd>method</kbd> `transform`
+#### `ExpandingMean.take`
 
 ```python
-transform(ga: 'GroupedArray') → ndarray
+take(idxs)
 ```
-
 
+#### `ExpandingMean.transform`
 
+```python
+transform(ga)
+```
 
+#### `ExpandingMean.update`
 
----
+```python
+update(ga)
+```
 
+### `ExpandingStd`
 
+Bases: <code>[\_ExpandingBase](#coreforecast.lag_transforms._ExpandingBase)</code>
 
-### <kbd>method</kbd> `update`
+#### `ExpandingStd.stack`
 
 ```python
-update(ga: 'GroupedArray') → ndarray
+stack(transforms)
 ```
-
 
+#### `ExpandingStd.take`
 
-
+```python
+take(idxs)
+```
 
+#### `ExpandingStd.transform`
 
----
+```python
+transform(ga)
+```
 
+#### `ExpandingStd.update`
 
+```python
+update(ga)
+```
 
-## <kbd>class</kbd> `ExponentiallyWeightedMean`
-Exponentially weighted mean 
+### `ExpandingMin`
 
+Bases: <code>[\_ExpandingComp](#coreforecast.lag_transforms._ExpandingComp)</code>
 
+#### `ExpandingMin.stack`
 
-**Args:**
- 
- - <b>`lag`</b> (int):  Number of periods to offset by before applying the transformation 
- - <b>`alpha`</b> (float):  Smoothing factor 
+```python
+stack(transforms)
+```
 
+#### `ExpandingMin.take`
 
+```python
+take(idxs)
+```
 
-### <kbd>method</kbd> `__init__`
+#### `ExpandingMin.transform`
 
 ```python
-__init__(lag: int, alpha: float)
+transform(ga)
 ```
 
+#### `ExpandingMin.update`
 
+```python
+update(ga)
+```
 
+### `ExpandingMax`
 
+Bases: <code>[\_ExpandingComp](#coreforecast.lag_transforms._ExpandingComp)</code>
 
+#### `ExpandingMax.stack`
 
+```python
+stack(transforms)
+```
 
+#### `ExpandingMax.take`
 
----
+```python
+take(idxs)
+```
 
+#### `ExpandingMax.transform`
 
+```python
+transform(ga)
+```
 
-### <kbd>method</kbd> `stack`
+#### `ExpandingMax.update`
 
 ```python
-stack(transforms: Sequence[ForwardRef('_BaseLagTransform')]) → _BaseLagTransform
+update(ga)
 ```
-
 
+### `ExpandingQuantile`
 
+```python
+ExpandingQuantile(lag, p)
+```
 
+Bases: <code>[\_BaseLagTransform](#coreforecast.lag_transforms._BaseLagTransform)</code>
 
----
+Expanding quantile
 
+**Parameters:**
 
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`lag` | <code>[int](#int)</code> | Number of periods to offset by before applying the transformation | *required*
+`p` | <code>[float](#float)</code> | Quantile to compute | *required*
 
-### <kbd>method</kbd> `take`
+#### `ExpandingQuantile.stack`
 
 ```python
-take(idxs: ndarray) → ExponentiallyWeightedMean
+stack(transforms)
 ```
-
 
+#### `ExpandingQuantile.take`
 
-
-
----
+```python
+take(_idxs)
+```
 
+#### `ExpandingQuantile.transform`
 
+```python
+transform(ga)
+```
 
-### <kbd>method</kbd> `transform`
+#### `ExpandingQuantile.update`
 
 ```python
-transform(ga: 'GroupedArray') → ndarray
+update(ga)
 ```
-
 
+### `ExponentiallyWeightedMean`
 
+```python
+ExponentiallyWeightedMean(lag, alpha)
+```
 
+Bases: <code>[\_BaseLagTransform](#coreforecast.lag_transforms._BaseLagTransform)</code>
 
----
+Exponentially weighted mean
 
+**Parameters:**
 
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`lag` | <code>[int](#int)</code> | Number of periods to offset by before applying the transformation | *required*
+`alpha` | <code>[float](#float)</code> | Smoothing factor | *required*
 
-### <kbd>method</kbd> `update`
+#### `ExponentiallyWeightedMean.stack`
 
 ```python
-update(ga: 'GroupedArray') → ndarray
+stack(transforms)
 ```
 
+#### `ExponentiallyWeightedMean.take`
 
+```python
+take(idxs)
+```
 
+#### `ExponentiallyWeightedMean.transform`
 
+```python
+transform(ga)
+```
 
+#### `ExponentiallyWeightedMean.update`
 
+```python
+update(ga)
+```
