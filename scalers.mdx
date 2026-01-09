@@ -73,9 +73,19 @@ Type | Description
 
 ### `LocalMinMaxScaler`
 
+```python
+LocalMinMaxScaler(skipna=False)
+```
+
 Bases: <code>[\_BaseLocalScaler](#coreforecast.scalers._BaseLocalScaler)</code>
 
 Scale each group to the [0, 1] interval
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values when computing statistics. When False (default), NaN values are included and may result in NaN statistics. | <code>False</code>
 
 #### `LocalMinMaxScaler.fit`
 
@@ -171,9 +181,19 @@ Type | Description
 
 ### `LocalStandardScaler`
 
+```python
+LocalStandardScaler(skipna=False)
+```
+
 Bases: <code>[\_BaseLocalScaler](#coreforecast.scalers._BaseLocalScaler)</code>
 
 Scale each group to have zero mean and unit variance
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values when computing statistics. When False (default), NaN values are included and may result in NaN statistics. | <code>False</code>
 
 #### `LocalStandardScaler.fit`
 
@@ -270,7 +290,7 @@ Type | Description
 ### `LocalRobustScaler`
 
 ```python
-LocalRobustScaler(scale)
+LocalRobustScaler(scale, skipna=False)
 ```
 
 Bases: <code>[\_BaseLocalScaler](#coreforecast.scalers._BaseLocalScaler)</code>
@@ -282,6 +302,7 @@ Scale each group using robust statistics
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `scale` | <code>[str](#str)</code> | Type of robust scaling to use. Valid options are 'iqr' and 'mad'. If 'iqr' will use the inter quartile range as the scale. If 'mad' will use median absolute deviation as the scale. | *required*
+`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values when computing statistics. When False (default), NaN values are included and may result in NaN statistics. | <code>False</code>
 
 #### `LocalRobustScaler.fit`
 
