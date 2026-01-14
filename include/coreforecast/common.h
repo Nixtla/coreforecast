@@ -26,9 +26,7 @@ inline indptr_t FirstNotNaN(const T *data, indptr_t n, T *out) {
   return i;
 }
 
-template <typename T> inline bool IsNaN(T value) {
-  return std::isnan(value);
-}
+template <typename T> inline bool IsNaN(T value) { return std::isnan(value); }
 
 template <typename T> inline int CountValidValues(const T *data, int n) {
   int count = 0;

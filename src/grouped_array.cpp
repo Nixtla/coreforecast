@@ -282,7 +282,8 @@ public:
   py::array_t<T> RollingTransform(Func transform, int lag, int window_size,
                                   int min_samples) {
     py::array_t<T> out(data_.size());
-    Transform(transform, lag, out.mutable_data(), window_size, min_samples, false);
+    Transform(transform, lag, out.mutable_data(), window_size, min_samples,
+              false);
     return out;
   }
   py::array_t<T> RollingMeanTransform(int lag, int window_size,
@@ -317,7 +318,8 @@ public:
   py::array_t<T> RollingUpdate(Func transform, int lag, int window_size,
                                int min_samples) {
     py::array_t<T> out(NumGroups());
-    Reduce(transform, 1, out.mutable_data(), lag, window_size, min_samples, false);
+    Reduce(transform, 1, out.mutable_data(), lag, window_size, min_samples,
+           false);
     return out;
   }
   py::array_t<T> RollingMeanUpdate(int lag, int window_size, int min_samples) {
@@ -444,7 +446,8 @@ public:
   }
   py::array_t<T> ExpandingQuantileTransform(int lag, T p) {
     py::array_t<T> out(data_.size());
-    Transform(expanding::QuantileTransform<T>, lag, out.mutable_data(), p, false);
+    Transform(expanding::QuantileTransform<T>, lag, out.mutable_data(), p,
+              false);
     return out;
   }
   py::array_t<T> ExpandingQuantileUpdate(int lag, T p) {
@@ -460,7 +463,8 @@ public:
     return out;
   }
 
-  template <typename Func> py::array_t<T> ScalerStats(Func func, bool skipna = false) {
+  template <typename Func>
+  py::array_t<T> ScalerStats(Func func, bool skipna = false) {
     py::array_t<T> out({static_cast<int>(NumGroups()), 2});
     // Use Reduce with skipna as last parameter
     Reduce(func, 2, out.mutable_data(), 0, skipna);
@@ -469,7 +473,8 @@ public:
   py::array_t<T> MinMaxScalerStats(bool skipna = false) {
     py::array_t<T> out({static_cast<int>(NumGroups()), 2});
     // Directly call Reduce with skipna for scaler stats
-    ForEach([data = data_.data(), indptr = indptr_.data(), skipna, &out](int start_group, int end_group) {
+    ForEach([data = data_.data(), indptr = indptr_.data(), skipna,
+             &out](int start_group, int end_group) {
       for (int i = start_group; i < end_group; ++i) {
         indptr_t start = indptr[i];
         indptr_t end = indptr[i + 1];
@@ -481,14 +486,15 @@ public:
           continue;
         }
         scalers::MinMaxScalerStats<T>(data + start + start_idx, n - start_idx,
-                                       out.mutable_data() + 2 * i, skipna);
+                                      out.mutable_data() + 2 * i, skipna);
       }
     });
     return out;
   }
   py::array_t<T> StandardScalerStats(bool skipna = false) {
     py::array_t<T> out({static_cast<int>(NumGroups()), 2});
-    ForEach([data = data_.data(), indptr = indptr_.data(), skipna, &out](int start_group, int end_group) {
+    ForEach([data = data_.data(), indptr = indptr_.data(), skipna,
+             &out](int start_group, int end_group) {
       for (int i = start_group; i < end_group; ++i) {
         indptr_t start = indptr[i];
         indptr_t end = indptr[i + 1];
@@ -500,14 +506,15 @@ public:
           continue;
         }
         scalers::StandardScalerStats<T>(data + start + start_idx, n - start_idx,
-                                         out.mutable_data() + 2 * i, skipna);
+                                        out.mutable_data() + 2 * i, skipna);
       }
     });
     return out;
   }
   py::array_t<T> RobustIqrScalerStats(bool skipna = false) {
     py::array_t<T> out({static_cast<int>(NumGroups()), 2});
-    ForEach([data = data_.data(), indptr = indptr_.data(), skipna, &out](int start_group, int end_group) {
+    ForEach([data = data_.data(), indptr = indptr_.data(), skipna,
+             &out](int start_group, int end_group) {
       for (int i = start_group; i < end_group; ++i) {
         indptr_t start = indptr[i];
         indptr_t end = indptr[i + 1];
@@ -518,15 +525,17 @@ public:
           out.mutable_data()[2 * i + 1] = std::numeric_limits<T>::quiet_NaN();
           continue;
         }
-        scalers::RobustScalerIqrStats<T>(data + start + start_idx, n - start_idx,
-                                          out.mutable_data() + 2 * i, skipna);
+        scalers::RobustScalerIqrStats<T>(data + start + start_idx,
+                                         n - start_idx,
+                                         out.mutable_data() + 2 * i, skipna);
       }
     });
     return out;
   }
   py::array_t<T> RobustMadScalerStats(bool skipna = false) {
     py::array_t<T> out({static_cast<int>(NumGroups()), 2});
-    ForEach([data = data_.data(), indptr = indptr_.data(), skipna, &out](int start_group, int end_group) {
+    ForEach([data = data_.data(), indptr = indptr_.data(), skipna,
+             &out](int start_group, int end_group) {
       for (int i = start_group; i < end_group; ++i) {
         indptr_t start = indptr[i];
         indptr_t end = indptr[i + 1];
@@ -537,8 +546,9 @@ public:
           out.mutable_data()[2 * i + 1] = std::numeric_limits<T>::quiet_NaN();
           continue;
         }
-        scalers::RobustScalerMadStats<T>(data + start + start_idx, n - start_idx,
-                                          out.mutable_data() + 2 * i, skipna);
+        scalers::RobustScalerMadStats<T>(data + start + start_idx,
+                                         n - start_idx,
+                                         out.mutable_data() + 2 * i, skipna);
       }
     });
     return out;

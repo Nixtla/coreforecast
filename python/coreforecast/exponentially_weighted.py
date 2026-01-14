@@ -5,7 +5,9 @@ import numpy as np
 from ._lib import exponentially_weighted as _ew
 
 
-def exponentially_weighted_mean(x: np.ndarray, alpha: float, skipna: bool = False) -> np.ndarray:
+def exponentially_weighted_mean(
+    x: np.ndarray, alpha: float, skipna: bool = False
+) -> np.ndarray:
     """Compute the exponentially weighted mean of the input array.
 
     Args:
