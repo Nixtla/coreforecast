@@ -18,8 +18,8 @@ py::array_t<T> ExpandingMean(const py::array_t<T> data, bool skipna = false) {
 
 template <typename T>
 py::array_t<T> ExpandingStd(const py::array_t<T> data, bool skipna = false) {
-  T tmp;
-  return ExpandingOp(expanding::StdTransform<T>, data, &tmp, skipna);
+  T tmp[3];
+  return ExpandingOp(expanding::StdTransform<T>, data, tmp, skipna);
 }
 
 template <typename T>
