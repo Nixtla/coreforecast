@@ -3,30 +3,40 @@
 #include "SkipList.h"
 
 #include "stats.h"
+#include <variant>
 
 namespace rolling {
-template <typename T> class MeanAccumulator {
+template <typename T, bool SkipNA> class MeanAccumulator {
 public:
-  MeanAccumulator(int window_size, bool skipna = false)
-      : window_size_(window_size), skipna_(skipna) {}
+  MeanAccumulator(int window_size)
+      : window_size_(window_size) {}
   void Update(T x) {
-    if (skipna_ && std::isnan(x))
-      return;
-    if (!skipna_ && std::isnan(x))
-      has_nan_ = true;
+    if constexpr (SkipNA) {
+      if (std::isnan(x))
+        return;
+    } else {
+      if (std::isnan(x))
+        has_nan_ = true;
+    }
     accum_ += x;
     valid_count_++;
   }
   T Update(T x, int n) {
     Update(x);
-    if (!skipna_ && has_nan_)
-      return std::numeric_limits<T>::quiet_NaN();
-    if (skipna_ && valid_count_ == 0)
-      return std::numeric_limits<T>::quiet_NaN();
-    return accum_ / static_cast<T>(skipna_ ? valid_count_ : n);
+    if constexpr (!SkipNA) {
+      if (has_nan_)
+        return std::numeric_limits<T>::quiet_NaN();
+    }
+    if constexpr (SkipNA) {
+      if (valid_count_ == 0)
+        return std::numeric_limits<T>::quiet_NaN();
+      return accum_ / static_cast<T>(valid_count_);
+    } else {
+      return accum_ / static_cast<T>(n);
+    }
   }
   T Update(T new_x, T old_x) {
-    if (skipna_) {
+    if constexpr (SkipNA) {
       if (!std::isnan(old_x)) {
         accum_ -= old_x;
         valid_count_--;
@@ -50,10 +60,9 @@ public:
 
 private:
   int window_size_;
-  bool skipna_;
   T accum_ = 0.0;
   int valid_count_ = 0;
-  bool has_nan_ = false;
+  typename std::conditional_t<SkipNA, std::monostate, bool> has_nan_{};
 };
 
 template <typename T, typename Accumulator, typename... Args>
@@ -81,8 +90,11 @@ inline void Transform(const T *data, int n, T *out, int window_size,
 template <typename T>
 inline void MeanTransform(const T *data, int n, T *out, int window_size,
                           int min_samples, bool skipna = false) {
-  Transform<T, MeanAccumulator<T>>(data, n, out, window_size, min_samples,
-                                   skipna);
+  if (skipna) {
+    Transform<T, MeanAccumulator<T, true>>(data, n, out, window_size, min_samples);
+  } else {
+    Transform<T, MeanAccumulator<T, false>>(data, n, out, window_size, min_samples);
+  }
 }
 
 template <typename T>
@@ -192,10 +204,10 @@ inline void StdTransform(const T *data, int n, T *out, int window_size,
                         skipna);
 }
 
-template <typename T, typename Comp> class CompAccumulator {
+template <typename T, typename Comp, bool SkipNA> class CompAccumulator {
 public:
-  CompAccumulator(int window_size, bool skipna = false)
-      : window_size_(window_size), skipna_(skipna) {
+  CompAccumulator(int window_size)
+      : window_size_(window_size) {
     buffer_.reserve(window_size);
   }
   inline bool Empty() const noexcept { return tail_ == -1; }
@@ -237,7 +249,7 @@ public:
     return buffer_[tail_];
   }
   void Insert(T x) noexcept {
-    if (skipna_) {
+    if constexpr (SkipNA) {
       // With skipna=True, don't insert NaN values
       if (!std::isnan(x)) {
         while (!Empty() && comp_(Back().second, x)) {
@@ -266,16 +278,20 @@ public:
   void Update(T x) noexcept { Insert(x); }
   T Update(T x, int n) noexcept {
     Insert(x);
-    if (!skipna_ && has_nan_)
-      return std::numeric_limits<T>::quiet_NaN();
+    if constexpr (!SkipNA) {
+      if (has_nan_)
+        return std::numeric_limits<T>::quiet_NaN();
+    }
     if (Empty())
       return std::numeric_limits<T>::quiet_NaN();
     return Front().second;
   }
   T Update(T new_x, T old_x) noexcept {
     Insert(new_x);
-    if (!skipna_ && has_nan_)
-      return std::numeric_limits<T>::quiet_NaN();
+    if constexpr (!SkipNA) {
+      if (has_nan_)
+        return std::numeric_limits<T>::quiet_NaN();
+    }
     if (Empty())
       return std::numeric_limits<T>::quiet_NaN();
     return Front().second;
@@ -284,50 +300,68 @@ public:
 private:
   std::vector<std::pair<int, T>> buffer_;
   int window_size_;
-  bool skipna_;
   int head_ = 0;
   int tail_ = -1;
   int i_ = 0;
-  bool has_nan_ = false;
+  typename std::conditional_t<SkipNA, std::monostate, bool> has_nan_{};
   Comp comp_ = Comp();
 };
 
 template <typename T>
 void MinTransform(const T *data, int n, T *out, int window_size,
                   int min_samples, bool skipna = false) {
-  Transform<T, CompAccumulator<T, std::greater_equal<T>>>(
-      data, n, out, window_size, min_samples, skipna);
+  if (skipna) {
+    Transform<T, CompAccumulator<T, std::greater_equal<T>, true>>(
+        data, n, out, window_size, min_samples);
+  } else {
+    Transform<T, CompAccumulator<T, std::greater_equal<T>, false>>(
+        data, n, out, window_size, min_samples);
+  }
 }
 
 template <typename T>
 void MaxTransform(const T *data, int n, T *out, int window_size,
                   int min_samples, bool skipna = false) {
-  Transform<T, CompAccumulator<T, std::less_equal<T>>>(
-      data, n, out, window_size, min_samples, skipna);
+  if (skipna) {
+    Transform<T, CompAccumulator<T, std::less_equal<T>, true>>(
+        data, n, out, window_size, min_samples);
+  } else {
+    Transform<T, CompAccumulator<T, std::less_equal<T>, false>>(
+        data, n, out, window_size, min_samples);
+  }
 }
 
-template <typename T> class QuantileAccumulator {
+template <typename T, bool SkipNA> class QuantileAccumulator {
 public:
-  QuantileAccumulator(int window_size, T p, bool skipna = false)
-      : window_size_(window_size), p_(p), skipna_(skipna) {}
+  QuantileAccumulator(int window_size, T p)
+      : window_size_(window_size), p_(p) {}
   void Update(T x) {
-    if (skipna_ && std::isnan(x))
-      return;
-    if (!skipna_ && std::isnan(x))
-      has_nan_ = true;
+    if constexpr (SkipNA) {
+      if (std::isnan(x))
+        return;
+    } else {
+      if (std::isnan(x))
+        has_nan_ = true;
+    }
     skip_list_.insert(x);
     valid_count_++;
   }
   T Update(T x, int n) {
     Update(x);
-    if (!skipna_ && has_nan_)
-      return std::numeric_limits<T>::quiet_NaN();
-    if (skipna_ && valid_count_ == 0)
-      return std::numeric_limits<T>::quiet_NaN();
-    return stats::SortedQuantile(skip_list_, p_, skipna_ ? valid_count_ : n);
+    if constexpr (!SkipNA) {
+      if (has_nan_)
+        return std::numeric_limits<T>::quiet_NaN();
+    }
+    if constexpr (SkipNA) {
+      if (valid_count_ == 0)
+        return std::numeric_limits<T>::quiet_NaN();
+      return stats::SortedQuantile(skip_list_, p_, valid_count_);
+    } else {
+      return stats::SortedQuantile(skip_list_, p_, n);
+    }
   }
   T Update(T new_x, T old_x) {
-    if (skipna_) {
+    if constexpr (SkipNA) {
       if (!std::isnan(old_x)) {
         skip_list_.remove(old_x);
         valid_count_--;
@@ -353,17 +387,19 @@ public:
 private:
   int window_size_;
   T p_;
-  bool skipna_;
   int valid_count_ = 0;
-  bool has_nan_ = false;
+  typename std::conditional_t<SkipNA, std::monostate, bool> has_nan_{};
   OrderedStructs::SkipList::HeadNode<T> skip_list_;
 };
 
 template <typename T>
 inline void QuantileTransform(const T *data, int n, T *out, int window_size,
                               int min_samples, T p, bool skipna = false) {
-  Transform<T, QuantileAccumulator<T>>(data, n, out, window_size, min_samples,
-                                       p, skipna);
+  if (skipna) {
+    Transform<T, QuantileAccumulator<T, true>>(data, n, out, window_size, min_samples, p);
+  } else {
+    Transform<T, QuantileAccumulator<T, false>>(data, n, out, window_size, min_samples, p);
+  }
 }
 
 template <typename Func, typename T, typename... Args>
