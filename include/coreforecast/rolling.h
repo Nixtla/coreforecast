@@ -8,8 +8,7 @@
 namespace rolling {
 template <typename T, bool SkipNA> class MeanAccumulator {
 public:
-  MeanAccumulator(int window_size)
-      : window_size_(window_size) {}
+  MeanAccumulator(int window_size) : window_size_(window_size) {}
   void Update(T x) {
     if constexpr (SkipNA) {
       if (std::isnan(x))
@@ -91,9 +90,11 @@ template <typename T>
 inline void MeanTransform(const T *data, int n, T *out, int window_size,
                           int min_samples, bool skipna = false) {
   if (skipna) {
-    Transform<T, MeanAccumulator<T, true>>(data, n, out, window_size, min_samples);
+    Transform<T, MeanAccumulator<T, true>>(data, n, out, window_size,
+                                           min_samples);
   } else {
-    Transform<T, MeanAccumulator<T, false>>(data, n, out, window_size, min_samples);
+    Transform<T, MeanAccumulator<T, false>>(data, n, out, window_size,
+                                            min_samples);
   }
 }
 
@@ -206,8 +207,7 @@ inline void StdTransform(const T *data, int n, T *out, int window_size,
 
 template <typename T, typename Comp, bool SkipNA> class CompAccumulator {
 public:
-  CompAccumulator(int window_size)
-      : window_size_(window_size) {
+  CompAccumulator(int window_size) : window_size_(window_size) {
     buffer_.reserve(window_size);
   }
   inline bool Empty() const noexcept { return tail_ == -1; }
@@ -396,9 +396,11 @@ template <typename T>
 inline void QuantileTransform(const T *data, int n, T *out, int window_size,
                               int min_samples, T p, bool skipna = false) {
   if (skipna) {
-    Transform<T, QuantileAccumulator<T, true>>(data, n, out, window_size, min_samples, p);
+    Transform<T, QuantileAccumulator<T, true>>(data, n, out, window_size,
+                                               min_samples, p);
   } else {
-    Transform<T, QuantileAccumulator<T, false>>(data, n, out, window_size, min_samples, p);
+    Transform<T, QuantileAccumulator<T, false>>(data, n, out, window_size,
+                                                min_samples, p);
   }
 }
 
