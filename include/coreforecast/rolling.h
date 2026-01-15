@@ -6,34 +6,32 @@
 #include <variant>
 
 namespace rolling {
+
 template <typename T, bool SkipNA> class MeanAccumulator {
 public:
   MeanAccumulator(int window_size) : window_size_(window_size) {}
+
   void Update(T x) {
     if constexpr (SkipNA) {
       if (std::isnan(x))
         return;
-    } else {
-      if (std::isnan(x))
-        has_nan_ = true;
+      valid_count_++;
     }
     accum_ += x;
-    valid_count_++;
   }
+
   T Update(T x, int n) {
     Update(x);
-    if constexpr (!SkipNA) {
-      if (has_nan_)
-        return std::numeric_limits<T>::quiet_NaN();
-    }
     if constexpr (SkipNA) {
       if (valid_count_ == 0)
         return std::numeric_limits<T>::quiet_NaN();
       return accum_ / static_cast<T>(valid_count_);
     } else {
+      // NaN in accum_ naturally produces NaN result
       return accum_ / static_cast<T>(n);
     }
   }
+
   T Update(T new_x, T old_x) {
     if constexpr (SkipNA) {
       if (!std::isnan(old_x)) {
@@ -48,10 +46,7 @@ public:
         return std::numeric_limits<T>::quiet_NaN();
       return accum_ / static_cast<T>(valid_count_);
     } else {
-      if (std::isnan(new_x) || std::isnan(old_x)) {
-        has_nan_ = true;
-        return std::numeric_limits<T>::quiet_NaN();
-      }
+      // No isnan check - NaN propagates naturally through arithmetic
       accum_ += new_x - old_x;
       return accum_ / static_cast<T>(window_size_);
     }
@@ -60,8 +55,9 @@ public:
 private:
   int window_size_;
   T accum_ = 0.0;
-  int valid_count_ = 0;
-  typename std::conditional_t<SkipNA, std::monostate, bool> has_nan_{};
+  // valid_count_ only exists when SkipNA=true
+  [[no_unique_address]] std::conditional_t<SkipNA, int, std::monostate>
+      valid_count_{};
 };
 
 template <typename T, typename Accumulator, typename... Args>
@@ -205,6 +201,13 @@ inline void StdTransform(const T *data, int n, T *out, int window_size,
                         skipna);
 }
 
+// ============================================================================
+// CompAccumulator - PARTIALLY OPTIMIZED for SkipNA=false
+// ============================================================================
+// Cannot fully remove isnan checks because NaN breaks comparison semantics
+// (NaN < x and NaN > x are both false), which corrupts the monotonic deque.
+// Optimization: Short-circuit all deque operations once has_nan_ is true.
+// ============================================================================
 template <typename T, typename Comp, bool SkipNA> class CompAccumulator {
 public:
   CompAccumulator(int window_size) : window_size_(window_size) {
@@ -248,34 +251,41 @@ public:
   inline const std::pair<int, T> &Back() const noexcept {
     return buffer_[tail_];
   }
+
   void Insert(T x) noexcept {
-    if constexpr (SkipNA) {
-      // With skipna=True, don't insert NaN values
-      if (!std::isnan(x)) {
-        while (!Empty() && comp_(Back().second, x)) {
-          PopBack();
-        }
-        if (!Empty() && Front().first <= i_) {
-          PopFront();
-        }
-        PushBack(window_size_ + i_, x);
+    if constexpr (!SkipNA) {
+      // Short-circuit: once NaN seen, skip all deque maintenance
+      if (has_nan_) {
+        ++i_;
+        return;
       }
-    } else {
-      // With skipna=False, track if NaN enters window
       if (std::isnan(x)) {
         has_nan_ = true;
+        ++i_;
+        return;
       }
-      while (!Empty() && comp_(Back().second, x)) {
-        PopBack();
-      }
-      if (!Empty() && Front().first <= i_) {
-        PopFront();
-      }
-      PushBack(window_size_ + i_, x);
     }
+
+    if constexpr (SkipNA) {
+      if (std::isnan(x)) {
+        ++i_;
+        return;
+      }
+    }
+
+    // Valid value: maintain monotonic deque
+    while (!Empty() && comp_(Back().second, x)) {
+      PopBack();
+    }
+    if (!Empty() && Front().first <= i_) {
+      PopFront();
+    }
+    PushBack(window_size_ + i_, x);
     ++i_;
   }
+
   void Update(T x) noexcept { Insert(x); }
+
   T Update(T x, int n) noexcept {
     Insert(x);
     if constexpr (!SkipNA) {
@@ -286,6 +296,7 @@ public:
       return std::numeric_limits<T>::quiet_NaN();
     return Front().second;
   }
+
   T Update(T new_x, T old_x) noexcept {
     Insert(new_x);
     if constexpr (!SkipNA) {
@@ -303,7 +314,8 @@ private:
   int head_ = 0;
   int tail_ = -1;
   int i_ = 0;
-  typename std::conditional_t<SkipNA, std::monostate, bool> has_nan_{};
+  [[no_unique_address]] std::conditional_t<SkipNA, std::monostate, bool>
+      has_nan_{};
   Comp comp_ = Comp();
 };
 
@@ -331,35 +343,45 @@ void MaxTransform(const T *data, int n, T *out, int window_size,
   }
 }
 
+// ============================================================================
+// QuantileAccumulator - PARTIALLY OPTIMIZED for SkipNA=false
+// ============================================================================
+// Cannot fully remove isnan checks because NaN breaks skip list comparisons.
+// Optimization: Don't insert NaN into skip list, just track the flag.
+// ============================================================================
 template <typename T, bool SkipNA> class QuantileAccumulator {
 public:
   QuantileAccumulator(int window_size, T p)
       : window_size_(window_size), p_(p) {}
+
   void Update(T x) {
     if constexpr (SkipNA) {
       if (std::isnan(x))
         return;
+      skip_list_.insert(x);
+      valid_count_++;
     } else {
-      if (std::isnan(x))
+      if (std::isnan(x)) {
         has_nan_ = true;
+        return; // Don't insert NaN into skip list
+      }
+      skip_list_.insert(x);
     }
-    skip_list_.insert(x);
-    valid_count_++;
   }
+
   T Update(T x, int n) {
     Update(x);
     if constexpr (!SkipNA) {
       if (has_nan_)
         return std::numeric_limits<T>::quiet_NaN();
-    }
-    if constexpr (SkipNA) {
+      return stats::SortedQuantile(skip_list_, p_, n);
+    } else {
       if (valid_count_ == 0)
         return std::numeric_limits<T>::quiet_NaN();
       return stats::SortedQuantile(skip_list_, p_, valid_count_);
-    } else {
-      return stats::SortedQuantile(skip_list_, p_, n);
     }
   }
+
   T Update(T new_x, T old_x) {
     if constexpr (SkipNA) {
       if (!std::isnan(old_x)) {
@@ -374,12 +396,24 @@ public:
         return std::numeric_limits<T>::quiet_NaN();
       return stats::SortedQuantile(skip_list_, p_, valid_count_);
     } else {
-      if (std::isnan(new_x) || std::isnan(old_x)) {
+      // Handle NaN entering or leaving window
+      bool old_is_nan = std::isnan(old_x);
+      bool new_is_nan = std::isnan(new_x);
+
+      if (new_is_nan) {
         has_nan_ = true;
-        return std::numeric_limits<T>::quiet_NaN();
       }
-      skip_list_.remove(old_x);
-      skip_list_.insert(new_x);
+
+      if (has_nan_)
+        return std::numeric_limits<T>::quiet_NaN();
+
+      // Both values are valid (and no NaN seen yet)
+      if (!old_is_nan) {
+        skip_list_.remove(old_x);
+      }
+      if (!new_is_nan) {
+        skip_list_.insert(new_x);
+      }
       return stats::SortedQuantile(skip_list_, p_, window_size_);
     }
   }
@@ -387,8 +421,10 @@ public:
 private:
   int window_size_;
   T p_;
-  int valid_count_ = 0;
-  typename std::conditional_t<SkipNA, std::monostate, bool> has_nan_{};
+  [[no_unique_address]] std::conditional_t<SkipNA, int, std::monostate>
+      valid_count_{};
+  [[no_unique_address]] std::conditional_t<SkipNA, std::monostate, bool>
+      has_nan_{};
   OrderedStructs::SkipList::HeadNode<T> skip_list_;
 };
 
