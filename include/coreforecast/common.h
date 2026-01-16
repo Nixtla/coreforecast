@@ -24,4 +24,3 @@ inline indptr_t FirstNotNaN(const T *data, indptr_t n, T *out) {
   }
   return i;
 }
-

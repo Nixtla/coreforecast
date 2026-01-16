@@ -307,7 +307,8 @@ public:
                             min_samples, skipna);
   }
   py::array_t<T> RollingQuantileTransform(int lag, T p, int window_size,
-                                          int min_samples, bool skipna = false) {
+                                          int min_samples,
+                                          bool skipna = false) {
     py::array_t<T> out(data_.size());
     Transform(rolling::QuantileTransform<T>, lag, out.mutable_data(),
               window_size, min_samples, p, skipna);
@@ -353,7 +354,8 @@ public:
   template <typename Func>
   py::array_t<T> SeasonalRollingTransform(Func transform, int lag,
                                           int season_length, int window_size,
-                                          int min_samples, bool skipna = false) {
+                                          int min_samples,
+                                          bool skipna = false) {
     py::array_t<T> out(data_.size());
     Transform(transform, lag, out.mutable_data(), season_length, window_size,
               min_samples, skipna);
