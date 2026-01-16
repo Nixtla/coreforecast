@@ -145,7 +145,7 @@ def rolling_quantile(
 
     Args:
         x (np.ndarray): Input array.
-        q (float): Quantile to compute.
+        p (float): Quantile to compute.
         window_size (int): The size of the rolling window.
         min_samples (int, optional): The minimum number of samples required to compute the statistic.
             If None, it is set to `window_size`.
@@ -226,7 +226,7 @@ def seasonal_rolling_quantile(
 
     Args:
         x (np.ndarray): Input array.
-        q (float): Quantile to compute.
+        p (float): Quantile to compute.
         season_length (int): The length of the seasonal period.
         window_size (int): The size of the rolling window.
         min_samples (int, optional): The minimum number of samples required to compute the statistic.

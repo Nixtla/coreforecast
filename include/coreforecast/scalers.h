@@ -199,7 +199,11 @@ void BoxCoxLambdaGuerrero(const T *x, int n, T *out, int period, T lower,
       x_mean[i] += x_mat[i * period + j];
       x_n[i]++;
     }
-    x_mean[i] /= x_n[i];
+    if (x_n[i] == 0) {
+      x_mean[i] = std::numeric_limits<T>::quiet_NaN();
+    } else {
+      x_mean[i] /= x_n[i];
+    }
   }
   // stds of subseries
   auto x_std = std::vector<T>(x_mean.size(), 0.0);

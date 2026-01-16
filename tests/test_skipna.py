@@ -5,21 +5,22 @@ import pytest
 
 # Import the coreforecast functions - we'll test if they can be imported
 try:
-    from coreforecast.rolling import (
-        rolling_mean,
-        rolling_std,
-        rolling_min,
-        rolling_max,
-        rolling_quantile,
-    )
     from coreforecast.expanding import (
-        expanding_mean,
-        expanding_std,
-        expanding_min,
         expanding_max,
+        expanding_mean,
+        expanding_min,
         expanding_quantile,
+        expanding_std,
     )
     from coreforecast.exponentially_weighted import exponentially_weighted_mean
+    from coreforecast.rolling import (
+        rolling_max,
+        rolling_mean,
+        rolling_min,
+        rolling_quantile,
+        rolling_std,
+    )
+
     IMPORTS_AVAILABLE = True
 except ImportError as e:
     IMPORTS_AVAILABLE = False
@@ -29,7 +30,7 @@ except ImportError as e:
 # Skip all tests if imports fail (not yet compiled)
 pytestmark = pytest.mark.skipif(
     not IMPORTS_AVAILABLE,
-    reason=f"C++ extensions not compiled yet: {IMPORT_ERROR if not IMPORTS_AVAILABLE else ''}"
+    reason=f"C++ extensions not compiled yet: {IMPORT_ERROR if not IMPORTS_AVAILABLE else ''}",
 )
 
 
@@ -125,11 +126,11 @@ class TestExpandingMeanSkipna:
         assert not np.isnan(result[3])
         assert not np.isnan(result[4])
         # Verify values
-        np.testing.assert_allclose(result[0], 1.0)      # mean([1])
-        np.testing.assert_allclose(result[1], 1.5)      # mean([1, 2])
-        np.testing.assert_allclose(result[2], 1.5)      # mean([1, 2]) - skip NaN
-        np.testing.assert_allclose(result[3], 7/3)      # mean([1, 2, 4])
-        np.testing.assert_allclose(result[4], 3.0)      # mean([1, 2, 4, 5])
+        np.testing.assert_allclose(result[0], 1.0)  # mean([1])
+        np.testing.assert_allclose(result[1], 1.5)  # mean([1, 2])
+        np.testing.assert_allclose(result[2], 1.5)  # mean([1, 2]) - skip NaN
+        np.testing.assert_allclose(result[3], 7 / 3)  # mean([1, 2, 4])
+        np.testing.assert_allclose(result[4], 3.0)  # mean([1, 2, 4, 5])
 
     def test_issue_99_example_expanding(self):
         """Test the specific example from GitHub Issue #99 with expanding_mean."""
@@ -203,7 +204,6 @@ class TestRollingMinMaxSkipna:
 class TestRollingQuantileSkipna:
     """Test rolling_quantile with skipna parameter."""
 
-    @pytest.mark.skip(reason="RuntimeError in rolling_quantile - needs investigation")
     def test_quantile_skipna_false_propagates_nan(self):
         """Test that rolling_quantile with skipna=False propagates NaN."""
         x = np.array([1.0, 2.0, np.nan, 4.0, 5.0])
@@ -259,6 +259,162 @@ class TestExponentiallyWeightedMeanSkipna:
         assert not np.isnan(result[2])
         assert not np.isnan(result[3])
         assert not np.isnan(result[4])
+
+
+class TestSeasonalRollingSkipna:
+    """Test seasonal rolling functions with skipna parameter."""
+
+    def test_seasonal_rolling_mean_skipna_true(self):
+        """Test seasonal_rolling_mean with skipna=True."""
+        from coreforecast.rolling import seasonal_rolling_mean
+
+        # Season length 3, window size 2
+        x = np.array([1.0, 2.0, 3.0, np.nan, 5.0, 6.0, 7.0, 8.0, 9.0], dtype=float)
+        result = seasonal_rolling_mean(
+            x, season_length=3, window_size=2, min_samples=1, skipna=True
+        )
+        # Should not propagate NaN through the entire series
+        assert not np.all(np.isnan(result[3:]))
+
+    def test_seasonal_rolling_std_skipna_true(self):
+        """Test seasonal_rolling_std with skipna=True."""
+        from coreforecast.rolling import seasonal_rolling_std
+
+        x = np.array([1.0, 2.0, 3.0, np.nan, 5.0, 6.0, 7.0, 8.0, 9.0], dtype=float)
+        result = seasonal_rolling_std(
+            x, season_length=3, window_size=2, min_samples=2, skipna=True
+        )
+        # Should compute std without NaN propagation
+        assert not np.all(np.isnan(result[6:]))
+
+    def test_seasonal_rolling_min_skipna_true(self):
+        """Test seasonal_rolling_min with skipna=True."""
+        from coreforecast.rolling import seasonal_rolling_min
+
+        x = np.array([1.0, 2.0, 3.0, np.nan, 5.0, 6.0, 7.0, 8.0, 9.0], dtype=float)
+        result = seasonal_rolling_min(
+            x, season_length=3, window_size=2, min_samples=1, skipna=True
+        )
+        assert not np.all(np.isnan(result[3:]))
+
+    def test_seasonal_rolling_max_skipna_true(self):
+        """Test seasonal_rolling_max with skipna=True."""
+        from coreforecast.rolling import seasonal_rolling_max
+
+        x = np.array([1.0, 2.0, 3.0, np.nan, 5.0, 6.0, 7.0, 8.0, 9.0], dtype=float)
+        result = seasonal_rolling_max(
+            x, season_length=3, window_size=2, min_samples=1, skipna=True
+        )
+        assert not np.all(np.isnan(result[3:]))
+
+
+class TestExpandingStdMinMaxSkipna:
+    """Test expanding_std, expanding_min, expanding_max with skipna parameter."""
+
+    def test_expanding_std_skipna_true(self):
+        """Test expanding_std with skipna=True."""
+        x = np.array([1.0, 2.0, np.nan, 4.0, 5.0])
+        result = expanding_std(x, skipna=True)
+        # Should not propagate NaN
+        assert not np.isnan(result[3])
+        assert not np.isnan(result[4])
+
+    def test_expanding_std_skipna_false(self):
+        """Test expanding_std with skipna=False propagates NaN."""
+        x = np.array([1.0, 2.0, np.nan, 4.0, 5.0])
+        result = expanding_std(x, skipna=False)
+        # NaN should propagate
+        assert np.isnan(result[2])
+        assert np.isnan(result[3])
+        assert np.isnan(result[4])
+
+    def test_expanding_min_skipna_true(self):
+        """Test expanding_min with skipna=True."""
+        x = np.array([5.0, 3.0, np.nan, 1.0, 4.0])
+        result = expanding_min(x, skipna=True)
+        # Should compute min excluding NaN
+        assert not np.isnan(result[2])
+        assert not np.isnan(result[3])
+        np.testing.assert_allclose(result[3], 1.0)
+
+    def test_expanding_min_skipna_false(self):
+        """Test expanding_min with skipna=False propagates NaN."""
+        x = np.array([5.0, 3.0, np.nan, 1.0, 4.0])
+        result = expanding_min(x, skipna=False)
+        # NaN should propagate
+        assert np.isnan(result[2])
+        assert np.isnan(result[3])
+        assert np.isnan(result[4])
+
+    def test_expanding_max_skipna_true(self):
+        """Test expanding_max with skipna=True."""
+        x = np.array([1.0, 3.0, np.nan, 5.0, 2.0])
+        result = expanding_max(x, skipna=True)
+        # Should compute max excluding NaN
+        assert not np.isnan(result[2])
+        assert not np.isnan(result[3])
+        np.testing.assert_allclose(result[3], 5.0)
+
+    def test_expanding_max_skipna_false(self):
+        """Test expanding_max with skipna=False propagates NaN."""
+        x = np.array([1.0, 3.0, np.nan, 5.0, 2.0])
+        result = expanding_max(x, skipna=False)
+        # NaN should propagate
+        assert np.isnan(result[2])
+        assert np.isnan(result[3])
+        assert np.isnan(result[4])
+
+
+class TestScalerSkipna:
+    """Test scaler functions with skipna parameter."""
+
+    def test_local_minmax_scaler_skipna(self):
+        """Test LocalMinMaxScaler with skipna=True."""
+        from coreforecast._lib.grouped_array import GroupedArray
+        from coreforecast.scalers import LocalMinMaxScaler
+
+        x = np.array([1.0, 2.0, np.nan, 4.0, 5.0])
+        indptr = np.array([0, 5], dtype=np.int32)
+        ga = GroupedArray(x, indptr)
+
+        scaler_skipna = LocalMinMaxScaler(skipna=True)
+        scaler_skipna.fit(ga)
+
+        # Stats should be computed from valid values only
+        assert not np.isnan(scaler_skipna.stats_[0, 0])  # min
+        assert not np.isnan(scaler_skipna.stats_[0, 1])  # max - min
+
+    def test_local_standard_scaler_skipna(self):
+        """Test LocalStandardScaler with skipna=True."""
+        from coreforecast._lib.grouped_array import GroupedArray
+        from coreforecast.scalers import LocalStandardScaler
+
+        x = np.array([1.0, 2.0, np.nan, 4.0, 5.0])
+        indptr = np.array([0, 5], dtype=np.int32)
+        ga = GroupedArray(x, indptr)
+
+        scaler_skipna = LocalStandardScaler(skipna=True)
+        scaler_skipna.fit(ga)
+
+        # Stats should be computed from valid values only
+        assert not np.isnan(scaler_skipna.stats_[0, 0])  # mean
+        assert not np.isnan(scaler_skipna.stats_[0, 1])  # std
+
+    def test_local_robust_scaler_iqr_skipna(self):
+        """Test LocalRobustScaler with IQR and skipna=True."""
+        from coreforecast._lib.grouped_array import GroupedArray
+        from coreforecast.scalers import LocalRobustScaler
+
+        x = np.array([1.0, 2.0, np.nan, 4.0, 5.0, 6.0, 7.0, 8.0])
+        indptr = np.array([0, 8], dtype=np.int32)
+        ga = GroupedArray(x, indptr)
+
+        scaler_skipna = LocalRobustScaler(scale="iqr", skipna=True)
+        scaler_skipna.fit(ga)
+
+        # Stats should be computed from valid values only
+        assert not np.isnan(scaler_skipna.stats_[0, 0])  # median
+        assert not np.isnan(scaler_skipna.stats_[0, 1])  # IQR
 
 
 class TestBackwardsCompatibility:
