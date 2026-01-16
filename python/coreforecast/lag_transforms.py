@@ -96,7 +96,13 @@ class _RollingBase(_BaseLagTransform):
     min_samples: int
     skipna: bool
 
-    def __init__(self, lag: int, window_size: int, min_samples: Optional[int] = None, skipna: bool = False):
+    def __init__(
+        self,
+        lag: int,
+        window_size: int,
+        min_samples: Optional[int] = None,
+        skipna: bool = False,
+    ):
         self.lag = lag
         if min_samples is None:
             min_samples = window_size
@@ -186,9 +192,16 @@ class RollingQuantile(_RollingBase):
             When False (default), NaN values propagate through the calculation."""
 
     def __init__(
-        self, lag: int, p: float, window_size: int, min_samples: Optional[int] = None, skipna: bool = False
+        self,
+        lag: int,
+        p: float,
+        window_size: int,
+        min_samples: Optional[int] = None,
+        skipna: bool = False,
     ):
-        super().__init__(lag=lag, window_size=window_size, min_samples=min_samples, skipna=skipna)
+        super().__init__(
+            lag=lag, window_size=window_size, min_samples=min_samples, skipna=skipna
+        )
         self.p = p
 
     def transform(self, ga: "GroupedArray") -> np.ndarray:
