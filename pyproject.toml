@@ -25,6 +25,7 @@ dev = [
     "pandas",
     "pre-commit",
     "pytest",
+    "pytest-cov",
     "pip-licenses",
     "mkdocstrings-parser@git+https://github.com/Nixtla/mkdocstrings-parser.git",
 ]
