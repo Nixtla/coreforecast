@@ -8,8 +8,6 @@ jobs:
   build_wheels:
     name: Build wheel for ${{ matrix.python-version }}-${{ matrix.os-platform[1] }}
     runs-on: ${{ matrix.os-platform[0] }}
-    env:
-      CIBW_BUILD_FRONTEND: "build[uv]"
     strategy:
       fail-fast: false
       matrix:
@@ -28,14 +26,10 @@ jobs:
         with:
           submodules: "true"
 
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.3.1
+        with:
+          extras: "uv"
         env:
           CIBW_BUILD: cp${{ matrix.python-version }}-${{ matrix.os-platform[1] }}
           CIBW_TEST_SKIP: "*"
