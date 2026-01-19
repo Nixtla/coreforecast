@@ -29,7 +29,6 @@ dev = [
     "pip-licenses",
     "mkdocstrings-parser@git+https://github.com/Nixtla/mkdocstrings-parser.git",
 ]
-
 codspeed = ["pytest-codspeed"]
 
 [project.urls]
