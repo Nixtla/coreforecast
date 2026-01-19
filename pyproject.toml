@@ -28,8 +28,8 @@ dev = [
     "pytest-cov",
     "pip-licenses",
     "mkdocstrings-parser@git+https://github.com/Nixtla/mkdocstrings-parser.git",
+    "pytest-codspeed",
 ]
-codspeed = ["pytest-codspeed"]
 
 [project.urls]
 homepage = "https://nixtla.github.io/coreforecast"
