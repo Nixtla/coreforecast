@@ -43,7 +43,8 @@ def _expanding_docstring(*args, **kwargs) -> Callable:
 
     def docstring_decorator(function: Callable):
         fname = function.__name__
-        function.__doc__ = base_docstring.format(fname, fname, fname)
+        if function.__doc__:
+            function.__doc__ = base_docstring.format(fname, fname, fname)
         return function
 
     return docstring_decorator(*args, **kwargs)

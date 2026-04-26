@@ -63,7 +63,8 @@ def _rolling_docstring(*args, **kwargs) -> Callable:
     """
 
     def docstring_decorator(function: Callable):
-        function.__doc__ = base_docstring.format(function.__name__)
+        if function.__doc__:
+            function.__doc__ = base_docstring.format(function.__name__)
         return function
 
     return docstring_decorator(*args, **kwargs)
@@ -88,7 +89,8 @@ def _seasonal_rolling_docstring(*args, **kwargs) -> Callable:
     """
 
     def docstring_decorator(function: Callable):
-        function.__doc__ = base_docstring.format(function.__name__)
+        if function.__doc__:
+            function.__doc__ = base_docstring.format(function.__name__)
         return function
 
     return docstring_decorator(*args, **kwargs)
