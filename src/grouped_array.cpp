@@ -794,11 +794,22 @@ void init_ga(py::module_ &m) {
         if (!indptr64) {
           throw std::invalid_argument("indptr must be an integer array");
         }
-        int64_t last_indptr = indptr64.data()[indptr64.size() - 1];
-        if (last_indptr > std::numeric_limits<indptr_t>::max()) {
-          throw std::invalid_argument(
-              "indptr is too large to be represented with 32-bit integers");
+        // every entry is used as an offset into data, so all of them have to
+        // be representable and describe a non-decreasing range, not just the
+        // last one
+        const int64_t *indptr_data = indptr64.data();
+        for (py::ssize_t i = 0; i < indptr64.size(); ++i) {
+          if (indptr_data[i] < 0 ||
+              indptr_data[i] > std::numeric_limits<indptr_t>::max()) {
+            throw std::invalid_argument(
+                "indptr values must be non-negative and representable with "
+                "32-bit integers");
+          }
+          if (i > 0 && indptr_data[i] < indptr_data[i - 1]) {
+            throw std::invalid_argument("indptr must be non-decreasing");
+          }
         }
+        int64_t last_indptr = indptr_data[indptr64.size() - 1];
         if (data.size() != last_indptr) {
           throw std::invalid_argument(
               "Last element of indptr must be equal to the size of data");

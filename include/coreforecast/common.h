@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cmath>
 #include <cstdint>
+#include <limits>
 
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>

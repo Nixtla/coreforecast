@@ -6,7 +6,9 @@
 #include <Eigen/Dense>
 
 #include <algorithm>
+#include <cmath>
 #include <iterator>
+#include <limits>
 #include <numeric>
 #include <ranges>
 #include <vector>

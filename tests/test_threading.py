@@ -94,7 +94,38 @@ class TestIndptrValidation:
         with pytest.raises(ValueError, match="Last element"):
             GroupedArray(np.zeros(3), np.array([0, 1, 5], dtype=np.int64))
 
+    @pytest.mark.parametrize(
+        "indptr",
+        [
+            [0, 2**31 + 100, 3],  # wraps to a large negative offset
+            [0, 2**32, 3],  # wraps to zero
+            [0, -1, 3],  # negative outright
+        ],
+    )
+    def test_rejects_out_of_range_intermediate_entries(self, indptr):
+        # every entry is an offset into data, so checking only the last one
+        # leaves the rest free to wrap during the int32 cast
+        with pytest.raises(ValueError, match="non-negative"):
+            GroupedArray(np.zeros(3), np.array(indptr, dtype=np.int64))
+
+    @pytest.mark.parametrize(
+        "data_size,indptr",
+        [
+            (1, [0, 3, 1]),  # decreasing, yet last still equals len(data)
+            (6, [0, 5, 2, 6]),
+        ],
+    )
+    def test_rejects_non_monotonic_indptr(self, data_size, indptr):
+        # a decreasing entry makes a group span past the end of its own data
+        with pytest.raises(ValueError, match="non-decreasing"):
+            GroupedArray(np.zeros(data_size), np.array(indptr, dtype=np.int64))
+
     @pytest.mark.parametrize("dtype", [np.int32, np.int64])
     def test_accepts_valid_integer_indptr(self, dtype):
         ga = GroupedArray(np.zeros(3), np.array([0, 1, 3], dtype=dtype))
         assert len(ga) == 2
+
+    def test_accepts_empty_groups(self):
+        # equal consecutive entries are a legitimate empty group
+        ga = GroupedArray(np.zeros(6), np.array([0, 3, 3, 6], dtype=np.int64))
+        assert len(ga) == 3
