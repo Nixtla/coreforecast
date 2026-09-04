@@ -211,7 +211,8 @@ inline void StdTransform(const T *data, int n, T *out, int window_size,
 template <typename T, typename Comp, bool SkipNA> class CompAccumulator {
 public:
   CompAccumulator(int window_size) : window_size_(window_size) {
-    buffer_.reserve(window_size);
+    // resize, not reserve: the ring buffer is written through operator[]
+    buffer_.resize(window_size);
   }
   inline bool Empty() const noexcept { return tail_ == -1; }
   inline void PushBack(int i, T x) noexcept {
@@ -268,6 +269,11 @@ public:
 
     if constexpr (SkipNA) {
       if (std::isnan(x)) {
+        // the front can expire on this step even though nothing is inserted;
+        // skipping the check leaves an out-of-window entry to be returned
+        if (!Empty() && Front().first <= i_) {
+          PopFront();
+        }
         ++i_;
         return;
       }
