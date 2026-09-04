@@ -5,10 +5,9 @@
 template <typename T, typename Func, typename... Args>
 py::array_t<T> RollingOp(Func f, const py::array_t<T> data, int window_size,
                          int min_samples, Args... args) {
-  py::array_t<T> out(data.size());
-  f(data.data(), data.size(), out.mutable_data(), window_size, min_samples,
-    std::forward<Args>(args)...);
-  return out;
+  return SkipLeadingNaN<T>(data, [&](const T *d, indptr_t n, T *o) {
+    f(d, n, o, window_size, min_samples, std::forward<Args>(args)...);
+  });
 }
 
 template <typename T>
@@ -42,20 +41,19 @@ py::array_t<T> RollingMax(const py::array_t<T> data, int window_size,
 template <typename T>
 py::array_t<T> RollingQuantile(const py::array_t<T> data, int window_size,
                                int min_samples, T p, bool skipna = false) {
-  py::array_t<T> out(data.size());
-  rolling::QuantileTransform<T>(data.data(), data.size(), out.mutable_data(),
-                                window_size, min_samples, p, skipna);
-  return out;
+  return SkipLeadingNaN<T>(data, [&](const T *d, indptr_t n, T *o) {
+    rolling::QuantileTransform<T>(d, n, o, window_size, min_samples, p, skipna);
+  });
 }
 
 template <typename T, typename Func, typename... Args>
 py::array_t<T> SeasonalRollingOp(Func f, const py::array_t<T> data,
                                  int season_length, int window_size,
                                  int min_samples, Args... args) {
-  py::array_t<T> out(data.size());
-  f(data.data(), data.size(), out.mutable_data(), season_length, window_size,
-    min_samples, std::forward<Args>(args)...);
-  return out;
+  return SkipLeadingNaN<T>(data, [&](const T *d, indptr_t n, T *o) {
+    f(d, n, o, season_length, window_size, min_samples,
+      std::forward<Args>(args)...);
+  });
 }
 
 template <typename T>

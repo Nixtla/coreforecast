@@ -5,9 +5,9 @@
 
 template <typename T, typename Func, typename... Args>
 py::array_t<T> ExpandingOp(Func f, const py::array_t<T> data, Args... args) {
-  py::array_t<T> out(data.size());
-  f(data.data(), data.size(), out.mutable_data(), std::forward<Args>(args)...);
-  return out;
+  return SkipLeadingNaN<T>(data, [&](const T *d, indptr_t n, T *o) {
+    f(d, n, o, std::forward<Args>(args)...);
+  });
 }
 
 template <typename T>

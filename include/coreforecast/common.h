@@ -24,3 +24,17 @@ inline indptr_t FirstNotNaN(const T *data, indptr_t n, T *out) {
   }
   return i;
 }
+
+// The kernels assume NaNs only appear as a leading run, so the prefix is copied
+// to the output and only the valid tail is handed to `f`, which is what
+// GroupedArray::Transform already does for the grouped entry points.
+template <typename T, typename Func>
+inline py::array_t<T> SkipLeadingNaN(const py::array_t<T> data, Func f) {
+  py::array_t<T> out(data.size());
+  auto n = static_cast<indptr_t>(data.size());
+  indptr_t start = FirstNotNaN(data.data(), n, out.mutable_data());
+  if (start < n) {
+    f(data.data() + start, n - start, out.mutable_data() + start);
+  }
+  return out;
+}
