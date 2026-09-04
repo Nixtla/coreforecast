@@ -2,10 +2,32 @@
 
 #include "SkipList.h"
 
+#include <stdexcept>
+#include <string>
+
 #include "stats.h"
 #include <variant>
 
 namespace rolling {
+
+// Counts that index into the buffers. The bound signatures take these as
+// unsigned so a negative is rejected at the Python boundary; zero still has to
+// be rejected here, otherwise the growing loop below starts at -1.
+inline void RequirePositive(const char *name, int value) {
+  if (value > 0) {
+    return;
+  }
+  throw std::invalid_argument(std::string(name) + " must be greater than 0");
+}
+
+// Quantile levels index into the sorted window, so a value outside [0, 1]
+// indexes past its end. NaN fails both comparisons and is rejected too.
+inline void RequireProbability(const char *name, double value) {
+  if (value >= 0.0 && value <= 1.0) {
+    return;
+  }
+  throw std::invalid_argument(std::string(name) + " must be between 0 and 1");
+}
 
 template <typename T, bool SkipNA> class MeanAccumulator {
 public:
@@ -63,6 +85,8 @@ private:
 template <typename T, typename Accumulator, typename... Args>
 inline void Transform(const T *data, int n, T *out, int window_size,
                       int min_samples, Args &&...args) {
+  RequirePositive("window_size", window_size);
+  RequirePositive("min_samples", min_samples);
   if (n < min_samples) {
     std::fill(out, out + n, std::numeric_limits<T>::quiet_NaN());
     return;
@@ -98,6 +122,17 @@ template <typename T>
 inline void StdTransformWithStats(const T *data, int n, T *out, T *agg,
                                   bool save_stats, int window_size,
                                   int min_samples, bool skipna = false) {
+  RequirePositive("window_size", window_size);
+  RequirePositive("min_samples", min_samples);
+  if (n < 1) {
+    std::fill(out, out + n, std::numeric_limits<T>::quiet_NaN());
+    if (save_stats) {
+      agg[0] = static_cast<T>(n);
+      agg[1] = std::numeric_limits<T>::quiet_NaN();
+      agg[2] = std::numeric_limits<T>::quiet_NaN();
+    }
+    return;
+  }
   if (!skipna) {
     // Fast path: original implementation without NaN checking
     T prev_avg = static_cast<T>(0.0);
@@ -437,6 +472,7 @@ private:
 template <typename T>
 inline void QuantileTransform(const T *data, int n, T *out, int window_size,
                               int min_samples, T p, bool skipna = false) {
+  RequireProbability("p", p);
   if (skipna) {
     Transform<T, QuantileAccumulator<T, true>>(data, n, out, window_size,
                                                min_samples, p);
@@ -450,6 +486,7 @@ template <typename Func, typename T, typename... Args>
 inline void SeasonalTransform(Func RollingTfm, const T *data, int n, T *out,
                               int season_length, int window_size,
                               int min_samples, Args &&...args) {
+  RequirePositive("season_length", season_length);
   int buff_size = n / season_length + (n % season_length > 0);
   std::vector<T> season_data(buff_size);
   std::vector<T> season_out(buff_size);
@@ -555,6 +592,7 @@ template <typename Func, typename T, typename... Args>
 inline void SeasonalUpdate(Func RollingUpdate, const T *data, int n, T *out,
                            int season_length, int window_size, int min_samples,
                            Args &&...args) {
+  RequirePositive("season_length", season_length);
   int season = n % season_length;
   int season_n = n / season_length + (season > 0);
   if (season_n < min_samples) {

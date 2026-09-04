@@ -55,7 +55,7 @@ public:
                           static_cast<T *>(buffer.ptr) + start, data_);
   }
 
-  py::array_t<T> Take(const py::array_t<indptr_t> indices) const {
+  py::array_t<T> Take(const CArray<indptr_t> indices) const {
     auto indices_data = indices.data();
     auto indptr_data = indptr_.data();
     indptr_t out_size = 0;
@@ -260,7 +260,7 @@ public:
     });
   }
 
-  std::unique_ptr<GroupedArray<T>> WithData(const py::array_t<T> new_data) {
+  std::unique_ptr<GroupedArray<T>> WithData(const CArray<T> new_data) {
     if (new_data.size() != data_.size()) {
       throw std::invalid_argument("Data must have the same size");
     }
@@ -297,49 +297,55 @@ public:
     return std::make_unique<GroupedArray<T>>(out_data, out_indptr,
                                              num_threads_);
   }
-  py::array_t<T> Tails(py::array_t<indptr_t> out_indptr) {
+  py::array_t<T> Tails(const CArray<indptr_t> out_indptr) {
     py::array_t<T> out(out_indptr.data()[NumGroups()]);
     VariableReduce(grouped_array_functions::Tail<T>, out_indptr.data(),
                    out.mutable_data());
     return out;
   }
 
-  py::array_t<T> LagTransform(int lag) {
+  py::array_t<T> LagTransform(uint32_t lag) {
     py::array_t<T> out(data_.size());
     Transform(lag::LagTransform<T>, lag, out.mutable_data());
     return out;
   }
 
   template <typename Func>
-  py::array_t<T> RollingTransform(Func transform, int lag, int window_size,
-                                  int min_samples, bool skipna = false) {
+  py::array_t<T> RollingTransform(Func transform, uint32_t lag,
+                                  uint32_t window_size, uint32_t min_samples,
+                                  bool skipna = false) {
     py::array_t<T> out(data_.size());
     Transform(transform, lag, out.mutable_data(), window_size, min_samples,
               skipna);
     return out;
   }
-  py::array_t<T> RollingMeanTransform(int lag, int window_size, int min_samples,
+  py::array_t<T> RollingMeanTransform(uint32_t lag, uint32_t window_size,
+                                      uint32_t min_samples,
                                       bool skipna = false) {
     return RollingTransform(rolling::MeanTransform<T>, lag, window_size,
                             min_samples, skipna);
   }
-  py::array_t<T> RollingStdTransform(int lag, int window_size, int min_samples,
+  py::array_t<T> RollingStdTransform(uint32_t lag, uint32_t window_size,
+                                     uint32_t min_samples,
                                      bool skipna = false) {
     return RollingTransform(rolling::StdTransform<T>, lag, window_size,
                             min_samples, skipna);
   }
-  py::array_t<T> RollingMinTransform(int lag, int window_size, int min_samples,
+  py::array_t<T> RollingMinTransform(uint32_t lag, uint32_t window_size,
+                                     uint32_t min_samples,
                                      bool skipna = false) {
     return RollingTransform(rolling::MinTransform<T>, lag, window_size,
                             min_samples, skipna);
   }
-  py::array_t<T> RollingMaxTransform(int lag, int window_size, int min_samples,
+  py::array_t<T> RollingMaxTransform(uint32_t lag, uint32_t window_size,
+                                     uint32_t min_samples,
                                      bool skipna = false) {
     return RollingTransform(rolling::MaxTransform<T>, lag, window_size,
                             min_samples, skipna);
   }
-  py::array_t<T> RollingQuantileTransform(int lag, T p, int window_size,
-                                          int min_samples,
+  py::array_t<T> RollingQuantileTransform(uint32_t lag, T p,
+                                          uint32_t window_size,
+                                          uint32_t min_samples,
                                           bool skipna = false) {
     py::array_t<T> out(data_.size());
     Transform(rolling::QuantileTransform<T>, lag, out.mutable_data(),
@@ -348,35 +354,37 @@ public:
   }
 
   template <typename Func>
-  py::array_t<T> RollingUpdate(Func transform, int lag, int window_size,
-                               int min_samples, bool skipna = false) {
+  py::array_t<T> RollingUpdate(Func transform, uint32_t lag,
+                               uint32_t window_size, uint32_t min_samples,
+                               bool skipna = false) {
     py::array_t<T> out(NumGroups());
     Reduce(transform, 1, out.mutable_data(), lag, window_size, min_samples,
            skipna);
     return out;
   }
-  py::array_t<T> RollingMeanUpdate(int lag, int window_size, int min_samples,
-                                   bool skipna = false) {
+  py::array_t<T> RollingMeanUpdate(uint32_t lag, uint32_t window_size,
+                                   uint32_t min_samples, bool skipna = false) {
     return RollingUpdate(rolling::MeanUpdate<T>, lag, window_size, min_samples,
                          skipna);
   }
-  py::array_t<T> RollingStdUpdate(int lag, int window_size, int min_samples,
-                                  bool skipna = false) {
+  py::array_t<T> RollingStdUpdate(uint32_t lag, uint32_t window_size,
+                                  uint32_t min_samples, bool skipna = false) {
     return RollingUpdate(rolling::StdUpdate<T>, lag, window_size, min_samples,
                          skipna);
   }
-  py::array_t<T> RollingMaxUpdate(int lag, int window_size, int min_samples,
-                                  bool skipna = false) {
+  py::array_t<T> RollingMaxUpdate(uint32_t lag, uint32_t window_size,
+                                  uint32_t min_samples, bool skipna = false) {
     return RollingUpdate(rolling::MaxUpdate<T>, lag, window_size, min_samples,
                          skipna);
   }
-  py::array_t<T> RollingMinUpdate(int lag, int window_size, int min_samples,
-                                  bool skipna = false) {
+  py::array_t<T> RollingMinUpdate(uint32_t lag, uint32_t window_size,
+                                  uint32_t min_samples, bool skipna = false) {
     return RollingUpdate(rolling::MinUpdate<T>, lag, window_size, min_samples,
                          skipna);
   }
-  py::array_t<T> RollingQuantileUpdate(int lag, T p, int window_size,
-                                       int min_samples, bool skipna = false) {
+  py::array_t<T> RollingQuantileUpdate(uint32_t lag, T p, uint32_t window_size,
+                                       uint32_t min_samples,
+                                       bool skipna = false) {
     py::array_t<T> out(NumGroups());
     Reduce(rolling::QuantileUpdate<T>, 1, out.mutable_data(), lag, window_size,
            min_samples, p, skipna);
@@ -384,47 +392,55 @@ public:
   }
 
   template <typename Func>
-  py::array_t<T> SeasonalRollingTransform(Func transform, int lag,
-                                          int season_length, int window_size,
-                                          int min_samples,
-                                          bool skipna = false) {
+  py::array_t<T>
+  SeasonalRollingTransform(Func transform, uint32_t lag, uint32_t season_length,
+                           uint32_t window_size, uint32_t min_samples,
+                           bool skipna = false) {
     py::array_t<T> out(data_.size());
     Transform(transform, lag, out.mutable_data(), season_length, window_size,
               min_samples, skipna);
     return out;
   }
-  py::array_t<T> SeasonalRollingMeanTransform(int lag, int season_length,
-                                              int window_size, int min_samples,
+  py::array_t<T> SeasonalRollingMeanTransform(uint32_t lag,
+                                              uint32_t season_length,
+                                              uint32_t window_size,
+                                              uint32_t min_samples,
                                               bool skipna = false) {
     return SeasonalRollingTransform(rolling::SeasonalMeanTransform<T>, lag,
                                     season_length, window_size, min_samples,
                                     skipna);
   }
-  py::array_t<T> SeasonalRollingStdTransform(int lag, int season_length,
-                                             int window_size, int min_samples,
+  py::array_t<T> SeasonalRollingStdTransform(uint32_t lag,
+                                             uint32_t season_length,
+                                             uint32_t window_size,
+                                             uint32_t min_samples,
                                              bool skipna = false) {
     return SeasonalRollingTransform(rolling::SeasonalStdTransform<T>, lag,
                                     season_length, window_size, min_samples,
                                     skipna);
   }
-  py::array_t<T> SeasonalRollingMinTransform(int lag, int season_length,
-                                             int window_size, int min_samples,
+  py::array_t<T> SeasonalRollingMinTransform(uint32_t lag,
+                                             uint32_t season_length,
+                                             uint32_t window_size,
+                                             uint32_t min_samples,
                                              bool skipna = false) {
     return SeasonalRollingTransform(rolling::SeasonalMinTransform<T>, lag,
                                     season_length, window_size, min_samples,
                                     skipna);
   }
-  py::array_t<T> SeasonalRollingMaxTransform(int lag, int season_length,
-                                             int window_size, int min_samples,
+  py::array_t<T> SeasonalRollingMaxTransform(uint32_t lag,
+                                             uint32_t season_length,
+                                             uint32_t window_size,
+                                             uint32_t min_samples,
                                              bool skipna = false) {
     return SeasonalRollingTransform(rolling::SeasonalMaxTransform<T>, lag,
                                     season_length, window_size, min_samples,
                                     skipna);
   }
-  py::array_t<T> SeasonalRollingQuantileTransform(int lag, T p,
-                                                  int season_length,
-                                                  int window_size,
-                                                  int min_samples,
+  py::array_t<T> SeasonalRollingQuantileTransform(uint32_t lag, T p,
+                                                  uint32_t season_length,
+                                                  uint32_t window_size,
+                                                  uint32_t min_samples,
                                                   bool skipna = false) {
     py::array_t<T> out(data_.size());
     Transform(rolling::SeasonalQuantileTransform<T>, lag, out.mutable_data(),
@@ -433,44 +449,51 @@ public:
   }
 
   template <typename Func>
-  py::array_t<T> SeasonalRollingUpdate(Func transform, int lag,
-                                       int season_length, int window_size,
-                                       int min_samples, bool skipna = false) {
+  py::array_t<T>
+  SeasonalRollingUpdate(Func transform, uint32_t lag, uint32_t season_length,
+                        uint32_t window_size, uint32_t min_samples,
+                        bool skipna = false) {
     py::array_t<T> out(NumGroups());
     Reduce(transform, 1, out.mutable_data(), lag, season_length, window_size,
            min_samples, skipna);
     return out;
   }
-  py::array_t<T> SeasonalRollingMeanUpdate(int lag, int season_length,
-                                           int window_size, int min_samples,
+  py::array_t<T> SeasonalRollingMeanUpdate(uint32_t lag, uint32_t season_length,
+                                           uint32_t window_size,
+                                           uint32_t min_samples,
                                            bool skipna = false) {
     return SeasonalRollingUpdate(rolling::SeasonalMeanUpdate<T>, lag,
                                  season_length, window_size, min_samples,
                                  skipna);
   }
-  py::array_t<T> SeasonalRollingStdUpdate(int lag, int season_length,
-                                          int window_size, int min_samples,
+  py::array_t<T> SeasonalRollingStdUpdate(uint32_t lag, uint32_t season_length,
+                                          uint32_t window_size,
+                                          uint32_t min_samples,
                                           bool skipna = false) {
     return SeasonalRollingUpdate(rolling::SeasonalStdUpdate<T>, lag,
                                  season_length, window_size, min_samples,
                                  skipna);
   }
-  py::array_t<T> SeasonalRollingMinUpdate(int lag, int season_length,
-                                          int window_size, int min_samples,
+  py::array_t<T> SeasonalRollingMinUpdate(uint32_t lag, uint32_t season_length,
+                                          uint32_t window_size,
+                                          uint32_t min_samples,
                                           bool skipna = false) {
     return SeasonalRollingUpdate(rolling::SeasonalMinUpdate<T>, lag,
                                  season_length, window_size, min_samples,
                                  skipna);
   }
-  py::array_t<T> SeasonalRollingMaxUpdate(int lag, int season_length,
-                                          int window_size, int min_samples,
+  py::array_t<T> SeasonalRollingMaxUpdate(uint32_t lag, uint32_t season_length,
+                                          uint32_t window_size,
+                                          uint32_t min_samples,
                                           bool skipna = false) {
     return SeasonalRollingUpdate(rolling::SeasonalMaxUpdate<T>, lag,
                                  season_length, window_size, min_samples,
                                  skipna);
   }
-  py::array_t<T> SeasonalRollingQuantileUpdate(int lag, T p, int season_length,
-                                               int window_size, int min_samples,
+  py::array_t<T> SeasonalRollingQuantileUpdate(uint32_t lag, T p,
+                                               uint32_t season_length,
+                                               uint32_t window_size,
+                                               uint32_t min_samples,
                                                bool skipna = false) {
     py::array_t<T> out(NumGroups());
     Reduce(rolling::SeasonalQuantileUpdate<T>, 1, out.mutable_data(), lag,
@@ -479,7 +502,7 @@ public:
   }
 
   std::tuple<py::array_t<T>, py::array_t<T>>
-  ExpandingMeanTransform(int lag, bool skipna = false) {
+  ExpandingMeanTransform(uint32_t lag, bool skipna = false) {
     py::array_t<T> out(data_.size());
     py::array_t<T> agg(NumGroups());
     TransformAndReduce(expanding::MeanTransform<T>, lag, out.mutable_data(), 1,
@@ -487,36 +510,38 @@ public:
     return std::make_tuple(out, agg);
   }
   std::tuple<py::array_t<T>, py::array_t<T>>
-  ExpandingStdTransform(int lag, bool skipna = false) {
+  ExpandingStdTransform(uint32_t lag, bool skipna = false) {
     py::array_t<T> out(data_.size());
     py::array_t<T> agg({static_cast<int>(NumGroups()), 3});
     TransformAndReduce(expanding::StdTransform<T>, lag, out.mutable_data(), 3,
                        agg.mutable_data(), skipna);
     return std::make_tuple(out, agg);
   }
-  py::array_t<T> ExpandingMinTransform(int lag, bool skipna = false) {
+  py::array_t<T> ExpandingMinTransform(uint32_t lag, bool skipna = false) {
     py::array_t<T> out(data_.size());
     Transform(expanding::MinTransform<T>, lag, out.mutable_data(), skipna);
     return out;
   }
-  py::array_t<T> ExpandingMaxTransform(int lag, bool skipna = false) {
+  py::array_t<T> ExpandingMaxTransform(uint32_t lag, bool skipna = false) {
     py::array_t<T> out(data_.size());
     Transform(expanding::MaxTransform<T>, lag, out.mutable_data(), skipna);
     return out;
   }
-  py::array_t<T> ExpandingQuantileTransform(int lag, T p, bool skipna = false) {
+  py::array_t<T> ExpandingQuantileTransform(uint32_t lag, T p,
+                                            bool skipna = false) {
     py::array_t<T> out(data_.size());
     Transform(expanding::QuantileTransform<T>, lag, out.mutable_data(), p,
               skipna);
     return out;
   }
-  py::array_t<T> ExpandingQuantileUpdate(int lag, T p, bool skipna = false) {
+  py::array_t<T> ExpandingQuantileUpdate(uint32_t lag, T p,
+                                         bool skipna = false) {
     py::array_t<T> out(NumGroups());
     Reduce(expanding::QuantileUpdate<T>, 1, out.mutable_data(), lag, p, skipna);
     return out;
   }
 
-  py::array_t<T> ExponentiallyWeightedMeanTransform(int lag, T alpha,
+  py::array_t<T> ExponentiallyWeightedMeanTransform(uint32_t lag, T alpha,
                                                     bool skipna = false) {
     py::array_t<T> out(data_.size());
     Transform(exponentially_weighted::MeanTransform<T>, lag, out.mutable_data(),
@@ -542,13 +567,13 @@ public:
   py::array_t<T> RobustMadScalerStats(bool skipna = false) {
     return ScalerStats(scalers::RobustScalerMadStats<T>, skipna);
   }
-  py::array_t<T> ApplyScaler(const py::array_t<T> stats) {
+  py::array_t<T> ApplyScaler(const CArray<T> stats) {
     py::array_t<T> out(data_.size());
     ScalerTransform(scalers::CommonScalerTransform<T>, stats.data(),
                     out.mutable_data());
     return out;
   }
-  py::array_t<T> InvertScaler(const py::array_t<T> stats) {
+  py::array_t<T> InvertScaler(const CArray<T> stats) {
     py::array_t<T> out(data_.size());
     ScalerTransform(scalers::CommonScalerInverseTransform<T>, stats.data(),
                     out.mutable_data());
@@ -566,13 +591,13 @@ public:
            upper);
     return out;
   }
-  py::array_t<T> BoxCoxTransform(const py::array_t<T> lambdas) {
+  py::array_t<T> BoxCoxTransform(const CArray<T> lambdas) {
     py::array_t<T> out(data_.size());
     ScalerTransform(scalers::BoxCoxTransform<T>, lambdas.data(),
                     out.mutable_data());
     return out;
   }
-  py::array_t<T> BoxCoxInverseTransform(const py::array_t<T> lambdas) {
+  py::array_t<T> BoxCoxInverseTransform(const CArray<T> lambdas) {
     py::array_t<T> out(data_.size());
     ScalerTransform(scalers::BoxCoxInverseTransform<T>, lambdas.data(),
                     out.mutable_data());
@@ -589,7 +614,7 @@ public:
     Reduce(diff::NumSeasDiffs<T>, 1, out.mutable_data(), 0, period, max_d);
     return out;
   }
-  py::array_t<T> NumSeasDiffsPeriods(int max_d, py::array_t<T> periods) {
+  py::array_t<T> NumSeasDiffsPeriods(int max_d, const CArray<T> periods) {
     py::array_t<T> periods_and_out({static_cast<int>(NumGroups()), 2});
     auto periods_ptr = periods.data();
     auto periods_and_out_ptr = periods_and_out.mutable_data();
@@ -616,18 +641,18 @@ public:
     Transform(seasonal::Difference<T>, 0, out.mutable_data(), d);
     return out;
   }
-  py::array_t<T> Differences(const py::array_t<indptr_t> ds) {
+  py::array_t<T> Differences(const CArray<indptr_t> ds) {
     py::array_t<T> out(data_.size());
     VariableTransform(diff::Differences<T>, ds.data(), out.mutable_data());
     return out;
   }
-  py::array_t<T> InvertDifference(int d, const py::array_t<T> tails) {
+  py::array_t<T> InvertDifference(int d, const CArray<T> tails) {
     py::array_t<indptr_t> ds(NumGroups());
     std::fill(ds.mutable_data(), ds.mutable_data() + ds.size(), d);
     return InvertDifferences(ds, tails);
   }
-  py::array_t<T> InvertDifferences(const py::array_t<indptr_t> ds,
-                                   const py::array_t<T> tails) {
+  py::array_t<T> InvertDifferences(const CArray<indptr_t> ds,
+                                   const CArray<T> tails) {
     py::array_t<indptr_t> tails_indptr(indptr_.size());
     auto ds_data = ds.data();
     auto tails_indptr_data = tails_indptr.mutable_data();
@@ -643,10 +668,51 @@ public:
   }
 };
 
+// Validates indptr at the Python boundary and returns it as indptr_t. Every
+// entry is used as an offset into data, so all of them have to be
+// representable and describe a non-decreasing range, not just the last one:
+// casting straight to indptr_t would wrap a too-large value into one that can
+// still compare equal to the size of data. Takes py::object so that lists,
+// tuples and Series keep working, which py::array would reject.
+inline py::array_t<indptr_t> CheckedIndptr(const py::object &indptr,
+                                           py::ssize_t data_size) {
+  auto indptr64 = py::array_t < int64_t,
+       py::array::c_style | py::array::forcecast > ::ensure(indptr);
+  if (!indptr64) {
+    throw std::invalid_argument("indptr must be an integer array");
+  }
+  if (indptr64.ndim() != 1) {
+    throw std::invalid_argument("indptr must be a 1d array");
+  }
+  if (indptr64.size() < 1) {
+    throw std::invalid_argument("indptr must have at least one element");
+  }
+  const int64_t *values = indptr64.data();
+  for (py::ssize_t i = 0; i < indptr64.size(); ++i) {
+    if (values[i] < 0 || values[i] > std::numeric_limits<indptr_t>::max()) {
+      throw std::invalid_argument(
+          "indptr values must be non-negative and representable with 32-bit "
+          "integers");
+    }
+    if (i > 0 && values[i] < values[i - 1]) {
+      throw std::invalid_argument("indptr must be non-decreasing");
+    }
+  }
+  if (data_size != values[indptr64.size() - 1]) {
+    throw std::invalid_argument(
+        "Last element of indptr must be equal to the size of data");
+  }
+  return py::array_t < indptr_t,
+         py::array::c_style | py::array::forcecast > (indptr64);
+}
+
 template <typename T> void bind_ga(py::module &m, const std::string &name) {
   py::class_<GroupedArray<T>>(m, name.c_str())
-      .def(py::init<const py::array_t<T> &, const py::array_t<indptr_t> &,
-                    int>())
+      .def(py::init(
+          [](const CArray<T> &data, const py::object &indptr, int num_threads) {
+            return std::make_unique<GroupedArray<T>>(
+                data, CheckedIndptr(indptr, data.size()), num_threads);
+          }))
       .def_readonly("data", &GroupedArray<T>::data_)
       .def_readonly("indptr", &GroupedArray<T>::indptr_)
       .def_readwrite("num_threads", &GroupedArray<T>::num_threads_)
@@ -776,46 +842,12 @@ void init_ga(py::module_ &m) {
   bind_ga<double>(ga, "_GroupedArrayFloat64");
   ga.def(
       "GroupedArray",
-      [](py::array data, py::array indptr_arg, int num_threads) -> py::object {
+      [](py::array data, const py::object &indptr_arg,
+         int num_threads) -> py::object {
         if (data.ndim() != 1) {
           throw std::invalid_argument("data must be a 1d array");
         }
-        if (indptr_arg.ndim() != 1) {
-          throw std::invalid_argument("indptr must be a 1d array");
-        }
-        if (indptr_arg.size() < 1) {
-          throw std::invalid_argument("indptr must have at least one element");
-        }
-        // indptr_t is 32 bit, so validate in 64 bit first: casting straight to
-        // indptr_t would wrap a too-large value into one that can still compare
-        // equal to the size of data
-        auto indptr64 = py::array_t < int64_t,
-             py::array::c_style | py::array::forcecast > ::ensure(indptr_arg);
-        if (!indptr64) {
-          throw std::invalid_argument("indptr must be an integer array");
-        }
-        // every entry is used as an offset into data, so all of them have to
-        // be representable and describe a non-decreasing range, not just the
-        // last one
-        const int64_t *indptr_data = indptr64.data();
-        for (py::ssize_t i = 0; i < indptr64.size(); ++i) {
-          if (indptr_data[i] < 0 ||
-              indptr_data[i] > std::numeric_limits<indptr_t>::max()) {
-            throw std::invalid_argument(
-                "indptr values must be non-negative and representable with "
-                "32-bit integers");
-          }
-          if (i > 0 && indptr_data[i] < indptr_data[i - 1]) {
-            throw std::invalid_argument("indptr must be non-decreasing");
-          }
-        }
-        int64_t last_indptr = indptr_data[indptr64.size() - 1];
-        if (data.size() != last_indptr) {
-          throw std::invalid_argument(
-              "Last element of indptr must be equal to the size of data");
-        }
-        auto indptr = py::array_t < indptr_t,
-             py::array::c_style | py::array::forcecast > (indptr64);
+        auto indptr = CheckedIndptr(indptr_arg, data.size());
         data = py::array::ensure(data, py::array::c_style);
         if (data.dtype().kind() != 'f') {
           data = data.attr("astype")("float32");

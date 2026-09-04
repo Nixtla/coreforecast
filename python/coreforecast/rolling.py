@@ -84,9 +84,10 @@ def _seasonal_rolling_docstring(*args, **kwargs) -> Callable:
         skipna (bool, optional): Exclude NaN values from calculations. When False (default),
             NaNs are assumed to occur only as a leading run: that prefix is preserved in the
             output and the statistic is computed over the values that follow it. A NaN
-            anywhere else makes that result and every later one NaN. When True, NaN values
-            are ignored and statistics are computed on remaining valid values in the window,
-            which is what you want for data with gaps in the middle.
+            anywhere else makes that result and every later one in the same season NaN;
+            the other seasons are unaffected. When True, NaN values are ignored and
+            statistics are computed on remaining valid values in the window, which is
+            what you want for data with gaps in the middle.
             Defaults to False for backwards compatibility.
 
     Returns:
@@ -243,9 +244,10 @@ def seasonal_rolling_quantile(
         skipna (bool, optional): Exclude NaN values from calculations. When False (default),
             NaNs are assumed to occur only as a leading run: that prefix is preserved in the
             output and the statistic is computed over the values that follow it. A NaN
-            anywhere else makes that result and every later one NaN. When True, NaN values
-            are ignored and statistics are computed on remaining valid values in the window,
-            which is what you want for data with gaps in the middle.
+            anywhere else makes that result and every later one in the same season NaN;
+            the other seasons are unaffected. When True, NaN values are ignored and
+            statistics are computed on remaining valid values in the window, which is
+            what you want for data with gaps in the middle.
             Defaults to False for backwards compatibility.
 
     Returns:

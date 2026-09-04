@@ -8,6 +8,10 @@ than taking the interpreter down with it.
 import numpy as np
 import pytest
 
+from coreforecast._lib.grouped_array import (
+    _GroupedArrayFloat32,
+    _GroupedArrayFloat64,
+)
 from coreforecast.grouped_array import GroupedArray
 
 thread_counts = [2, 3, 8]
@@ -129,3 +133,22 @@ class TestIndptrValidation:
         # equal consecutive entries are a legitimate empty group
         ga = GroupedArray(np.zeros(6), np.array([0, 3, 3, 6], dtype=np.int64))
         assert len(ga) == 3
+
+    @pytest.mark.parametrize("indptr", [[0, 3, 6], (0, 3, 6)])
+    def test_accepts_non_ndarray_sequences(self, indptr):
+        # validating in 64 bits must not cost the flexibility of forcecast
+        ga = GroupedArray(np.arange(6.0), indptr, 1)
+        assert len(ga) == 2
+        np.testing.assert_array_equal(np.asarray(ga.indptr), [0, 3, 6])
+
+    @pytest.mark.parametrize(
+        "cls", [_GroupedArrayFloat32, _GroupedArrayFloat64], ids=["f32", "f64"]
+    )
+    def test_typed_constructors_validate_too(self, cls):
+        # these are module attributes, so they must not bypass the checks the
+        # GroupedArray factory applies
+        with pytest.raises(ValueError, match="non-negative"):
+            cls(np.zeros(3), np.array([0, 1, 2**31 + 5], dtype=np.int64), 1)
+        with pytest.raises(ValueError, match="non-decreasing"):
+            cls(np.zeros(6), np.array([0, 5, 2, 6], dtype=np.int64), 1)
+        assert len(cls(np.zeros(6), [0, 3, 6], 1)) == 2

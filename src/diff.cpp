@@ -5,21 +5,24 @@
 
 template <typename T> int NumDiffs(const py::array_t<T> data, int max_d) {
   T out;
-  diff::NumDiffs(data.data(), data.size(), &out, max_d);
+  const auto x = AsContiguous(data);
+  diff::NumDiffs(x.data(), x.size(), &out, max_d);
   return static_cast<int>(out);
 }
 
 template <typename T>
 int NumSeasDiffs(const py::array_t<T> data, int period, int max_d) {
   T out;
-  diff::NumSeasDiffs(data.data(), data.size(), &out, period, max_d);
+  const auto x = AsContiguous(data);
+  diff::NumSeasDiffs(x.data(), x.size(), &out, period, max_d);
   return static_cast<int>(out);
 }
 
 template <typename T>
 py::array_t<T> Difference(const py::array_t<T> data, int d) {
-  py::array_t<T> out(data.size());
-  seasonal::Difference(data.data(), data.size(), out.mutable_data(), d);
+  const auto x = AsContiguous(data);
+  py::array_t<T> out(x.size());
+  seasonal::Difference(x.data(), x.size(), out.mutable_data(), d);
   return out;
 }
 

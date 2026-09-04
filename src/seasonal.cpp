@@ -4,8 +4,9 @@
 
 template <typename T> int Period(const py::array_t<T> data, size_t max_lag) {
   T out;
-  seasonal::GreatestAutocovariance(
-      data.data(), static_cast<size_t>(data.size()), &out, max_lag);
+  const auto x = AsContiguous(data);
+  seasonal::GreatestAutocovariance(x.data(), static_cast<size_t>(x.size()),
+                                   &out, max_lag);
   return static_cast<int>(out);
 }
 
