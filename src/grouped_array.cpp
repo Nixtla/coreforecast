@@ -1,4 +1,8 @@
+#include <algorithm>
+#include <exception>
 #include <limits>
+#include <thread>
+#include <vector>
 
 #include "common.h"
 #include "diff.h"
@@ -72,28 +76,57 @@ public:
     return out;
   }
 
-  template <typename Func> void ForEach(Func f) const noexcept {
-    if (num_threads_ < 2) {
-      f(0, NumGroups());
+  // The workers only touch raw buffers, never the Python API, so the GIL is
+  // released around them. Exceptions can't cross a thread boundary, so each
+  // worker stashes its own and we rethrow once everything has been joined.
+  template <typename Func> void ForEach(Func f) const {
+    const int n_groups = NumGroups();
+    const int n_threads = std::clamp(num_threads_, 1, std::max(1, n_groups));
+    if (n_threads < 2) {
+      py::gil_scoped_release release;
+      f(0, n_groups);
       return;
     }
+    std::vector<std::exception_ptr> errors(n_threads);
     std::vector<std::thread> threads;
-    threads.reserve(num_threads_);
-    int groups_per_thread = NumGroups() / num_threads_;
-    int remainder = NumGroups() % num_threads_;
-    for (int t = 0; t < num_threads_; ++t) {
-      int start_group = t * groups_per_thread + std::min(t, remainder);
-      int end_group = (t + 1) * groups_per_thread + std::min(t + 1, remainder);
-      threads.emplace_back(f, start_group, end_group);
+    threads.reserve(n_threads);
+    const int groups_per_thread = n_groups / n_threads;
+    const int remainder = n_groups % n_threads;
+    std::exception_ptr spawn_error;
+    {
+      py::gil_scoped_release release;
+      try {
+        for (int t = 0; t < n_threads; ++t) {
+          int start_group = t * groups_per_thread + std::min(t, remainder);
+          int end_group =
+              (t + 1) * groups_per_thread + std::min(t + 1, remainder);
+          threads.emplace_back([&f, &errors, t, start_group, end_group]() {
+            try {
+              f(start_group, end_group);
+            } catch (...) {
+              errors[t] = std::current_exception();
+            }
+          });
+        }
+      } catch (...) {
+        spawn_error = std::current_exception();
+      }
+      for (auto &thread : threads) {
+        thread.join();
+      }
     }
-    for (auto &thread : threads) {
-      thread.join();
+    if (spawn_error) {
+      std::rethrow_exception(spawn_error);
+    }
+    for (auto &error : errors) {
+      if (error) {
+        std::rethrow_exception(error);
+      }
     }
   }
 
   template <typename Func, typename... Args>
-  void Reduce(Func f, int n_out, T *out, int lag,
-              Args &&...args) const noexcept {
+  void Reduce(Func f, int n_out, T *out, int lag, Args &&...args) const {
     ForEach([data = data_.data(), indptr = indptr_.data(), &f, n_out, out, lag,
              &args...](int start_group, int end_group) {
       for (int i = start_group; i < end_group; ++i) {
@@ -116,7 +149,7 @@ public:
 
   template <typename Func, typename... Args>
   void VariableReduce(Func f, const indptr_t *indptr_out, T *out,
-                      Args &&...args) const noexcept {
+                      Args &&...args) const {
     ForEach([data = data_.data(), indptr = indptr_.data(), &f, indptr_out, out,
              &args...](int start_group, int end_group) {
       for (int i = start_group; i < end_group; ++i) {
@@ -131,7 +164,7 @@ public:
   }
 
   template <typename Func>
-  void ScalerTransform(Func f, const T *stats, T *out) const noexcept {
+  void ScalerTransform(Func f, const T *stats, T *out) const {
     ForEach([data = data_.data(), indptr = indptr_.data(), &f, stats,
              out](int start_group, int end_group) {
       for (int i = start_group; i < end_group; ++i) {
@@ -150,7 +183,7 @@ public:
   }
 
   template <typename Func, typename... Args>
-  void Transform(Func f, int lag, T *out, Args &&...args) const noexcept {
+  void Transform(Func f, int lag, T *out, Args &&...args) const {
     ForEach([data = data_.data(), indptr = indptr_.data(), &f, lag, out,
              &args...](int start_group, int end_group) {
       for (int i = start_group; i < end_group; ++i) {
@@ -170,8 +203,7 @@ public:
   }
 
   template <typename Func>
-  void VariableTransform(Func f, const indptr_t *params,
-                         T *out) const noexcept {
+  void VariableTransform(Func f, const indptr_t *params, T *out) const {
     ForEach([data = data_.data(), indptr = indptr_.data(), &f, params,
              out](int start_group, int end_group) {
       for (int i = start_group; i < end_group; ++i) {
@@ -190,7 +222,7 @@ public:
 
   template <typename Func, typename... Args>
   void TransformAndReduce(Func f, int lag, T *out, int n_agg, T *agg,
-                          Args &&...args) const noexcept {
+                          Args &&...args) const {
     ForEach([data = data_.data(), indptr = indptr_.data(), &f, lag, out, n_agg,
              agg, &args...](int start_group, int end_group) {
       for (int i = start_group; i < end_group; ++i) {
@@ -210,7 +242,7 @@ public:
 
   template <typename Func>
   void Zip(Func f, const GroupedArray<T> &other, const indptr_t *out_indptr,
-           T *out) const noexcept {
+           T *out) const {
     ForEach([data = data_.data(), indptr = indptr_.data(), &f,
              other_data = other.data_.data(),
              other_indptr = other.indptr_.data(), out_indptr,
@@ -495,92 +527,20 @@ public:
   template <typename Func>
   py::array_t<T> ScalerStats(Func func, bool skipna = false) {
     py::array_t<T> out({static_cast<int>(NumGroups()), 2});
-    // Use Reduce with skipna as last parameter
     Reduce(func, 2, out.mutable_data(), 0, skipna);
     return out;
   }
   py::array_t<T> MinMaxScalerStats(bool skipna = false) {
-    py::array_t<T> out({static_cast<int>(NumGroups()), 2});
-    // Directly call Reduce with skipna for scaler stats
-    ForEach([data = data_.data(), indptr = indptr_.data(), skipna,
-             &out](int start_group, int end_group) {
-      for (int i = start_group; i < end_group; ++i) {
-        indptr_t start = indptr[i];
-        indptr_t end = indptr[i + 1];
-        indptr_t n = end - start;
-        indptr_t start_idx = FirstNotNaN(data + start, n);
-        if (start_idx >= n) {
-          out.mutable_data()[2 * i] = std::numeric_limits<T>::quiet_NaN();
-          out.mutable_data()[2 * i + 1] = std::numeric_limits<T>::quiet_NaN();
-          continue;
-        }
-        scalers::MinMaxScalerStats<T>(data + start + start_idx, n - start_idx,
-                                      out.mutable_data() + 2 * i, skipna);
-      }
-    });
-    return out;
+    return ScalerStats(scalers::MinMaxScalerStats<T>, skipna);
   }
   py::array_t<T> StandardScalerStats(bool skipna = false) {
-    py::array_t<T> out({static_cast<int>(NumGroups()), 2});
-    ForEach([data = data_.data(), indptr = indptr_.data(), skipna,
-             &out](int start_group, int end_group) {
-      for (int i = start_group; i < end_group; ++i) {
-        indptr_t start = indptr[i];
-        indptr_t end = indptr[i + 1];
-        indptr_t n = end - start;
-        indptr_t start_idx = FirstNotNaN(data + start, n);
-        if (start_idx >= n) {
-          out.mutable_data()[2 * i] = std::numeric_limits<T>::quiet_NaN();
-          out.mutable_data()[2 * i + 1] = std::numeric_limits<T>::quiet_NaN();
-          continue;
-        }
-        scalers::StandardScalerStats<T>(data + start + start_idx, n - start_idx,
-                                        out.mutable_data() + 2 * i, skipna);
-      }
-    });
-    return out;
+    return ScalerStats(scalers::StandardScalerStats<T>, skipna);
   }
   py::array_t<T> RobustIqrScalerStats(bool skipna = false) {
-    py::array_t<T> out({static_cast<int>(NumGroups()), 2});
-    ForEach([data = data_.data(), indptr = indptr_.data(), skipna,
-             &out](int start_group, int end_group) {
-      for (int i = start_group; i < end_group; ++i) {
-        indptr_t start = indptr[i];
-        indptr_t end = indptr[i + 1];
-        indptr_t n = end - start;
-        indptr_t start_idx = FirstNotNaN(data + start, n);
-        if (start_idx >= n) {
-          out.mutable_data()[2 * i] = std::numeric_limits<T>::quiet_NaN();
-          out.mutable_data()[2 * i + 1] = std::numeric_limits<T>::quiet_NaN();
-          continue;
-        }
-        scalers::RobustScalerIqrStats<T>(data + start + start_idx,
-                                         n - start_idx,
-                                         out.mutable_data() + 2 * i, skipna);
-      }
-    });
-    return out;
+    return ScalerStats(scalers::RobustScalerIqrStats<T>, skipna);
   }
   py::array_t<T> RobustMadScalerStats(bool skipna = false) {
-    py::array_t<T> out({static_cast<int>(NumGroups()), 2});
-    ForEach([data = data_.data(), indptr = indptr_.data(), skipna,
-             &out](int start_group, int end_group) {
-      for (int i = start_group; i < end_group; ++i) {
-        indptr_t start = indptr[i];
-        indptr_t end = indptr[i + 1];
-        indptr_t n = end - start;
-        indptr_t start_idx = FirstNotNaN(data + start, n);
-        if (start_idx >= n) {
-          out.mutable_data()[2 * i] = std::numeric_limits<T>::quiet_NaN();
-          out.mutable_data()[2 * i + 1] = std::numeric_limits<T>::quiet_NaN();
-          continue;
-        }
-        scalers::RobustScalerMadStats<T>(data + start + start_idx,
-                                         n - start_idx,
-                                         out.mutable_data() + 2 * i, skipna);
-      }
-    });
-    return out;
+    return ScalerStats(scalers::RobustScalerMadStats<T>, skipna);
   }
   py::array_t<T> ApplyScaler(const py::array_t<T> stats) {
     py::array_t<T> out(data_.size());
@@ -816,21 +776,35 @@ void init_ga(py::module_ &m) {
   bind_ga<double>(ga, "_GroupedArrayFloat64");
   ga.def(
       "GroupedArray",
-      [](py::array data,
-         py::array_t<indptr_t, py::array::c_style | py::array::forcecast>
-             indptr,
-         int num_threads) -> py::object {
+      [](py::array data, py::array indptr_arg, int num_threads) -> py::object {
         if (data.ndim() != 1) {
           throw std::invalid_argument("data must be a 1d array");
         }
-        if (indptr.ndim() != 1) {
+        if (indptr_arg.ndim() != 1) {
           throw std::invalid_argument("indptr must be a 1d array");
         }
-        indptr_t last_indptr = indptr.data()[indptr.size() - 1];
+        if (indptr_arg.size() < 1) {
+          throw std::invalid_argument("indptr must have at least one element");
+        }
+        // indptr_t is 32 bit, so validate in 64 bit first: casting straight to
+        // indptr_t would wrap a too-large value into one that can still compare
+        // equal to the size of data
+        auto indptr64 = py::array_t < int64_t,
+             py::array::c_style | py::array::forcecast > ::ensure(indptr_arg);
+        if (!indptr64) {
+          throw std::invalid_argument("indptr must be an integer array");
+        }
+        int64_t last_indptr = indptr64.data()[indptr64.size() - 1];
+        if (last_indptr > std::numeric_limits<indptr_t>::max()) {
+          throw std::invalid_argument(
+              "indptr is too large to be represented with 32-bit integers");
+        }
         if (data.size() != last_indptr) {
           throw std::invalid_argument(
               "Last element of indptr must be equal to the size of data");
         }
+        auto indptr = py::array_t < indptr_t,
+             py::array::c_style | py::array::forcecast > (indptr64);
         data = py::array::ensure(data, py::array::c_style);
         if (data.dtype().kind() != 'f') {
           data = data.attr("astype")("float32");
