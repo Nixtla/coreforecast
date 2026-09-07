@@ -66,8 +66,8 @@ def test_degenerate_thread_counts(num_threads):
 
 @pytest.mark.parametrize("num_threads", [1, 4])
 def test_worker_exception_surfaces_as_python_exception(grouped, num_threads):
-    # a negative window makes the kernel ask for an impossible allocation; the
-    # throw happens inside the worker and used to reach std::terminate
+    # a negative window is rejected by the kernel, so the throw happens inside
+    # the worker and used to reach std::terminate
     data, indptr = grouped
     ga = GroupedArray(data, indptr, num_threads=num_threads)
     with pytest.raises(Exception):

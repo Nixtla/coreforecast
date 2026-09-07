@@ -3,45 +3,44 @@
 #include "rolling.h"
 
 template <typename T, typename Func, typename... Args>
-py::array_t<T> RollingOp(Func f, const py::array_t<T> data,
-                         uint32_t window_size, uint32_t min_samples,
-                         Args... args) {
+py::array_t<T> RollingOp(Func f, const py::array_t<T> data, int window_size,
+                         int min_samples, Args... args) {
   return SkipLeadingNaN<T>(data, [&](const T *d, indptr_t n, T *o) {
     f(d, n, o, window_size, min_samples, std::forward<Args>(args)...);
   });
 }
 
 template <typename T>
-py::array_t<T> RollingMean(const py::array_t<T> data, uint32_t window_size,
-                           uint32_t min_samples, bool skipna = false) {
+py::array_t<T> RollingMean(const py::array_t<T> data, int window_size,
+                           int min_samples, bool skipna = false) {
   return RollingOp(rolling::MeanTransform<T>, data, window_size, min_samples,
                    skipna);
 }
 
 template <typename T>
-py::array_t<T> RollingStd(const py::array_t<T> data, uint32_t window_size,
-                          uint32_t min_samples, bool skipna = false) {
+py::array_t<T> RollingStd(const py::array_t<T> data, int window_size,
+                          int min_samples, bool skipna = false) {
   return RollingOp(rolling::StdTransform<T>, data, window_size, min_samples,
                    skipna);
 }
 
 template <typename T>
-py::array_t<T> RollingMin(const py::array_t<T> data, uint32_t window_size,
-                          uint32_t min_samples, bool skipna = false) {
+py::array_t<T> RollingMin(const py::array_t<T> data, int window_size,
+                          int min_samples, bool skipna = false) {
   return RollingOp(rolling::MinTransform<T>, data, window_size, min_samples,
                    skipna);
 }
 
 template <typename T>
-py::array_t<T> RollingMax(const py::array_t<T> data, uint32_t window_size,
-                          uint32_t min_samples, bool skipna = false) {
+py::array_t<T> RollingMax(const py::array_t<T> data, int window_size,
+                          int min_samples, bool skipna = false) {
   return RollingOp(rolling::MaxTransform<T>, data, window_size, min_samples,
                    skipna);
 }
 
 template <typename T>
-py::array_t<T> RollingQuantile(const py::array_t<T> data, uint32_t window_size,
-                               uint32_t min_samples, T p, bool skipna = false) {
+py::array_t<T> RollingQuantile(const py::array_t<T> data, int window_size,
+                               int min_samples, T p, bool skipna = false) {
   return SkipLeadingNaN<T>(data, [&](const T *d, indptr_t n, T *o) {
     rolling::QuantileTransform<T>(d, n, o, window_size, min_samples, p, skipna);
   });
@@ -49,8 +48,8 @@ py::array_t<T> RollingQuantile(const py::array_t<T> data, uint32_t window_size,
 
 template <typename T, typename Func, typename... Args>
 py::array_t<T> SeasonalRollingOp(Func f, const py::array_t<T> data,
-                                 uint32_t season_length, uint32_t window_size,
-                                 uint32_t min_samples, Args... args) {
+                                 int season_length, int window_size,
+                                 int min_samples, Args... args) {
   return SkipLeadingNaN<T>(data, [&](const T *d, indptr_t n, T *o) {
     f(d, n, o, season_length, window_size, min_samples,
       std::forward<Args>(args)...);
@@ -58,42 +57,42 @@ py::array_t<T> SeasonalRollingOp(Func f, const py::array_t<T> data,
 }
 
 template <typename T>
-py::array_t<T> SeasonalRollingMean(const py::array_t<T> data,
-                                   uint32_t season_length, uint32_t window_size,
-                                   uint32_t min_samples, bool skipna = false) {
+py::array_t<T> SeasonalRollingMean(const py::array_t<T> data, int season_length,
+                                   int window_size, int min_samples,
+                                   bool skipna = false) {
   return SeasonalRollingOp(rolling::SeasonalMeanTransform<T>, data,
                            season_length, window_size, min_samples, skipna);
 }
 
 template <typename T>
-py::array_t<T> SeasonalRollingStd(const py::array_t<T> data,
-                                  uint32_t season_length, uint32_t window_size,
-                                  uint32_t min_samples, bool skipna = false) {
+py::array_t<T> SeasonalRollingStd(const py::array_t<T> data, int season_length,
+                                  int window_size, int min_samples,
+                                  bool skipna = false) {
   return SeasonalRollingOp(rolling::SeasonalStdTransform<T>, data,
                            season_length, window_size, min_samples, skipna);
 }
 
 template <typename T>
-py::array_t<T> SeasonalRollingMin(const py::array_t<T> data,
-                                  uint32_t season_length, uint32_t window_size,
-                                  uint32_t min_samples, bool skipna = false) {
+py::array_t<T> SeasonalRollingMin(const py::array_t<T> data, int season_length,
+                                  int window_size, int min_samples,
+                                  bool skipna = false) {
   return SeasonalRollingOp(rolling::SeasonalMinTransform<T>, data,
                            season_length, window_size, min_samples, skipna);
 }
 
 template <typename T>
-py::array_t<T> SeasonalRollingMax(const py::array_t<T> data,
-                                  uint32_t season_length, uint32_t window_size,
-                                  uint32_t min_samples, bool skipna = false) {
+py::array_t<T> SeasonalRollingMax(const py::array_t<T> data, int season_length,
+                                  int window_size, int min_samples,
+                                  bool skipna = false) {
   return SeasonalRollingOp(rolling::SeasonalMaxTransform<T>, data,
                            season_length, window_size, min_samples, skipna);
 }
 
 template <typename T>
-py::array_t<T>
-SeasonalRollingQuantile(const py::array_t<T> data, uint32_t season_length,
-                        uint32_t window_size, uint32_t min_samples, T p,
-                        bool skipna = false) {
+py::array_t<T> SeasonalRollingQuantile(const py::array_t<T> data,
+                                       int season_length, int window_size,
+                                       int min_samples, T p,
+                                       bool skipna = false) {
   return SeasonalRollingOp(rolling::SeasonalQuantileTransform<T>, data,
                            season_length, window_size, min_samples, p, skipna);
 }

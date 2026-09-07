@@ -151,11 +151,10 @@ def test_zero_min_samples_is_rejected(fn):
 
 
 @pytest.mark.parametrize("fn", rolling_fns, ids=lambda f: f.__name__)
-def test_negative_counts_are_rejected_by_the_signature(fn):
-    # the bound parameters are unsigned, so pybind refuses these outright
-    with pytest.raises(TypeError):
+def test_negative_counts_are_rejected(fn):
+    with pytest.raises(ValueError, match="window_size must be greater than 0"):
         fn(np.arange(5.0), -3, 1)
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError, match="min_samples must be greater than 0"):
         fn(np.arange(5.0), 3, -1)
 
 
@@ -165,10 +164,21 @@ def test_zero_season_length_is_rejected():
         seasonal_rolling_mean(np.arange(5.0), 0, 2, 1)
 
 
-def test_negative_lag_is_rejected_by_the_signature():
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda ga, lag: ga._lag(lag),
+        lambda ga, lag: ga._rolling_mean(lag, 2, 1),
+        lambda ga, lag: ga._rolling_mean_update(lag, 2, 1),
+        lambda ga, lag: ga._expanding_std(lag),
+    ],
+    ids=["lag", "transform", "reduce", "transform_and_reduce"],
+)
+def test_negative_lag_is_rejected(call):
+    # a negative lag makes the transform write before the start of the output
     ga = GroupedArray(np.arange(10.0), np.array([0, 5, 10], dtype=np.int32))
-    with pytest.raises(TypeError):
-        ga._rolling_mean(-3, 2, 1)
+    with pytest.raises(ValueError, match="lag must be non-negative"):
+        call(ga, -3)
 
 
 def test_seasonal_nan_only_latches_within_its_own_season():

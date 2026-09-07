@@ -10,9 +10,8 @@
 
 namespace rolling {
 
-// Counts that index into the buffers. The bound signatures take these as
-// unsigned so a negative is rejected at the Python boundary; zero still has to
-// be rejected here, otherwise the growing loop below starts at -1.
+// Counts that index into the buffers: zero or less makes the growing loop
+// below start at -1 and read and write one element before them.
 inline void RequirePositive(const char *name, int value) {
   if (value > 0) {
     return;
@@ -546,6 +545,8 @@ void SeasonalQuantileTransform(const T *data, int n, T *out, int season_length,
 template <typename Func, typename T, typename... Args>
 inline void Update(Func RollingTfm, const T *data, int n, T *out,
                    int window_size, int min_samples, Args &&...args) {
+  // hoisted from the kernel: the buffer below is sized from window_size
+  RequirePositive("window_size", window_size);
   if (n < min_samples) {
     *out = std::numeric_limits<T>::quiet_NaN();
     return;
@@ -593,6 +594,7 @@ inline void SeasonalUpdate(Func RollingUpdate, const T *data, int n, T *out,
                            int season_length, int window_size, int min_samples,
                            Args &&...args) {
   RequirePositive("season_length", season_length);
+  RequirePositive("window_size", window_size);
   int season = n % season_length;
   int season_n = n / season_length + (season > 0);
   if (season_n < min_samples) {
