@@ -358,6 +358,11 @@ public:
           "indptr must have one element per group plus one");
     }
     RequireOffsets(out_indptr.data(), out_indptr.size());
+    // the output is sized from the last offset, so a non-zero first one would
+    // leave the elements before it uninitialized
+    if (out_indptr.data()[0] != 0) {
+      throw std::invalid_argument("First element of indptr must be zero");
+    }
     py::array_t<T> out(out_indptr.data()[NumGroups()]);
     VariableReduce(grouped_array_functions::Tail<T>, out_indptr.data(),
                    out.mutable_data());

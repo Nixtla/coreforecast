@@ -103,19 +103,24 @@ jobs:
         run: uv sync --group dev --no-install-project
 
       # not editable: the scikit-build redirecting finder would otherwise import
-      # whatever _lib the sync left behind instead of the instrumented one
+      # whatever _lib the sync left behind instead of the instrumented one.
+      # No linker flags: cmake puts CMAKE_CXX_FLAGS on the link line too, so the
+      # module already comes out with libasan and libubsan as DT_NEEDED. The
+      # SHARED ones wouldn't apply either, pybind11_add_module builds a MODULE
       - name: Build with the sanitizers
         run: |
           uv pip install . \
             -Ccmake.build-type=Debug \
-            -Ccmake.define.CMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -D_GLIBCXX_ASSERTIONS" \
-            -Ccmake.define.CMAKE_SHARED_LINKER_FLAGS="-fsanitize=address,undefined"
+            -Ccmake.define.CMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -D_GLIBCXX_ASSERTIONS"
 
       # --no-sync so it can't reinstall the project over the instrumented build.
-      # Both runtimes get preloaded: the module is built with address,undefined,
-      # and with libasan alone the process dies with no report the first time a
-      # kernel throws. detect_leaks=0 because CPython leaks by design;
-      # halt_on_error makes a UBSan report fail the job instead of only printing
+      # The runtimes still have to be preloaded even though the module links
+      # them: python isn't instrumented, so pulling them in with the module
+      # leaves ASan initializing too late to be usable ("runtime does not come
+      # first in initial library list"). Both of them, since with libasan alone
+      # the process dies with no report the first time a kernel throws.
+      # detect_leaks=0 because CPython leaks by design; halt_on_error makes a
+      # UBSan report fail the job instead of only printing
       - name: Run tests
         env:
           ASAN_OPTIONS: detect_leaks=0

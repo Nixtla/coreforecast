@@ -162,6 +162,10 @@ class TestIndptrValidation:
             ga._tails(np.array([0, -5, 2**30], dtype=np.int32))
         with pytest.raises(ValueError, match="non-decreasing"):
             ga._tails(np.array([0, 2, 1], dtype=np.int32))
+        # the output is sized from the last offset, so starting past zero left
+        # its first elements as uninitialized heap
+        with pytest.raises(ValueError, match="First element"):
+            ga._tails(np.array([2, 3, 4], dtype=np.int32))
         np.testing.assert_array_equal(
             ga._tails(np.array([0, 1, 2], dtype=np.int32)), [2.0, 5.0]
         )

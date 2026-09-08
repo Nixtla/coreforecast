@@ -2,6 +2,7 @@
 
 #include "SkipList.h"
 
+#include <memory>
 #include <stdexcept>
 #include <string>
 
@@ -227,10 +228,16 @@ inline void StdTransform(const T *data, int n, T *out, int window_size,
 // ============================================================================
 template <typename T, typename Comp, bool SkipNA> class CompAccumulator {
 public:
-  CompAccumulator(int window_size) : window_size_(window_size) {
-    // resize, not reserve: the ring buffer is written through operator[]
-    buffer_.resize(window_size);
-  }
+  // std::pair's default constructor value-initializes, which would zero the
+  // whole ring buffer on every allocation; this aggregate's one is trivial
+  struct Entry {
+    int index;
+    T value;
+  };
+
+  CompAccumulator(int window_size)
+      : buffer_(std::make_unique_for_overwrite<Entry[]>(window_size)),
+        window_size_(window_size) {}
   inline bool Empty() const noexcept { return tail_ == -1; }
   inline void PushBack(int i, T x) noexcept {
     if (tail_ == -1) {
@@ -263,12 +270,8 @@ public:
       ++head_;
     }
   }
-  inline const std::pair<int, T> &Front() const noexcept {
-    return buffer_[head_];
-  }
-  inline const std::pair<int, T> &Back() const noexcept {
-    return buffer_[tail_];
-  }
+  inline const Entry &Front() const noexcept { return buffer_[head_]; }
+  inline const Entry &Back() const noexcept { return buffer_[tail_]; }
 
   void Insert(T x) noexcept {
     if constexpr (!SkipNA) {
@@ -288,7 +291,7 @@ public:
       if (std::isnan(x)) {
         // the front can expire on this step even though nothing is inserted;
         // skipping the check leaves an out-of-window entry to be returned
-        if (!Empty() && Front().first <= i_) {
+        if (!Empty() && Front().index <= i_) {
           PopFront();
         }
         ++i_;
@@ -297,10 +300,10 @@ public:
     }
 
     // Valid value: maintain monotonic deque
-    while (!Empty() && comp_(Back().second, x)) {
+    while (!Empty() && comp_(Back().value, x)) {
       PopBack();
     }
-    if (!Empty() && Front().first <= i_) {
+    if (!Empty() && Front().index <= i_) {
       PopFront();
     }
     PushBack(window_size_ + i_, x);
@@ -317,7 +320,7 @@ public:
     }
     if (Empty())
       return std::numeric_limits<T>::quiet_NaN();
-    return Front().second;
+    return Front().value;
   }
 
   T Update(T new_x, T) noexcept {
@@ -328,11 +331,11 @@ public:
     }
     if (Empty())
       return std::numeric_limits<T>::quiet_NaN();
-    return Front().second;
+    return Front().value;
   }
 
 private:
-  std::vector<std::pair<int, T>> buffer_;
+  std::unique_ptr<Entry[]> buffer_;
   int window_size_;
   int head_ = 0;
   int tail_ = -1;

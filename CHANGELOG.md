@@ -8,7 +8,10 @@
   `coreforecast.exponentially_weighted` now preserve a leading run of NaNs and
   compute the statistic over what follows it. They used to return all NaN as
   soon as the series started with one. With `skipna=True`, `min_samples` counts
-  positions after that run, which is what pandas does.
+  positions after that run, which is what pandas does. The seasonal variants
+  split what follows the run into seasons, so a leading run whose length isn't a
+  multiple of `season_length` now groups different positions together than it
+  used to.
 - Input without a float dtype (integer arrays, lists, Series) is now widened to
   float64 instead of float32. Values from `2**24` on were silently rounded
   before; the result now takes twice the memory. Pass a float32 array to get
