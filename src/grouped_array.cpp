@@ -627,14 +627,23 @@ public:
                     out.mutable_data());
     return out;
   }
-  py::array_t<T> BoxCoxLambdaGuerrero(int period, T lower, T upper) {
+  // The lambda kernels produce one value per group; the second column is
+  // padding so box-cox stats share the (n_groups, 2) layout of the other
+  // scalers, which is what CheckStats and the Python take/stack code expect.
+  // Zeroed here because the kernel only writes column 0.
+  py::array_t<T> LambdaStats() const {
     py::array_t<T> out({NumGroups(), 2});
+    std::fill_n(out.mutable_data(), out.size(), T{0});
+    return out;
+  }
+  py::array_t<T> BoxCoxLambdaGuerrero(int period, T lower, T upper) {
+    py::array_t<T> out = LambdaStats();
     Reduce(scalers::BoxCoxLambdaGuerrero<T>, 2, out.mutable_data(), 0, period,
            lower, upper);
     return out;
   }
   py::array_t<T> BoxCoxLambdaLogLik(T lower, T upper) {
-    py::array_t<T> out({NumGroups(), 2});
+    py::array_t<T> out = LambdaStats();
     Reduce(scalers::BoxCoxLambdaLogLik<T>, 2, out.mutable_data(), 0, lower,
            upper);
     return out;

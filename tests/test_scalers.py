@@ -26,6 +26,18 @@ from . import (
 )
 
 
+@pytest.mark.parametrize("method", ["loglik", "guerrero"])
+def test_boxcox_stats_second_column_is_deterministic_padding(data, indptr, method):
+    # the lambda kernels write one value per group into a (n_groups, 2) array;
+    # the second column used to be left as whatever the allocation held
+    ga = GroupedArray(np.abs(data) + 1.0, indptr)
+    first = LocalBoxCoxScaler(method=method, season_length=10).fit(ga).stats_
+    second = LocalBoxCoxScaler(method=method, season_length=10).fit(ga).stats_
+    assert first.shape == (len(ga), 2)
+    np.testing.assert_array_equal(first[:, 1], 0.0)
+    np.testing.assert_array_equal(first, second)
+
+
 @pytest.mark.parametrize("scaler_name", scalers)
 @pytest.mark.parametrize("dtype", dtypes)
 def test_correctness(data, indptr, scaler_name, dtype):

@@ -26,6 +26,13 @@
   update reads the value that isn't in the array yet, so there is nothing for
   it to consume.
 
+### Bug fixes
+
+- `LocalBoxCoxScaler.stats_` had an uninitialised second column: the lambda
+  kernels write one value per group and the array holding them was never
+  cleared. Transforms were unaffected since that column is not read, but the
+  attribute differed between identical fits. It is now zero.
+
 ### Documentation
 
 - The local scalers' `skipna` documentation said an interior NaN "may result in
