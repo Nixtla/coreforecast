@@ -31,6 +31,6 @@ template <typename T> void init_diffs_fns(py::module_ &m) {
 
 void init_diffs(py::module_ &m) {
   py::module_ diffs = m.def_submodule("differences");
-  init_diffs_fns<float>(diffs);
   init_diffs_fns<double>(diffs);
+  init_diffs_fns<float>(diffs);
 }

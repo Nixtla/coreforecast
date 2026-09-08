@@ -53,6 +53,6 @@ template <typename T> void init_exp_fns(py::module_ &m) {
 
 void init_exp(py::module_ &m) {
   py::module_ exp = m.def_submodule("expanding");
-  init_exp_fns<float>(exp);
   init_exp_fns<double>(exp);
+  init_exp_fns<float>(exp);
 }

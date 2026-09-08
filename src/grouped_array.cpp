@@ -833,7 +833,7 @@ void init_ga(py::module_ &m) {
         }
         data = py::array::ensure(data, py::array::c_style);
         if (data.dtype().kind() != 'f') {
-          data = data.attr("astype")("float32");
+          data = data.attr("astype")("float64");
         }
         if (py::isinstance<py::array_t<float>>(data)) {
           return py::cast(std::make_unique<GroupedArray<float>>(

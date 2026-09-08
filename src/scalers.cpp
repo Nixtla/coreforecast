@@ -45,6 +45,6 @@ template <typename T> void init_sc_fns(py::module_ &m) {
 
 void init_sc(py::module_ &m) {
   py::module_ sc = m.def_submodule("scalers");
-  init_sc_fns<float>(sc);
   init_sc_fns<double>(sc);
+  init_sc_fns<float>(sc);
 }
