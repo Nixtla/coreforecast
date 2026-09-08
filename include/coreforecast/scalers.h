@@ -24,14 +24,6 @@ inline T CommonScalerInverseTransform(T data, T offset, T scale) {
   return data * scale + offset;
 }
 
-template <typename T> inline std::vector<T> DropNaN(const T *data, int n) {
-  std::vector<T> out;
-  out.reserve(n);
-  std::copy_if(data, data + n, std::back_inserter(out),
-               [](T x) { return !std::isnan(x); });
-  return out;
-}
-
 // Applies stats_fn to the data, or to a NaN-free copy of it when skipna is set,
 // writing NaN stats when nothing valid remains.
 template <typename T, typename Fn>
@@ -41,7 +33,10 @@ inline void WithSkipNA(const T *data, int n, T *stats, bool skipna,
     stats_fn(data, n, stats);
     return;
   }
-  const std::vector<T> valid = DropNaN(data, n);
+  std::vector<T> valid;
+  valid.reserve(n);
+  std::copy_if(data, data + n, std::back_inserter(valid),
+               [](T x) { return !std::isnan(x); });
   if (valid.empty()) {
     stats[0] = std::numeric_limits<T>::quiet_NaN();
     stats[1] = std::numeric_limits<T>::quiet_NaN();

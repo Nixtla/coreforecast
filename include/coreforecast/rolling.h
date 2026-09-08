@@ -5,19 +5,11 @@
 #include <stdexcept>
 #include <string>
 
+#include "common.h"
 #include "stats.h"
 #include <variant>
 
 namespace rolling {
-
-// Counts that index into the buffers: zero or less makes the growing loop
-// below start at -1 and read and write one element before them.
-inline void RequirePositive(const char *name, int value) {
-  if (value > 0) {
-    return;
-  }
-  throw std::invalid_argument(std::string(name) + " must be greater than 0");
-}
 
 // Quantile levels index into the sorted window, so a value outside [0, 1]
 // indexes past its end. NaN fails both comparisons and is rejected too.
@@ -123,15 +115,6 @@ inline void StdTransformWithStats(const T *data, int n, T *out, T *agg,
                                   int min_samples, bool skipna = false) {
   RequirePositive("window_size", window_size);
   RequirePositive("min_samples", min_samples);
-  if (n < 1) {
-    std::fill(out, out + n, std::numeric_limits<T>::quiet_NaN());
-    if (save_stats) {
-      agg[0] = static_cast<T>(n);
-      agg[1] = std::numeric_limits<T>::quiet_NaN();
-      agg[2] = std::numeric_limits<T>::quiet_NaN();
-    }
-    return;
-  }
   if (!skipna) {
     // Fast path: original implementation without NaN checking
     T prev_avg = static_cast<T>(0.0);

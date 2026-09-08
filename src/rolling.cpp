@@ -41,9 +41,8 @@ py::array_t<T> RollingMax(const py::array_t<T> data, int window_size,
 template <typename T>
 py::array_t<T> RollingQuantile(const py::array_t<T> data, int window_size,
                                int min_samples, T p, bool skipna = false) {
-  return SkipLeadingNaN<T>(data, [&](const T *d, indptr_t n, T *o) {
-    rolling::QuantileTransform<T>(d, n, o, window_size, min_samples, p, skipna);
-  });
+  return RollingOp(rolling::QuantileTransform<T>, data, window_size,
+                   min_samples, p, skipna);
 }
 
 template <typename T, typename Func, typename... Args>

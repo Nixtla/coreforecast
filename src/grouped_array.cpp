@@ -18,14 +18,6 @@
 
 using namespace pybind11::literals;
 
-// A negative lag makes the transforms below write before the start of the
-// output buffer, so it is rejected once per call rather than per group.
-inline void RequireNonNegative(const char *name, int value) {
-  if (value < 0) {
-    throw std::invalid_argument(std::string(name) + " must be non-negative");
-  }
-}
-
 template <typename T> inline void SkipLags(T *out, int n, int lag) {
   int replacements = std::min(lag, n);
   for (int i = 0; i < replacements; ++i) {
@@ -68,8 +60,12 @@ public:
   py::array_t<T> Take(const CArray<indptr_t> indices) const {
     auto indices_data = indices.data();
     auto indptr_data = indptr_.data();
+    const indptr_t num_groups = NumGroups();
     indptr_t out_size = 0;
     for (int i = 0; i < indices.size(); ++i) {
+      if (indices_data[i] < 0 || indices_data[i] >= num_groups) {
+        throw std::out_of_range("Index out of range");
+      }
       indptr_t start = indptr_data[indices_data[i]];
       indptr_t end = indptr_data[indices_data[i] + 1];
       out_size += end - start;
@@ -244,8 +240,13 @@ public:
         indptr_t n = end - start;
         indptr_t start_idx = FirstNotNaN(data + start, n, out + start);
         SkipLags(out + start + start_idx, n - start_idx, lag);
-        if (start_idx + lag >= n)
+        if (start_idx + lag >= n) {
+          // f never runs for an empty or all-NaN group, so its stats row would
+          // otherwise be left uninitialised.
+          std::fill(agg + i * n_agg, agg + (i + 1) * n_agg,
+                    std::numeric_limits<T>::quiet_NaN());
           continue;
+        }
         start += start_idx;
         f(data + start, n - start_idx - lag, out + start + lag, agg + i * n_agg,
           std::forward<Args>(args)...);
@@ -625,11 +626,15 @@ public:
     return out;
   }
   py::array_t<T> Difference(int d) {
+    RequireNonNegative("d", d);
     py::array_t<T> out(data_.size());
     Transform(seasonal::Difference<T>, 0, out.mutable_data(), d);
     return out;
   }
   py::array_t<T> Differences(const CArray<indptr_t> ds) {
+    for (py::ssize_t i = 0; i < ds.size(); ++i) {
+      RequireNonNegative("d", ds.data()[i]);
+    }
     py::array_t<T> out(data_.size());
     VariableTransform(diff::Differences<T>, ds.data(), out.mutable_data());
     return out;

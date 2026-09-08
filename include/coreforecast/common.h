@@ -3,6 +3,8 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <stdexcept>
+#include <string>
 
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
@@ -23,6 +25,22 @@ using CArray = py::array_t<T, py::array::c_style | py::array::forcecast>;
 template <typename T>
 inline CArray<T> AsContiguous(const py::array_t<T> &data) {
   return CArray<T>::ensure(data);
+}
+
+// Counts that index into the buffers: zero or less makes the growing loops in
+// the kernels start at -1 and read and write one element before them.
+inline void RequirePositive(const char *name, int value) {
+  if (value > 0) {
+    return;
+  }
+  throw std::invalid_argument(std::string(name) + " must be greater than 0");
+}
+
+// Offsets into the buffers: a negative one reads and writes before their start.
+inline void RequireNonNegative(const char *name, int value) {
+  if (value < 0) {
+    throw std::invalid_argument(std::string(name) + " must be non-negative");
+  }
 }
 
 template <typename T> inline indptr_t FirstNotNaN(const T *data, indptr_t n) {

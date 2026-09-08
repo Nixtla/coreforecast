@@ -20,6 +20,7 @@ int NumSeasDiffs(const py::array_t<T> data, int period, int max_d) {
 
 template <typename T>
 py::array_t<T> Difference(const py::array_t<T> data, int d) {
+  RequireNonNegative("d", d);
   const auto x = AsContiguous(data);
   py::array_t<T> out(x.size());
   seasonal::Difference(x.data(), x.size(), out.mutable_data(), d);

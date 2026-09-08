@@ -9,8 +9,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from coreforecast.differences import diff
 from coreforecast.expanding import (
-    expanding_quantile,
     expanding_max,
     expanding_mean,
     expanding_min,
@@ -20,7 +20,6 @@ from coreforecast.expanding import (
 from coreforecast.exponentially_weighted import exponentially_weighted_mean
 from coreforecast.grouped_array import GroupedArray
 from coreforecast.rolling import (
-    seasonal_rolling_quantile,
     rolling_max,
     rolling_mean,
     rolling_min,
@@ -179,6 +178,49 @@ def test_negative_lag_is_rejected(call):
     ga = GroupedArray(np.arange(10.0), np.array([0, 5, 10], dtype=np.int32))
     with pytest.raises(ValueError, match="lag must be non-negative"):
         call(ga, -3)
+
+
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda ga, d: diff(np.arange(10.0), d),
+        lambda ga, d: ga._diff(d),
+        lambda ga, d: ga._diffs(np.array([d, 1], dtype=np.int32)),
+    ],
+    ids=["free_fn", "grouped", "grouped_variable"],
+)
+def test_negative_d_is_rejected(call):
+    # the difference loop starts at d, so a negative one reads and writes one
+    # element before both buffers
+    ga = GroupedArray(np.arange(10.0), np.array([0, 5, 10], dtype=np.int32))
+    with pytest.raises(ValueError, match="d must be non-negative"):
+        call(ga, -1)
+
+
+def test_zero_d_is_a_copy():
+    np.testing.assert_array_equal(diff(np.arange(5.0), 0), np.arange(5.0))
+
+
+@pytest.mark.parametrize(
+    "call",
+    [lambda ga: ga._expanding_mean(0), lambda ga: ga._expanding_std(0)],
+    ids=["expanding_mean", "expanding_std"],
+)
+@pytest.mark.parametrize(
+    "data,indptr",
+    [
+        ([np.nan, np.nan, 1.0, 2.0, 3.0, 4.0], [0, 2, 6]),
+        ([1.0, 2.0, 3.0, 4.0], [0, 0, 4]),
+    ],
+    ids=["all_nan_group", "empty_group"],
+)
+def test_skipped_groups_get_nan_stats(call, data, indptr):
+    # the kernel never runs for these groups, so their stats row used to be
+    # left at whatever the freshly allocated buffer happened to hold
+    ga = GroupedArray(np.array(data), np.array(indptr, dtype=np.int32))
+    stats = np.asarray(call(ga)[1])
+    assert np.isnan(stats[0]).all()
+    assert np.isfinite(stats[1]).all()
 
 
 def test_seasonal_nan_only_latches_within_its_own_season():

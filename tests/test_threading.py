@@ -141,6 +141,17 @@ class TestIndptrValidation:
         assert len(ga) == 2
         np.testing.assert_array_equal(np.asarray(ga.indptr), [0, 3, 6])
 
+    def test_take_rejects_out_of_range_group_indices(self):
+        # take indexes indptr directly, so an out of range group reads past its
+        # end and slices data with whatever it finds there
+        ga = GroupedArray(np.arange(6.0), np.array([0, 3, 6], dtype=np.int32))
+        for idx in (2, 5, -1):
+            with pytest.raises(IndexError, match="Index out of range"):
+                ga._take(np.array([idx], dtype=np.int32))
+        np.testing.assert_array_equal(
+            ga._take(np.array([1, 0], dtype=np.int32)), [3.0, 4.0, 5.0, 0.0, 1.0, 2.0]
+        )
+
     @pytest.mark.parametrize(
         "cls", [_GroupedArrayFloat32, _GroupedArrayFloat64], ids=["f32", "f64"]
     )
