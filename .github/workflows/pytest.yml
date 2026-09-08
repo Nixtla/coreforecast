@@ -97,8 +97,10 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
 
+      # --no-install-project so uv never builds an uninstrumented coreforecast:
+      # it caches that wheel and restores it over the sanitizer build below
       - name: Install dependencies
-        run: uv sync --group dev
+        run: uv sync --group dev --no-install-project
 
       # not editable: the scikit-build redirecting finder would otherwise import
       # whatever _lib the sync left behind instead of the instrumented one
@@ -109,15 +111,17 @@ jobs:
             -Ccmake.define.CMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -D_GLIBCXX_ASSERTIONS" \
             -Ccmake.define.CMAKE_SHARED_LINKER_FLAGS="-fsanitize=address,undefined"
 
-      # detect_leaks=0 because CPython leaks by design; halt_on_error makes a
-      # UBSan report fail the job instead of only printing
+      # --no-sync for the same reason: a re-sync here reinstalls the project, and
+      # throwing from an uninstrumented library under a preloaded libasan kills
+      # the process with no report. detect_leaks=0 because CPython leaks by
+      # design; halt_on_error makes a UBSan report fail the job, not only print
       - name: Run tests
         env:
           ASAN_OPTIONS: detect_leaks=0
           UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
         run: |
           LD_PRELOAD=$(gcc -print-file-name=libasan.so) \
-            uv run pytest tests -k "not efficiency"
+            uv run --no-sync pytest tests -k "not efficiency"
 
   run_benchmarks:
     runs-on: ubuntu-22.04
