@@ -18,6 +18,31 @@
 
 using namespace pybind11::literals;
 
+// Entries used as offsets into a buffer: a negative one makes a slice start
+// before it and a decreasing one makes a slice run backwards.
+template <typename T>
+inline void RequireOffsets(const T *values, py::ssize_t size) {
+  for (py::ssize_t i = 0; i < size; ++i) {
+    if (values[i] < 0) {
+      throw std::invalid_argument("indptr values must be non-negative");
+    }
+    if (i > 0 && values[i] < values[i - 1]) {
+      throw std::invalid_argument("indptr must be non-decreasing");
+    }
+  }
+}
+
+// One difference order per group, used both as a loop bound and to build the
+// tails offsets, so a short array is read past its end.
+inline void CheckDs(const CArray<indptr_t> &ds, int n_groups) {
+  if (ds.size() != n_groups) {
+    throw std::invalid_argument("ds must have one element per group");
+  }
+  for (py::ssize_t i = 0; i < ds.size(); ++i) {
+    RequireNonNegative("d", ds.data()[i]);
+  }
+}
+
 template <typename T> inline void SkipLags(T *out, int n, int lag) {
   int replacements = std::min(lag, n);
   for (int i = 0; i < replacements; ++i) {
@@ -312,6 +337,11 @@ public:
                                              num_threads_);
   }
   py::array_t<T> Tails(const CArray<indptr_t> out_indptr) {
+    if (out_indptr.size() != indptr_.size()) {
+      throw std::invalid_argument(
+          "indptr must have one element per group plus one");
+    }
+    RequireOffsets(out_indptr.data(), out_indptr.size());
     py::array_t<T> out(out_indptr.data()[NumGroups()]);
     VariableReduce(grouped_array_functions::Tail<T>, out_indptr.data(),
                    out.mutable_data());
@@ -632,9 +662,7 @@ public:
     return out;
   }
   py::array_t<T> Differences(const CArray<indptr_t> ds) {
-    for (py::ssize_t i = 0; i < ds.size(); ++i) {
-      RequireNonNegative("d", ds.data()[i]);
-    }
+    CheckDs(ds, NumGroups());
     py::array_t<T> out(data_.size());
     VariableTransform(diff::Differences<T>, ds.data(), out.mutable_data());
     return out;
@@ -646,12 +674,20 @@ public:
   }
   py::array_t<T> InvertDifferences(const CArray<indptr_t> ds,
                                    const CArray<T> tails) {
+    CheckDs(ds, NumGroups());
     py::array_t<indptr_t> tails_indptr(indptr_.size());
     auto ds_data = ds.data();
     auto tails_indptr_data = tails_indptr.mutable_data();
     tails_indptr_data[0] = 0;
     for (int i = 1; i < tails_indptr.size(); ++i) {
       tails_indptr_data[i] = tails_indptr_data[i - 1] + ds_data[i - 1];
+    }
+    // tails_ga is built here rather than through the factory, so the check the
+    // factory would have done on its last offset has to happen here.
+    if (static_cast<py::ssize_t>(tails_indptr_data[tails_indptr.size() - 1]) !=
+        tails.size()) {
+      throw std::invalid_argument(
+          "tails must have as many elements as the sum of ds");
     }
     auto tails_ga = GroupedArray<T>(tails, tails_indptr, num_threads_);
     py::array_t<T> out(data_.size());
@@ -682,15 +718,12 @@ inline py::array_t<indptr_t> CheckedIndptr(const py::object &indptr,
   }
   const int64_t *values = indptr64.data();
   for (py::ssize_t i = 0; i < indptr64.size(); ++i) {
-    if (values[i] < 0 || values[i] > std::numeric_limits<indptr_t>::max()) {
+    if (values[i] > std::numeric_limits<indptr_t>::max()) {
       throw std::invalid_argument(
-          "indptr values must be non-negative and representable with 32-bit "
-          "integers");
-    }
-    if (i > 0 && values[i] < values[i - 1]) {
-      throw std::invalid_argument("indptr must be non-decreasing");
+          "indptr values must be representable with 32-bit integers");
     }
   }
+  RequireOffsets(values, indptr64.size());
   if (data_size != values[indptr64.size() - 1]) {
     throw std::invalid_argument(
         "Last element of indptr must be equal to the size of data");

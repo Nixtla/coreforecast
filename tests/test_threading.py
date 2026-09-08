@@ -99,17 +99,17 @@ class TestIndptrValidation:
             GroupedArray(np.zeros(3), np.array([0, 1, 5], dtype=np.int64))
 
     @pytest.mark.parametrize(
-        "indptr",
+        "indptr,match",
         [
-            [0, 2**31 + 100, 3],  # wraps to a large negative offset
-            [0, 2**32, 3],  # wraps to zero
-            [0, -1, 3],  # negative outright
+            ([0, 2**31 + 100, 3], "32-bit"),  # wraps to a large negative offset
+            ([0, 2**32, 3], "32-bit"),  # wraps to zero
+            ([0, -1, 3], "non-negative"),  # negative outright
         ],
     )
-    def test_rejects_out_of_range_intermediate_entries(self, indptr):
+    def test_rejects_out_of_range_intermediate_entries(self, indptr, match):
         # every entry is an offset into data, so checking only the last one
         # leaves the rest free to wrap during the int32 cast
-        with pytest.raises(ValueError, match="non-negative"):
+        with pytest.raises(ValueError, match=match):
             GroupedArray(np.zeros(3), np.array(indptr, dtype=np.int64))
 
     @pytest.mark.parametrize(
@@ -152,14 +152,63 @@ class TestIndptrValidation:
             ga._take(np.array([1, 0], dtype=np.int32)), [3.0, 4.0, 5.0, 0.0, 1.0, 2.0]
         )
 
+    def test_tails_validates_its_output_indptr(self):
+        # out_indptr both sizes and indexes the output buffer but was taken on
+        # trust, so bogus offsets segfaulted
+        ga = GroupedArray(np.arange(6.0), np.array([0, 3, 6], dtype=np.int32))
+        with pytest.raises(ValueError, match="one element per group plus one"):
+            ga._tails(np.array([0, 2], dtype=np.int32))
+        with pytest.raises(ValueError, match="non-negative"):
+            ga._tails(np.array([0, -5, 2**30], dtype=np.int32))
+        with pytest.raises(ValueError, match="non-decreasing"):
+            ga._tails(np.array([0, 2, 1], dtype=np.int32))
+        np.testing.assert_array_equal(
+            ga._tails(np.array([0, 1, 2], dtype=np.int32)), [2.0, 5.0]
+        )
+
     @pytest.mark.parametrize(
         "cls", [_GroupedArrayFloat32, _GroupedArrayFloat64], ids=["f32", "f64"]
     )
     def test_typed_constructors_validate_too(self, cls):
         # these are module attributes, so they must not bypass the checks the
         # GroupedArray factory applies
-        with pytest.raises(ValueError, match="non-negative"):
+        with pytest.raises(ValueError, match="32-bit"):
             cls(np.zeros(3), np.array([0, 1, 2**31 + 5], dtype=np.int64), 1)
         with pytest.raises(ValueError, match="non-decreasing"):
             cls(np.zeros(6), np.array([0, 5, 2, 6], dtype=np.int64), 1)
         assert len(cls(np.zeros(6), [0, 3, 6], 1)) == 2
+
+
+class TestDsValidation:
+    @pytest.fixture
+    def ga(self):
+        return GroupedArray(np.arange(6.0), np.array([0, 3, 6], dtype=np.int32))
+
+    @pytest.mark.parametrize(
+        "call",
+        [
+            lambda ga, ds: ga._diffs(ds),
+            lambda ga, ds: ga._inv_diffs(ds, np.arange(2.0)),
+        ],
+        ids=["diffs", "inv_diffs"],
+    )
+    def test_rejects_a_ds_shorter_than_the_group_count(self, ga, call):
+        # ds is indexed once per group, so a short one is read past its end
+        with pytest.raises(ValueError, match="one element per group"):
+            call(ga, np.array([1], dtype=np.int32))
+
+    def test_rejects_tails_that_do_not_match_the_sum_of_ds(self, ga):
+        # the tails array is grouped directly rather than through the factory,
+        # so the last-offset check the factory does has to happen here
+        with pytest.raises(ValueError, match="sum of ds"):
+            ga._inv_diffs(np.array([1, 1], dtype=np.int32), np.arange(1.0))
+
+    def test_rejects_negative_entries(self, ga):
+        with pytest.raises(ValueError, match="d must be non-negative"):
+            ga._inv_diffs(np.array([-1, 1], dtype=np.int32), np.arange(2.0))
+
+    def test_accepts_matching_arguments(self, ga):
+        np.testing.assert_allclose(
+            ga._inv_diffs(np.array([1, 1], dtype=np.int32), np.arange(2.0)),
+            [0.0, 1.0, 3.0, 4.0, 8.0, 13.0],
+        )
