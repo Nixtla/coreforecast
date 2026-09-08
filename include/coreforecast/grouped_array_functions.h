@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <limits>
 
 namespace grouped_array_functions {
 template <typename T>

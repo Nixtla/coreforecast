@@ -1,4 +1,4 @@
-#include "common.h"
+#include "bindings.h"
 #include "rolling.h"
 
 #include "expanding.h"
@@ -35,7 +35,7 @@ py::array_t<T> ExpandingMax(const py::array_t<T> data, bool skipna = false) {
 template <typename T>
 py::array_t<T> ExpandingQuantile(const py::array_t<T> data, T p,
                                  bool skipna = false) {
-  rolling::RequireProbability("p", p);
+  RequireProbability("p", p);
   return ExpandingOp(expanding::QuantileTransform<T>, data, p, skipna);
 }
 

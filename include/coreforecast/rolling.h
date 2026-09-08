@@ -2,24 +2,16 @@
 
 #include "SkipList.h"
 
+#include <algorithm>
 #include <memory>
-#include <stdexcept>
-#include <string>
+#include <type_traits>
+#include <variant>
+#include <vector>
 
 #include "common.h"
 #include "stats.h"
-#include <variant>
 
 namespace rolling {
-
-// Quantile levels index into the sorted window, so a value outside [0, 1]
-// indexes past its end. NaN fails both comparisons and is rejected too.
-inline void RequireProbability(const char *name, double value) {
-  if (value >= 0.0 && value <= 1.0) {
-    return;
-  }
-  throw std::invalid_argument(std::string(name) + " must be between 0 and 1");
-}
 
 template <typename T, bool SkipNA> class MeanAccumulator {
 public:

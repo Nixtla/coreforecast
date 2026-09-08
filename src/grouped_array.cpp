@@ -6,7 +6,7 @@
 #include <thread>
 #include <vector>
 
-#include "common.h"
+#include "bindings.h"
 #include "diff.h"
 #include "expanding.h"
 #include "exponentially_weighted.h"
@@ -406,7 +406,7 @@ public:
   py::array_t<T> RollingQuantileTransform(int lag, T p, int window_size,
                                           int min_samples,
                                           bool skipna = false) {
-    rolling::RequireProbability("p", p);
+    RequireProbability("p", p);
     py::array_t<T> out(data_.size());
     Transform(rolling::QuantileTransform<T>, lag, out.mutable_data(),
               window_size, min_samples, p, skipna);
@@ -443,7 +443,7 @@ public:
   }
   py::array_t<T> RollingQuantileUpdate(int lag, T p, int window_size,
                                        int min_samples, bool skipna = false) {
-    rolling::RequireProbability("p", p);
+    RequireProbability("p", p);
     py::array_t<T> out(NumGroups());
     Reduce(rolling::QuantileUpdate<T>, 1, out.mutable_data(), lag, window_size,
            min_samples, p, skipna);
@@ -493,7 +493,7 @@ public:
                                                   int window_size,
                                                   int min_samples,
                                                   bool skipna = false) {
-    rolling::RequireProbability("p", p);
+    RequireProbability("p", p);
     py::array_t<T> out(data_.size());
     Transform(rolling::SeasonalQuantileTransform<T>, lag, out.mutable_data(),
               season_length, window_size, min_samples, p, skipna);
@@ -540,7 +540,7 @@ public:
   py::array_t<T> SeasonalRollingQuantileUpdate(int lag, T p, int season_length,
                                                int window_size, int min_samples,
                                                bool skipna = false) {
-    rolling::RequireProbability("p", p);
+    RequireProbability("p", p);
     py::array_t<T> out(NumGroups());
     Reduce(rolling::SeasonalQuantileUpdate<T>, 1, out.mutable_data(), lag,
            season_length, window_size, min_samples, p, skipna);
@@ -574,14 +574,14 @@ public:
     return out;
   }
   py::array_t<T> ExpandingQuantileTransform(int lag, T p, bool skipna = false) {
-    rolling::RequireProbability("p", p);
+    RequireProbability("p", p);
     py::array_t<T> out(data_.size());
     Transform(expanding::QuantileTransform<T>, lag, out.mutable_data(), p,
               skipna);
     return out;
   }
   py::array_t<T> ExpandingQuantileUpdate(int lag, T p, bool skipna = false) {
-    rolling::RequireProbability("p", p);
+    RequireProbability("p", p);
     py::array_t<T> out(NumGroups());
     Reduce(expanding::QuantileUpdate<T>, 1, out.mutable_data(), lag, p, skipna);
     return out;

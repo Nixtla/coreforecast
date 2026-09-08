@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cmath>
+#include <limits>
+
 namespace exponentially_weighted {
 template <typename T>
 inline void MeanTransform(const T *data, int n, T *out, T alpha,

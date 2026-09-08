@@ -1,4 +1,4 @@
-#include "common.h"
+#include "bindings.h"
 
 #include "rolling.h"
 
@@ -41,7 +41,7 @@ py::array_t<T> RollingMax(const py::array_t<T> data, int window_size,
 template <typename T>
 py::array_t<T> RollingQuantile(const py::array_t<T> data, int window_size,
                                int min_samples, T p, bool skipna = false) {
-  rolling::RequireProbability("p", p);
+  RequireProbability("p", p);
   return RollingOp(rolling::QuantileTransform<T>, data, window_size,
                    min_samples, p, skipna);
 }
@@ -93,7 +93,7 @@ py::array_t<T> SeasonalRollingQuantile(const py::array_t<T> data,
                                        int season_length, int window_size,
                                        int min_samples, T p,
                                        bool skipna = false) {
-  rolling::RequireProbability("p", p);
+  RequireProbability("p", p);
   return SeasonalRollingOp(rolling::SeasonalQuantileTransform<T>, data,
                            season_length, window_size, min_samples, p, skipna);
 }
