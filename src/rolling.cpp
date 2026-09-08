@@ -128,6 +128,6 @@ template <typename T> void init_roll_fns(py::module_ &m) {
 
 void init_roll(py::module_ &m) {
   py::module_ roll = m.def_submodule("rolling");
-  init_roll_fns<float>(roll);
   init_roll_fns<double>(roll);
+  init_roll_fns<float>(roll);
 }

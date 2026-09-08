@@ -12,6 +12,6 @@ template <typename T> int Period(const py::array_t<T> data, size_t max_lag) {
 
 void init_seas(py::module_ &m) {
   py::module_ seas = m.def_submodule("seasonal");
-  seas.def("period", &Period<float>);
   seas.def("period", &Period<double>);
+  seas.def("period", &Period<float>);
 }
