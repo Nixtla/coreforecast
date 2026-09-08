@@ -18,6 +18,10 @@
 
 using namespace pybind11::literals;
 
+// The module is built with -fvisibility=hidden, so anything holding a pybind
+// type has to be hidden too; internal linkage is the portable way to say it.
+namespace {
+
 // Entries used as offsets into a buffer: a negative one makes a slice start
 // before it and a decreasing one makes a slice run backwards.
 template <typename T>
@@ -40,6 +44,15 @@ inline void CheckDs(const CArray<indptr_t> &ds, int n_groups) {
   }
   for (py::ssize_t i = 0; i < ds.size(); ++i) {
     RequireNonNegative("d", ds.data()[i]);
+  }
+}
+
+// Two entries per group, read as stats[2 * i] and stats[2 * i + 1], so anything
+// shorter is read past its end.
+template <typename T>
+inline void CheckStats(const CArray<T> &stats, int n_groups) {
+  if (stats.ndim() != 2 || stats.size() != 2 * n_groups) {
+    throw std::invalid_argument("stats must have shape (n_groups, 2)");
   }
 }
 
@@ -307,17 +320,20 @@ public:
   }
 
   py::array_t<T> IndexFromEnd(int k) {
+    RequireNonNegative("k", k);
     py::array_t<T> out(NumGroups());
     Reduce(grouped_array_functions::IndexFromEnd<T>, 1, out.mutable_data(), 0,
            k);
     return out;
   }
   py::array_t<T> Head(int k) {
+    RequireNonNegative("k", k);
     py::array_t<T> out(k * NumGroups());
     Reduce(grouped_array_functions::Head<T>, k, out.mutable_data(), 0, k);
     return out;
   }
   py::array_t<T> Tail(int k) {
+    RequireNonNegative("k", k);
     py::array_t<T> out(k * NumGroups());
     Reduce(grouped_array_functions::Tail<T>, k, out.mutable_data(), 0, k);
     return out;
@@ -385,6 +401,7 @@ public:
   py::array_t<T> RollingQuantileTransform(int lag, T p, int window_size,
                                           int min_samples,
                                           bool skipna = false) {
+    rolling::RequireProbability("p", p);
     py::array_t<T> out(data_.size());
     Transform(rolling::QuantileTransform<T>, lag, out.mutable_data(),
               window_size, min_samples, p, skipna);
@@ -421,6 +438,7 @@ public:
   }
   py::array_t<T> RollingQuantileUpdate(int lag, T p, int window_size,
                                        int min_samples, bool skipna = false) {
+    rolling::RequireProbability("p", p);
     py::array_t<T> out(NumGroups());
     Reduce(rolling::QuantileUpdate<T>, 1, out.mutable_data(), lag, window_size,
            min_samples, p, skipna);
@@ -470,6 +488,7 @@ public:
                                                   int window_size,
                                                   int min_samples,
                                                   bool skipna = false) {
+    rolling::RequireProbability("p", p);
     py::array_t<T> out(data_.size());
     Transform(rolling::SeasonalQuantileTransform<T>, lag, out.mutable_data(),
               season_length, window_size, min_samples, p, skipna);
@@ -516,6 +535,7 @@ public:
   py::array_t<T> SeasonalRollingQuantileUpdate(int lag, T p, int season_length,
                                                int window_size, int min_samples,
                                                bool skipna = false) {
+    rolling::RequireProbability("p", p);
     py::array_t<T> out(NumGroups());
     Reduce(rolling::SeasonalQuantileUpdate<T>, 1, out.mutable_data(), lag,
            season_length, window_size, min_samples, p, skipna);
@@ -549,12 +569,14 @@ public:
     return out;
   }
   py::array_t<T> ExpandingQuantileTransform(int lag, T p, bool skipna = false) {
+    rolling::RequireProbability("p", p);
     py::array_t<T> out(data_.size());
     Transform(expanding::QuantileTransform<T>, lag, out.mutable_data(), p,
               skipna);
     return out;
   }
   py::array_t<T> ExpandingQuantileUpdate(int lag, T p, bool skipna = false) {
+    rolling::RequireProbability("p", p);
     py::array_t<T> out(NumGroups());
     Reduce(expanding::QuantileUpdate<T>, 1, out.mutable_data(), lag, p, skipna);
     return out;
@@ -587,12 +609,14 @@ public:
     return ScalerStats(scalers::RobustScalerMadStats<T>, skipna);
   }
   py::array_t<T> ApplyScaler(const CArray<T> stats) {
+    CheckStats(stats, NumGroups());
     py::array_t<T> out(data_.size());
     ScalerTransform(scalers::CommonScalerTransform<T>, stats.data(),
                     out.mutable_data());
     return out;
   }
   py::array_t<T> InvertScaler(const CArray<T> stats) {
+    CheckStats(stats, NumGroups());
     py::array_t<T> out(data_.size());
     ScalerTransform(scalers::CommonScalerInverseTransform<T>, stats.data(),
                     out.mutable_data());
@@ -611,12 +635,14 @@ public:
     return out;
   }
   py::array_t<T> BoxCoxTransform(const CArray<T> lambdas) {
+    CheckStats(lambdas, NumGroups());
     py::array_t<T> out(data_.size());
     ScalerTransform(scalers::BoxCoxTransform<T>, lambdas.data(),
                     out.mutable_data());
     return out;
   }
   py::array_t<T> BoxCoxInverseTransform(const CArray<T> lambdas) {
+    CheckStats(lambdas, NumGroups());
     py::array_t<T> out(data_.size());
     ScalerTransform(scalers::BoxCoxInverseTransform<T>, lambdas.data(),
                     out.mutable_data());
@@ -634,6 +660,9 @@ public:
     return out;
   }
   py::array_t<T> NumSeasDiffsPeriods(int max_d, const CArray<T> periods) {
+    if (periods.size() != NumGroups()) {
+      throw std::invalid_argument("periods must have one element per group");
+    }
     py::array_t<T> periods_and_out({static_cast<int>(NumGroups()), 2});
     auto periods_ptr = periods.data();
     auto periods_and_out_ptr = periods_and_out.mutable_data();
@@ -861,6 +890,8 @@ template <typename T> void bind_ga(py::module &m, const std::string &name) {
       .def("_inv_diff", &GroupedArray<T>::InvertDifference)
       .def("_inv_diffs", &GroupedArray<T>::InvertDifferences);
 }
+
+} // namespace
 
 void init_ga(py::module_ &m) {
   py::module_ ga = m.def_submodule("grouped_array");

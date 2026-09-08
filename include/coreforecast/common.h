@@ -21,7 +21,8 @@ using CArray = py::array_t<T, py::array::c_style | py::array::forcecast>;
 // Ensures contiguity without putting c_style on the parameter itself: doing
 // that makes array_t::check_ fail for a strided array, so pybind's
 // no-conversion pass matches no overload and the conversion pass picks the
-// first one registered, silently downcasting float64 input to float32.
+// first one registered, silently converting the input to that overload's dtype
+// (float64, which is the one registered first).
 template <typename T>
 inline CArray<T> AsContiguous(const py::array_t<T> &data) {
   return CArray<T>::ensure(data);

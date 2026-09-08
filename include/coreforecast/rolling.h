@@ -309,7 +309,7 @@ public:
 
   void Update(T x) noexcept { Insert(x); }
 
-  T Update(T x, int n) noexcept {
+  T Update(T x, int) noexcept {
     Insert(x);
     if constexpr (!SkipNA) {
       if (has_nan_)
@@ -320,7 +320,7 @@ public:
     return Front().second;
   }
 
-  T Update(T new_x, T old_x) noexcept {
+  T Update(T new_x, T) noexcept {
     Insert(new_x);
     if constexpr (!SkipNA) {
       if (has_nan_)

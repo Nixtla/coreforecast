@@ -1,6 +1,7 @@
 #pragma once
 
 #include "brent.h"
+#include "common.h"
 #include "stats.h"
 
 #include <Eigen/Dense>
@@ -123,6 +124,7 @@ T BoxCox_GuerreroCV(T lambda, const std::vector<T> &x_mean,
 template <typename T>
 void BoxCoxLambdaGuerrero(const T *x, int n, T *out, int period, T lower,
                           T upper) {
+  RequirePositive("season_length", period);
   if (n <= 2 * period) {
     *out = T{1.0};
     return;
