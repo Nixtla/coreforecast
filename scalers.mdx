@@ -85,7 +85,7 @@ Scale each group to the [0, 1] interval
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values when computing statistics. When False (default), NaN values are included and may result in NaN statistics. | <code>False</code>
+`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values when computing statistics. When False (default), only a leading run of NaNs is supported; an interior one leaves the statistics unspecified, so pass True for that. | <code>False</code>
 
 #### `LocalMinMaxScaler.fit`
 
@@ -193,7 +193,7 @@ Scale each group to have zero mean and unit variance
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values when computing statistics. When False (default), NaN values are included and may result in NaN statistics. | <code>False</code>
+`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values when computing statistics. When False (default), only a leading run of NaNs is supported; an interior one leaves the statistics unspecified, so pass True for that. | <code>False</code>
 
 #### `LocalStandardScaler.fit`
 
@@ -302,7 +302,7 @@ Scale each group using robust statistics
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `scale` | <code>[str](#str)</code> | Type of robust scaling to use. Valid options are 'iqr' and 'mad'. If 'iqr' will use the inter quartile range as the scale. If 'mad' will use median absolute deviation as the scale. | *required*
-`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values when computing statistics. When False (default), NaN values are included and may result in NaN statistics. | <code>False</code>
+`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values when computing statistics. When False (default), only a leading run of NaNs is supported; an interior one leaves the statistics unspecified, so pass True for that. | <code>False</code>
 
 #### `LocalRobustScaler.fit`
 
