@@ -111,16 +111,17 @@ jobs:
             -Ccmake.define.CMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -D_GLIBCXX_ASSERTIONS" \
             -Ccmake.define.CMAKE_SHARED_LINKER_FLAGS="-fsanitize=address,undefined"
 
-      # --no-sync for the same reason: a re-sync here reinstalls the project, and
-      # throwing from an uninstrumented library under a preloaded libasan kills
-      # the process with no report. detect_leaks=0 because CPython leaks by
-      # design; halt_on_error makes a UBSan report fail the job, not only print
+      # --no-sync so it can't reinstall the project over the instrumented build.
+      # Both runtimes get preloaded: the module is built with address,undefined,
+      # and with libasan alone the process dies with no report the first time a
+      # kernel throws. detect_leaks=0 because CPython leaks by design;
+      # halt_on_error makes a UBSan report fail the job instead of only printing
       - name: Run tests
         env:
           ASAN_OPTIONS: detect_leaks=0
           UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
         run: |
-          LD_PRELOAD=$(gcc -print-file-name=libasan.so) \
+          LD_PRELOAD="$(gcc -print-file-name=libasan.so):$(gcc -print-file-name=libubsan.so)" \
             uv run --no-sync pytest tests -k "not efficiency"
 
   run_benchmarks:
