@@ -48,6 +48,33 @@ TEST_CASE_TEMPLATE("Difference and InvertDifference round-trip", T, float,
   CheckClose(out, std::vector<T>(n, NaN<T>));
 }
 
+TEST_CASE_TEMPLATE("NumSeasDiffsPeriods reads the period as a float", T, float,
+                   double) {
+  // five seasons of a period-12 pattern on a trend
+  std::vector<T> x(60);
+  for (int i = 0; i < 60; ++i) {
+    x[i] = static_cast<T>(i % 12 + i);
+  }
+  T want;
+  diff::NumSeasDiffs(In(x), Out(want), 12, 1);
+  CHECK(want == 1);
+  std::vector<T> row = {12, 0};
+  diff::NumSeasDiffsPeriods(In(x), Out(row), 1);
+  CHECK(row[1] == want);
+  // no period for the group gives no count, not a cast of NaN
+  row = {NaN<T>, 0};
+  diff::NumSeasDiffsPeriods(In(x), Out(row), 1);
+  CHECK(std::isnan(row[1]));
+  // a period the group cannot hold twice is zero without being cast
+  for (T period : {T{61}, std::numeric_limits<T>::max(),
+                   std::numeric_limits<T>::infinity()}) {
+    CAPTURE(period);
+    row = {period, NaN<T>};
+    diff::NumSeasDiffsPeriods(In(x), Out(row), 1);
+    CHECK(row[1] == 0);
+  }
+}
+
 TEST_CASE("KPSS matches statsmodels") {
   // np.cumsum(np.random.default_rng(42).normal(size=64)); the expected values
   // are statsmodels.tsa.stattools.kpss(x, regression="c", nlags=k)[0]

@@ -124,11 +124,23 @@ void NumSeasDiffs(std::span<const T> x, std::span<T> out, index_t period,
 }
 
 // period_and_out holds the period on entry and the result on exit, so the
-// per-group period can travel through Reduce's output buffer.
+// per-group period can travel through Reduce's output buffer. The period is a
+// float from Periods: NaN (no period for this group) gives a NaN count, and
+// anything past the group length gives zero before the cast, which is
+// otherwise undefined for NaN, infinity and values beyond index_t.
 template <typename T>
 void NumSeasDiffsPeriods(std::span<const T> x, std::span<T> period_and_out,
                          index_t max_d) {
-  const auto period = static_cast<index_t>(period_and_out[0]);
-  NumSeasDiffs(x, period_and_out.subspan(1, 1), period, max_d);
+  const T period = period_and_out[0];
+  const auto out = period_and_out.subspan(1, 1);
+  if (std::isnan(period)) {
+    out[0] = kNaN<T>;
+    return;
+  }
+  if (period > static_cast<T>(std::ssize(x))) {
+    out[0] = 0; // NumSeasDiffs needs two periods
+    return;
+  }
+  NumSeasDiffs(x, out, static_cast<index_t>(period), max_d);
 }
 } // namespace diff

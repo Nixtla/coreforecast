@@ -88,6 +88,18 @@ class TestPeriodsValidation:
         assert np.isnan(out[0])
         assert out[1] == ga._num_seas_diffs(12, 1)[1]
 
+    def test_a_nan_or_oversized_period_on_a_live_group_is_not_cast(self):
+        # the kernel used to cast the period to an integer before looking at
+        # it, which is undefined for NaN and for anything past int64: NaN gave
+        # 0 on arm64 and inf overflowed the two-period check
+        x = np.tile(np.arange(12.0), 5) + np.arange(60.0)
+        ga = GroupedArray(np.hstack([x, x]), np.array([0, 60, 120], dtype=np.int32))
+        out = ga._num_seas_diffs_periods(1, np.array([np.nan, 12.0]))
+        assert np.isnan(out[0]) and out[1] == 1
+        for period in [61.0, np.inf, 1e300]:
+            out = ga._num_seas_diffs_periods(1, np.array([period, 12.0]))
+            np.testing.assert_array_equal(out, [0.0, 1.0])
+
 
 class TestStatsValidation:
     @pytest.mark.parametrize(
