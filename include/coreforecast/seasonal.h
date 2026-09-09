@@ -3,11 +3,12 @@
 #include "common.h"
 #include "stl.hpp"
 
-#include <Eigen/Dense>
-
 #include <algorithm>
 #include <cmath>
 #include <span>
+#include <vector>
+
+#include "stats.h"
 
 namespace seasonal {
 template <typename T>
@@ -55,21 +56,19 @@ template <typename T> T SeasHeuristic(std::span<const T> x, index_t period) {
 template <typename T>
 void GreatestAutocovariance(std::span<const T> x, std::span<T> out,
                             index_t max_lag) {
-  index_t n = std::ssize(x);
-  Eigen::VectorX<T> resids(n);
-  Difference(x, std::span<T>{resids.data(), static_cast<size_t>(n)}, 1);
-  const index_t start =
-      FirstNotNaN(std::span<const T>{resids.data(), static_cast<size_t>(n)});
-  if (start == n) {
+  std::vector<T> diffs(x.size());
+  Difference(x, std::span<T>{diffs}, 1);
+  const std::span<const T> all{diffs};
+  const std::span<const T> resids = all.subspan(FirstNotNaN(all));
+  const index_t n = std::ssize(resids);
+  if (n == 0) {
     out[0] = T{0};
     return;
   }
-  n -= start;
-  resids = resids.tail(n).eval();
   max_lag = std::min(max_lag, n - 1);
   std::pair<T, index_t> result{-std::numeric_limits<T>::infinity(), 0};
   for (index_t i = 2; i < max_lag + 1; ++i) {
-    T cov = resids.head(n - i).dot(resids.tail(n - i));
+    const T cov = stats::Dot(resids.first(n - i), resids.subspan(i));
     if (cov > result.first) {
       result = {cov, i};
     }

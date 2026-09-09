@@ -4,8 +4,6 @@
 #include "common.h"
 #include "stats.h"
 
-#include <Eigen/Dense>
-
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -61,13 +59,10 @@ template <typename T>
 inline void StandardScalerStats(std::span<const T> data, std::span<T> stats,
                                 bool skipna = false) {
   WithSkipNA(data, stats, skipna, [](std::span<const T> d, std::span<T> s) {
-    const Eigen::Map<const Eigen::Vector<T, Eigen::Dynamic>> v(d.data(),
-                                                               d.size());
-    auto double_v = v.template cast<double>().array();
-    double mean = double_v.mean();
-    double std = std::sqrt((double_v - mean).square().mean());
+    const double mean = stats::Mean(d);
+    const double var = stats::SquaredDeviations(d, mean) / d.size();
     s[0] = static_cast<T>(mean);
-    s[1] = static_cast<T>(std);
+    s[1] = static_cast<T>(std::sqrt(var));
   });
 }
 
@@ -114,14 +109,14 @@ T BoxCox_GuerreroCV(T lambda, const std::vector<T> &x_mean,
   if (x_std.size() - start_idx < 2) {
     return std::numeric_limits<T>::max();
   }
-  const Eigen::Map<const Eigen::VectorX<T>> mean_vec(x_mean.data() + start_idx,
-                                                     x_mean.size() - start_idx);
-  const Eigen::Map<const Eigen::VectorX<T>> std_vec(x_std.data() + start_idx,
-                                                    x_std.size() - start_idx);
-  auto x_rat =
-      std_vec.array() / (mean_vec.array().log() * (1.0 - lambda)).exp();
-  double mean = x_rat.mean();
-  double var = (x_rat.array() - mean).square().sum() / (x_rat.size() - 1);
+  const size_t m = x_std.size() - start_idx;
+  std::vector<T> x_rat(m);
+  for (size_t i = 0; i < m; ++i) {
+    x_rat[i] = x_std[start_idx + i] /
+               std::exp(std::log(x_mean[start_idx + i]) * (1 - lambda));
+  }
+  const double mean = stats::Mean<T>(x_rat);
+  const double var = stats::SquaredDeviations<T>(x_rat, mean) / (m - 1);
   return static_cast<T>(std::sqrt(var) / mean);
 }
 
@@ -209,18 +204,23 @@ inline T BoxCoxInverseTransform(T x, T lambda, T /*unused*/) {
 
 template <typename T> T BoxCoxLogLik(T lambda, std::span<const T> data) {
   const index_t n = std::ssize(data);
-  const Eigen::Map<const Eigen::VectorX<T>> v(data.data(), n);
-  const auto logdata = v.array().log().template cast<double>();
+  std::vector<double> logdata(n);
+  for (index_t i = 0; i < n; ++i) {
+    logdata[i] = std::log(static_cast<double>(data[i]));
+  }
+  const std::span<const double> logs{logdata};
   double var;
   if (lambda == 0.0) {
-    double mean = logdata.array().mean();
-    var = (logdata.array() - mean).square().mean();
+    var = stats::SquaredDeviations(logs, stats::Mean(logs)) / n;
   } else {
-    auto transformed = (v.array().log() * lambda).exp() / lambda;
-    double mean = transformed.mean();
-    var = (transformed - mean).square().mean();
+    std::vector<T> transformed(n);
+    for (index_t i = 0; i < n; ++i) {
+      transformed[i] = std::exp(std::log(data[i]) * lambda) / lambda;
+    }
+    const std::span<const T> tr{transformed};
+    var = stats::SquaredDeviations(tr, stats::Mean(tr)) / n;
   }
-  return -static_cast<T>((lambda - 1) * logdata.sum() -
+  return -static_cast<T>((lambda - 1) * stats::Sum(logs) -
                          n / 2.0 * std::log(var));
 }
 

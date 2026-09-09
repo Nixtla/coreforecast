@@ -9,18 +9,15 @@ find_package(pybind11 CONFIG REQUIRED)
 
 include_directories(include/coreforecast)
 # SYSTEM keeps the third-party headers out of the warning gate below
-include_directories(
-  SYSTEM
-  external_libs/skiplist/src/cpp
-  external_libs/stl-cpp/include
-  external_libs/eigen)
+include_directories(SYSTEM external_libs/skiplist/src/cpp
+                    external_libs/stl-cpp/include)
 set(SKIPLIST_SOURCE external_libs/skiplist/src/cpp/SkipList.cpp)
 # vendored source, built into our targets, so its warnings aren't ours
 set_source_files_properties(
   ${SKIPLIST_SOURCE}
   PROPERTIES COMPILE_OPTIONS $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-w>)
 
-# MSVC is left out until /W4 on the Eigen and pybind11 headers gets its own pass
+# MSVC is left out until /W4 on the pybind11 headers gets its own pass
 set(COREFORECAST_WARNINGS $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Wall -Wextra>)
 # Off by default so a new compiler warning about existing code can't break a
 # source install; the warnings job in CI turns it on.

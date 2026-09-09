@@ -39,6 +39,14 @@
   cleared. Transforms were unaffected since that column is not read, but the
   attribute differed between identical fits. It is now zero.
 
+### Build
+
+- The Eigen submodule is gone; the handful of reductions it backed are plain
+  loops now. Source builds no longer need to fetch it. The box-cox lambda
+  estimators run about twice as fast because their transform is evaluated once
+  instead of once per statistic; results may differ from previous versions in
+  the last bits because the summation order changed.
+
 ### Documentation
 
 - The local scalers' `skipna` documentation said an interior NaN "may result in
