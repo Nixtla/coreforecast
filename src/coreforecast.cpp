@@ -516,13 +516,13 @@ public:
       throw std::invalid_argument("periods must have one element per group");
     }
     // the period rides along in column 0 of the output row so the kernel can
-    // see its group's value
+    // see its group's value. A NaN period comes from a group Reduce is going
+    // to skip, so it is checked as a float rather than cast.
     py::array_t<T> periods_and_out({NumGroups(), index_t{2}});
     const auto rows = MutableView(periods_and_out);
     const auto periods_view = View(periods);
     for (index_t i = 0; i < NumGroups(); ++i) {
-      RequireNonNegative("season_length",
-                         static_cast<index_t>(periods_view[i]));
+      RequireNonNegative("season_length", periods_view[i]);
       rows[2 * i] = periods_view[i];
     }
     Reduce(diff::NumSeasDiffsPeriods<T>, 2, rows, 0, max_d);

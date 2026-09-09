@@ -29,7 +29,11 @@ inline void RequirePositive(const char *name, index_t value) {
 }
 
 // Offsets into the buffers: a negative one reads and writes before their start.
-inline void RequireNonNegative(const char *name, index_t value) {
+// Checked in the value's own type: a floating-point NaN (a period from a group
+// that had no valid data) compares false and travels on to the driver, which
+// skips that group; casting it to an integer first would be undefined.
+template <typename V>
+inline void RequireNonNegative(const char *name, V value) {
   if (value < 0) {
     throw std::invalid_argument(std::string(name) + " must be non-negative");
   }
