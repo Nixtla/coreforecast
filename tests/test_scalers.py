@@ -30,11 +30,18 @@ from . import (
 def test_boxcox_stats_second_column_is_deterministic_padding(data, indptr, method):
     # the lambda kernels write one value per group into a (n_groups, 2) array;
     # the second column used to be left as whatever the allocation held
-    ga = GroupedArray(np.abs(data) + 1.0, indptr)
+    data = np.abs(data) + 1.0
+    # a group with nothing valid gets a whole NaN row from the driver instead
+    data[indptr[3] : indptr[4]] = np.nan
+    ga = GroupedArray(data, indptr)
     first = LocalBoxCoxScaler(method=method, season_length=10).fit(ga).stats_
     second = LocalBoxCoxScaler(method=method, season_length=10).fit(ga).stats_
     assert first.shape == (len(ga), 2)
-    np.testing.assert_array_equal(first[:, 1], 0.0)
+    finite = np.ones(len(ga), dtype=bool)
+    finite[3] = False
+    assert np.isfinite(first[finite, 0]).all()
+    np.testing.assert_array_equal(first[finite, 1], 0.0)
+    assert np.isnan(first[3]).all()
     np.testing.assert_array_equal(first, second)
 
 

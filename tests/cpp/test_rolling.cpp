@@ -118,7 +118,8 @@ TEST_CASE_TEMPLATE("update equals the last element of transform", T, float,
       CAPTURE(w);
       CAPTURE(ms);
       std::vector<T> full(n);
-      T last;
+      // NaN so a kernel that stops writing fails instead of comparing garbage
+      T last = NaN<T>;
 
       rolling::MeanTransform(In(data), Out(full), Window{w, ms, skipna});
       rolling::Update(rolling::MeanTransform<T>, In(data), Out(last),
@@ -173,7 +174,7 @@ TEST_CASE_TEMPLATE("seasonal rolling equals rolling applied per phase", T,
                                SeasonalWindow{season, {w, ms, true}});
     CheckClose(out, want);
 
-    T last;
+    T last = NaN<T>;
     auto update = [](std::span<const T> in, std::span<T> out, const Window &w) {
       rolling::Update(rolling::MeanTransform<T>, in, out, w);
     };
@@ -229,7 +230,7 @@ TEST_CASE_TEMPLATE("expanding transforms are cumulative statistics", T, float,
     }
     CheckClose(out, want);
 
-    T last;
+    T last = NaN<T>;
     expanding::QuantileUpdate(In(data), Out(last), p, skipna);
     CheckClose(last, want[n - 1]);
   }

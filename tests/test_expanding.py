@@ -11,15 +11,12 @@ other_ops = [op for op in cf_expanding.__all__ if op not in quantile_ops]
 
 @pytest.mark.parametrize("op", other_ops)
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
-def test_expanding(op, dtype):
-    x = np.random.rand(100).astype(dtype)
+def test_expanding(op, dtype, rng):
+    x = rng.random(100).astype(dtype)
     serie = pd.Series(x)
     cf_res = getattr(cf_expanding, op)(x)
     pd_res = getattr(serie.expanding(), op.replace("expanding_", ""))()
-    # pandas computes in float64; the float32 std of the first two values is
-    # dominated by cancellation and lands around 5e-5 relative on unlucky draws
-    rtol = 1e-4 if dtype == np.float32 else 1e-5
-    np.testing.assert_allclose(cf_res, pd_res, rtol=rtol)
+    np.testing.assert_allclose(cf_res, pd_res, rtol=1e-5)
 
 
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])

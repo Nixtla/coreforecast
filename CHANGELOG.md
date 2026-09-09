@@ -38,7 +38,9 @@
 - `LocalBoxCoxScaler.stats_` had an uninitialised second column: the lambda
   kernels write one value per group and the array holding them was never
   cleared. Transforms were unaffected since that column is not read, but the
-  attribute differed between identical fits. It is now zero.
+  attribute differed between identical fits. It is now deterministic padding:
+  zero for a group that produced a lambda, NaN for an empty or all-NaN group,
+  whose whole row the driver fills.
 
 ### Build
 
