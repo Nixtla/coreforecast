@@ -52,8 +52,7 @@ struct Window {
   index_t min_samples;
   bool skipna;
 
-  static Window Checked(index_t window_size, index_t min_samples,
-                        bool skipna) {
+  static Window Checked(index_t window_size, index_t min_samples, bool skipna) {
     RequirePositive("window_size", window_size);
     RequirePositive("min_samples", min_samples);
     return {window_size, min_samples, skipna};

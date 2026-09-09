@@ -60,8 +60,7 @@ inline void MaxTransform(std::span<const T> data, std::span<T> out,
 template <typename T>
 inline void QuantileTransform(std::span<const T> data, std::span<T> out, T p,
                               bool skipna = false) {
-  rolling::QuantileTransform(data, out, Window{std::ssize(data), 1, skipna},
-                             p);
+  rolling::QuantileTransform(data, out, Window{std::ssize(data), 1, skipna}, p);
 }
 
 template <typename T>

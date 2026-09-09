@@ -25,8 +25,8 @@ std::vector<T> RefRolling(const std::vector<T> &data, int w, int ms,
   for (int i = 0; i < n; ++i) {
     const int lo = std::max(0, i - w + 1);
     const auto vals = Valid(data, lo, i + 1, skipna);
-    const bool ok = gate_on_count ? static_cast<int>(vals.size()) >= ms
-                                  : i + 1 >= ms;
+    const bool ok =
+        gate_on_count ? static_cast<int>(vals.size()) >= ms : i + 1 >= ms;
     if (ok && !vals.empty()) {
       out[i] = stat(vals);
     }
@@ -55,8 +55,8 @@ TEST_CASE_TEMPLATE("rolling transforms match an O(n*w) reference", T, float,
   const T p = static_cast<T>(0.3);
   for (bool skipna : {false, true}) {
     // interior NaN is only defined behaviour with skipna
-    const auto data = skipna ? WithNaN(Random<T>(n), {0, 1, 7, 8, 9, 20})
-                             : Random<T>(n);
+    const auto data =
+        skipna ? WithNaN(Random<T>(n), {0, 1, 7, 8, 9, 20}) : Random<T>(n);
     for (const auto [w, ms] : kWindows) {
       CAPTURE(skipna);
       CAPTURE(w);
@@ -76,14 +76,16 @@ TEST_CASE_TEMPLATE("rolling transforms match an O(n*w) reference", T, float,
       CheckClose(out, RefRolling(data, w, ms, skipna, false, Max<T>));
 
       rolling::QuantileTransform(In(data), Out(out), Window{w, ms, skipna}, p);
-      CheckClose(out, RefRolling(data, w, ms, skipna, false,
-                                 [p](const auto &v) { return Quantile(v, p); }));
+      CheckClose(out,
+                 RefRolling(data, w, ms, skipna, false,
+                            [p](const auto &v) { return Quantile(v, p); }));
     }
   }
 }
 
-TEST_CASE_TEMPLATE("rolling transforms on fewer samples than min_samples are NaN",
-                   T, float, double) {
+TEST_CASE_TEMPLATE(
+    "rolling transforms on fewer samples than min_samples are NaN", T, float,
+    double) {
   const auto data = Random<T>(2);
   std::vector<T> out(2, T{0});
   rolling::MeanTransform(In(data), Out(out), Window{5, 3, false});
@@ -119,23 +121,28 @@ TEST_CASE_TEMPLATE("update equals the last element of transform", T, float,
       T last;
 
       rolling::MeanTransform(In(data), Out(full), Window{w, ms, skipna});
-      rolling::MeanUpdate(In(data), Out(last), Window{w, ms, skipna});
+      rolling::Update(rolling::MeanTransform<T>, In(data), Out(last),
+                      Window{w, ms, skipna});
       CheckClose(last, full[n - 1]);
 
       rolling::StdTransform(In(data), Out(full), Window{w, ms, skipna});
-      rolling::StdUpdate(In(data), Out(last), Window{w, ms, skipna});
+      rolling::Update(rolling::StdTransform<T>, In(data), Out(last),
+                      Window{w, ms, skipna});
       CheckClose(last, full[n - 1]);
 
       rolling::MinTransform(In(data), Out(full), Window{w, ms, skipna});
-      rolling::MinUpdate(In(data), Out(last), Window{w, ms, skipna});
+      rolling::Update(rolling::MinTransform<T>, In(data), Out(last),
+                      Window{w, ms, skipna});
       CheckClose(last, full[n - 1]);
 
       rolling::MaxTransform(In(data), Out(full), Window{w, ms, skipna});
-      rolling::MaxUpdate(In(data), Out(last), Window{w, ms, skipna});
+      rolling::Update(rolling::MaxTransform<T>, In(data), Out(last),
+                      Window{w, ms, skipna});
       CheckClose(last, full[n - 1]);
 
       rolling::QuantileTransform(In(data), Out(full), Window{w, ms, skipna}, p);
-      rolling::QuantileUpdate(In(data), Out(last), Window{w, ms, skipna}, p);
+      rolling::Update(rolling::QuantileTransform<T>, In(data), Out(last),
+                      Window{w, ms, skipna}, p);
       CheckClose(last, full[n - 1]);
     }
   }
@@ -162,13 +169,16 @@ TEST_CASE_TEMPLATE("seasonal rolling equals rolling applied per phase", T,
       }
     }
     std::vector<T> out(n);
-    rolling::SeasonalMeanTransform(In(data), Out(out),
-                                   SeasonalWindow{season, {w, ms, true}});
+    rolling::SeasonalTransform(rolling::MeanTransform<T>, In(data), Out(out),
+                               SeasonalWindow{season, {w, ms, true}});
     CheckClose(out, want);
 
     T last;
-    rolling::SeasonalMeanUpdate(In(data), Out(last),
-                                SeasonalWindow{season, {w, ms, true}});
+    auto update = [](std::span<const T> in, std::span<T> out, const Window &w) {
+      rolling::Update(rolling::MeanTransform<T>, in, out, w);
+    };
+    rolling::SeasonalUpdate(update, In(data), Out(last),
+                            SeasonalWindow{season, {w, ms, true}});
     CheckClose(last, want[n - 1]);
   }
 }
@@ -177,7 +187,8 @@ TEST_CASE_TEMPLATE("expanding transforms are cumulative statistics", T, float,
                    double) {
   const int n = 15;
   for (bool skipna : {false, true}) {
-    const auto data = skipna ? WithNaN(Random<T>(n, 5), {0, 4, 5}) : Random<T>(n, 5);
+    const auto data =
+        skipna ? WithNaN(Random<T>(n, 5), {0, 4, 5}) : Random<T>(n, 5);
     CAPTURE(skipna);
     std::vector<T> out(n);
     std::vector<T> want(n);

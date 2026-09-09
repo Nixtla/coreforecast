@@ -344,8 +344,7 @@ private:
 template <typename T>
 void MinTransform(std::span<const T> data, std::span<T> out, const Window &w) {
   if (w.skipna) {
-    Transform<T, CompAccumulator<T, std::greater_equal<T>, true>>(data, out,
-                                                                  w);
+    Transform<T, CompAccumulator<T, std::greater_equal<T>, true>>(data, out, w);
   } else {
     Transform<T, CompAccumulator<T, std::greater_equal<T>, false>>(data, out,
                                                                    w);
@@ -482,36 +481,6 @@ inline void SeasonalTransform(Func RollingTfm, std::span<const T> data,
   }
 }
 
-template <typename T>
-inline void SeasonalMeanTransform(std::span<const T> data, std::span<T> out,
-                                  const SeasonalWindow &sw) {
-  SeasonalTransform(MeanTransform<T>, data, out, sw);
-}
-
-template <typename T>
-inline void SeasonalStdTransform(std::span<const T> data, std::span<T> out,
-                                 const SeasonalWindow &sw) {
-  SeasonalTransform(StdTransform<T>, data, out, sw);
-}
-
-template <typename T>
-inline void SeasonalMinTransform(std::span<const T> data, std::span<T> out,
-                                 const SeasonalWindow &sw) {
-  SeasonalTransform(MinTransform<T>, data, out, sw);
-}
-
-template <typename T>
-inline void SeasonalMaxTransform(std::span<const T> data, std::span<T> out,
-                                 const SeasonalWindow &sw) {
-  SeasonalTransform(MaxTransform<T>, data, out, sw);
-}
-
-template <typename T>
-void SeasonalQuantileTransform(std::span<const T> data, std::span<T> out,
-                               const SeasonalWindow &sw, T p) {
-  SeasonalTransform(QuantileTransform<T>, data, out, sw, p);
-}
-
 // The value the rolling transform would put at the last position; out has
 // one element.
 template <typename Func, typename T, typename... Args>
@@ -528,32 +497,6 @@ inline void Update(Func RollingTfm, std::span<const T> data, std::span<T> out,
   RollingTfm(data.last(n_samples), std::span<T>{buffer}, w,
              std::forward<Args>(args)...);
   out[0] = buffer[n_samples - 1];
-}
-
-template <typename T>
-void MeanUpdate(std::span<const T> data, std::span<T> out, const Window &w) {
-  Update(MeanTransform<T>, data, out, w);
-}
-
-template <typename T>
-void StdUpdate(std::span<const T> data, std::span<T> out, const Window &w) {
-  Update(StdTransform<T>, data, out, w);
-}
-
-template <typename T>
-void MinUpdate(std::span<const T> data, std::span<T> out, const Window &w) {
-  Update(MinTransform<T>, data, out, w);
-}
-
-template <typename T>
-void MaxUpdate(std::span<const T> data, std::span<T> out, const Window &w) {
-  Update(MaxTransform<T>, data, out, w);
-}
-
-template <typename T>
-void QuantileUpdate(std::span<const T> data, std::span<T> out, const Window &w,
-                    T p) {
-  Update(QuantileTransform<T>, data, out, w, p);
 }
 
 template <typename Func, typename T, typename... Args>
@@ -578,33 +521,4 @@ inline void SeasonalUpdate(Func RollingUpdate, std::span<const T> data,
                 std::forward<Args>(args)...);
 }
 
-template <typename T>
-void SeasonalMeanUpdate(std::span<const T> data, std::span<T> out,
-                        const SeasonalWindow &sw) {
-  SeasonalUpdate(MeanUpdate<T>, data, out, sw);
-}
-
-template <typename T>
-void SeasonalStdUpdate(std::span<const T> data, std::span<T> out,
-                       const SeasonalWindow &sw) {
-  SeasonalUpdate(StdUpdate<T>, data, out, sw);
-}
-
-template <typename T>
-void SeasonalMinUpdate(std::span<const T> data, std::span<T> out,
-                       const SeasonalWindow &sw) {
-  SeasonalUpdate(MinUpdate<T>, data, out, sw);
-}
-
-template <typename T>
-void SeasonalMaxUpdate(std::span<const T> data, std::span<T> out,
-                       const SeasonalWindow &sw) {
-  SeasonalUpdate(MaxUpdate<T>, data, out, sw);
-}
-
-template <typename T>
-void SeasonalQuantileUpdate(std::span<const T> data, std::span<T> out,
-                            const SeasonalWindow &sw, T p) {
-  SeasonalUpdate(QuantileUpdate<T>, data, out, sw, p);
-}
 } // namespace rolling

@@ -58,7 +58,8 @@ void GreatestAutocovariance(std::span<const T> x, std::span<T> out,
   index_t n = std::ssize(x);
   Eigen::VectorX<T> resids(n);
   Difference(x, std::span<T>{resids.data(), static_cast<size_t>(n)}, 1);
-  const index_t start = FirstNotNaN(std::span<const T>{resids.data(), static_cast<size_t>(n)});
+  const index_t start =
+      FirstNotNaN(std::span<const T>{resids.data(), static_cast<size_t>(n)});
   if (start == n) {
     out[0] = T{0};
     return;

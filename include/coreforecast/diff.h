@@ -113,9 +113,9 @@ void NumSeasDiffs(std::span<const T> x, std::span<T> out, index_t period,
     std::copy(diff_x.begin(), diff_x.end(), x_vec.begin());
     // we'll have d * period NaNs and we need 2 * period samples for the STL
     if (n > (d + 2) * period && d < max_d) {
-      do_diff = seasonal::SeasHeuristic(
-                    std::span<const T>{x_vec}.subspan(d * period), period) >
-                threshold;
+      do_diff =
+          seasonal::SeasHeuristic(std::span<const T>{x_vec}.subspan(d * period),
+                                  period) > threshold;
     } else {
       do_diff = false;
     }
