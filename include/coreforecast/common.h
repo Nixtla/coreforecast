@@ -5,6 +5,7 @@
 // in bindings.h.
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <cstdint>
 #include <limits>
@@ -42,6 +43,33 @@ inline void RequireProbability(const char *name, double value) {
   }
   throw std::invalid_argument(std::string(name) + " must be between 0 and 1");
 }
+
+// Parameters of the rolling kernels. Built through Checked() at the Python
+// boundary, once per call, before any output is allocated or thread spawned;
+// the kernels trust what they receive and only assert it in debug builds.
+struct Window {
+  index_t window_size;
+  index_t min_samples;
+  bool skipna;
+
+  static Window Checked(index_t window_size, index_t min_samples,
+                        bool skipna) {
+    RequirePositive("window_size", window_size);
+    RequirePositive("min_samples", min_samples);
+    return {window_size, min_samples, skipna};
+  }
+};
+
+struct SeasonalWindow {
+  index_t season_length;
+  Window window;
+
+  static SeasonalWindow Checked(index_t season_length, index_t window_size,
+                                index_t min_samples, bool skipna) {
+    RequirePositive("season_length", season_length);
+    return {season_length, Window::Checked(window_size, min_samples, skipna)};
+  }
+};
 
 template <typename T> constexpr T kNaN = std::numeric_limits<T>::quiet_NaN();
 

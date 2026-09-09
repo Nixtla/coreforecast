@@ -12,6 +12,7 @@ template <typename T> int NumDiffs(const py::array_t<T> data, int max_d) {
 
 template <typename T>
 int NumSeasDiffs(const py::array_t<T> data, int period, int max_d) {
+  RequireNonNegative("season_length", period);
   T out;
   const auto x = AsContiguous(data);
   diff::NumSeasDiffs(View(x), std::span<T>{&out, 1}, period, max_d);

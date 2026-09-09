@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <span>
 #include <vector>
@@ -83,7 +84,7 @@ void NumDiffs(std::span<const T> x, std::span<T> out, index_t max_d) {
 template <typename T>
 void NumSeasDiffs(std::span<const T> x, std::span<T> out, index_t period,
                   index_t max_d) {
-  RequireNonNegative("season_length", period);
+  assert(period >= 0);
   // find_season_length passes the zero it gets when it finds no seasonality
   if (period == 0) {
     out[0] = 0;

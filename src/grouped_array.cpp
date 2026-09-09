@@ -388,8 +388,8 @@ public:
   py::array_t<T> RollingTransform(Func transform, int lag, int window_size,
                                   int min_samples, bool skipna = false) {
     py::array_t<T> out(data_.size());
-    Transform(transform, lag, MutableView(out), window_size, min_samples,
-              skipna);
+    Transform(transform, lag, MutableView(out),
+              Window::Checked(window_size, min_samples, skipna));
     return out;
   }
   py::array_t<T> RollingMeanTransform(int lag, int window_size, int min_samples,
@@ -418,7 +418,7 @@ public:
     RequireProbability("p", p);
     py::array_t<T> out(data_.size());
     Transform(rolling::QuantileTransform<T>, lag, MutableView(out),
-              window_size, min_samples, p, skipna);
+              Window::Checked(window_size, min_samples, skipna), p);
     return out;
   }
 
@@ -426,8 +426,8 @@ public:
   py::array_t<T> RollingUpdate(Func transform, int lag, int window_size,
                                int min_samples, bool skipna = false) {
     py::array_t<T> out(NumGroups());
-    Reduce(transform, 1, MutableView(out), lag, window_size, min_samples,
-           skipna);
+    Reduce(transform, 1, MutableView(out), lag,
+           Window::Checked(window_size, min_samples, skipna));
     return out;
   }
   py::array_t<T> RollingMeanUpdate(int lag, int window_size, int min_samples,
@@ -454,8 +454,8 @@ public:
                                        int min_samples, bool skipna = false) {
     RequireProbability("p", p);
     py::array_t<T> out(NumGroups());
-    Reduce(rolling::QuantileUpdate<T>, 1, MutableView(out), lag, window_size,
-           min_samples, p, skipna);
+    Reduce(rolling::QuantileUpdate<T>, 1, MutableView(out), lag,
+           Window::Checked(window_size, min_samples, skipna), p);
     return out;
   }
 
@@ -465,8 +465,9 @@ public:
                                           int min_samples,
                                           bool skipna = false) {
     py::array_t<T> out(data_.size());
-    Transform(transform, lag, MutableView(out), season_length, window_size,
-              min_samples, skipna);
+    Transform(transform, lag, MutableView(out),
+              SeasonalWindow::Checked(season_length, window_size, min_samples,
+                                      skipna));
     return out;
   }
   py::array_t<T> SeasonalRollingMeanTransform(int lag, int season_length,
@@ -505,7 +506,9 @@ public:
     RequireProbability("p", p);
     py::array_t<T> out(data_.size());
     Transform(rolling::SeasonalQuantileTransform<T>, lag, MutableView(out),
-              season_length, window_size, min_samples, p, skipna);
+              SeasonalWindow::Checked(season_length, window_size, min_samples,
+                                      skipna),
+              p);
     return out;
   }
 
@@ -514,8 +517,9 @@ public:
                                        int season_length, int window_size,
                                        int min_samples, bool skipna = false) {
     py::array_t<T> out(NumGroups());
-    Reduce(transform, 1, MutableView(out), lag, season_length, window_size,
-           min_samples, skipna);
+    Reduce(transform, 1, MutableView(out), lag,
+           SeasonalWindow::Checked(season_length, window_size, min_samples,
+                                   skipna));
     return out;
   }
   py::array_t<T> SeasonalRollingMeanUpdate(int lag, int season_length,
@@ -552,7 +556,9 @@ public:
     RequireProbability("p", p);
     py::array_t<T> out(NumGroups());
     Reduce(rolling::SeasonalQuantileUpdate<T>, 1, MutableView(out), lag,
-           season_length, window_size, min_samples, p, skipna);
+           SeasonalWindow::Checked(season_length, window_size, min_samples,
+                                   skipna),
+           p);
     return out;
   }
 
@@ -646,6 +652,7 @@ public:
     return out;
   }
   py::array_t<T> BoxCoxLambdaGuerrero(int period, T lower, T upper) {
+    RequirePositive("season_length", period);
     py::array_t<T> out = LambdaStats();
     Reduce(scalers::BoxCoxLambdaGuerrero<T>, 2, MutableView(out), 0, period,
            lower, upper);
@@ -678,6 +685,7 @@ public:
     return out;
   }
   py::array_t<T> NumSeasDiffs(int period, int max_d) {
+    RequireNonNegative("season_length", period);
     py::array_t<T> out(NumGroups());
     Reduce(diff::NumSeasDiffs<T>, 1, MutableView(out), 0, period, max_d);
     return out;
@@ -692,6 +700,7 @@ public:
     const auto rows = MutableView(periods_and_out);
     const auto periods_view = View(periods);
     for (index_t i = 0; i < NumGroups(); ++i) {
+      RequireNonNegative("season_length", static_cast<index_t>(periods_view[i]));
       rows[2 * i] = periods_view[i];
     }
     Reduce(diff::NumSeasDiffsPeriods<T>, 2, rows, 0, max_d);

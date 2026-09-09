@@ -1,11 +1,15 @@
 #pragma once
 
+#include <cassert>
 #include <span>
 #include <vector>
 
 #include "rolling.h"
 #include "stats.h"
 
+// The expanding statistics are the rolling ones with the whole group as the
+// window; that Window is built here from a group the driver already checked,
+// so it does not go through Window::Checked.
 namespace expanding {
 // agg has one element: the number of values the last mean was taken over
 template <typename T>
@@ -37,31 +41,33 @@ inline void MeanTransform(std::span<const T> data, std::span<T> out,
 template <typename T>
 inline void StdTransform(std::span<const T> data, std::span<T> out,
                          std::span<T> agg, bool skipna = false) {
-  rolling::StdTransformWithStats(data, out, agg, std::ssize(data), 2, skipna);
+  rolling::StdTransformWithStats(data, out, agg,
+                                 Window{std::ssize(data), 2, skipna});
 }
 
 template <typename T>
 inline void MinTransform(std::span<const T> data, std::span<T> out,
                          bool skipna = false) {
-  rolling::MinTransform<T>(data, out, std::ssize(data), 1, skipna);
+  rolling::MinTransform<T>(data, out, Window{std::ssize(data), 1, skipna});
 }
 
 template <typename T>
 inline void MaxTransform(std::span<const T> data, std::span<T> out,
                          bool skipna = false) {
-  rolling::MaxTransform<T>(data, out, std::ssize(data), 1, skipna);
+  rolling::MaxTransform<T>(data, out, Window{std::ssize(data), 1, skipna});
 }
 
 template <typename T>
 inline void QuantileTransform(std::span<const T> data, std::span<T> out, T p,
                               bool skipna = false) {
-  rolling::QuantileTransform(data, out, std::ssize(data), 1, p, skipna);
+  rolling::QuantileTransform(data, out, Window{std::ssize(data), 1, skipna},
+                             p);
 }
 
 template <typename T>
 inline void QuantileUpdate(std::span<const T> data, std::span<T> out, T p,
                            bool skipna = false) {
-  RequireProbability("p", p);
+  assert(p >= 0 && p <= 1);
   std::vector<T> buffer;
   if (!skipna) {
     buffer.assign(data.begin(), data.end());

@@ -7,6 +7,7 @@
 #include <Eigen/Dense>
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <iterator>
 #include <limits>
@@ -128,7 +129,7 @@ T BoxCox_GuerreroCV(T lambda, const std::vector<T> &x_mean,
 template <typename T>
 void BoxCoxLambdaGuerrero(std::span<const T> x, std::span<T> out,
                           index_t period, T lower, T upper) {
-  RequirePositive("season_length", period);
+  assert(period > 0);
   const index_t n = std::ssize(x);
   if (n <= 2 * period) {
     out[0] = T{1.0};

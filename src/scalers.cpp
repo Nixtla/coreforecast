@@ -4,6 +4,7 @@
 
 template <typename T>
 T BoxCoxLambdaGuerrero(py::array_t<T> data, int period, T lower, T upper) {
+  RequirePositive("season_length", period);
   T out;
   const auto x = AsContiguous(data);
   scalers::BoxCoxLambdaGuerrero(View(x), std::span<T>{&out, 1}, period, lower,

@@ -2,11 +2,14 @@
 
 #include "rolling.h"
 
+// The window is checked before SkipLeadingNaN so an all-NaN input, which never
+// reaches the kernel, still rejects a bad window.
 template <typename T, typename Func, typename... Args>
 py::array_t<T> RollingOp(Func f, const py::array_t<T> data, int window_size,
-                         int min_samples, Args... args) {
+                         int min_samples, bool skipna, Args... args) {
+  const Window w = Window::Checked(window_size, min_samples, skipna);
   return SkipLeadingNaN<T>(data, [&](std::span<const T> in, std::span<T> out) {
-    f(in, out, window_size, min_samples, std::forward<Args>(args)...);
+    f(in, out, w, args...);
   });
 }
 
@@ -43,16 +46,17 @@ py::array_t<T> RollingQuantile(const py::array_t<T> data, int window_size,
                                int min_samples, T p, bool skipna = false) {
   RequireProbability("p", p);
   return RollingOp(rolling::QuantileTransform<T>, data, window_size,
-                   min_samples, p, skipna);
+                   min_samples, skipna, p);
 }
 
 template <typename T, typename Func, typename... Args>
 py::array_t<T> SeasonalRollingOp(Func f, const py::array_t<T> data,
                                  int season_length, int window_size,
-                                 int min_samples, Args... args) {
+                                 int min_samples, bool skipna, Args... args) {
+  const SeasonalWindow sw =
+      SeasonalWindow::Checked(season_length, window_size, min_samples, skipna);
   return SkipLeadingNaN<T>(data, [&](std::span<const T> in, std::span<T> out) {
-    f(in, out, season_length, window_size, min_samples,
-      std::forward<Args>(args)...);
+    f(in, out, sw, args...);
   });
 }
 
@@ -95,7 +99,7 @@ py::array_t<T> SeasonalRollingQuantile(const py::array_t<T> data,
                                        bool skipna = false) {
   RequireProbability("p", p);
   return SeasonalRollingOp(rolling::SeasonalQuantileTransform<T>, data,
-                           season_length, window_size, min_samples, p, skipna);
+                           season_length, window_size, min_samples, skipna, p);
 }
 
 template <typename T> void init_roll_fns(py::module_ &m) {
