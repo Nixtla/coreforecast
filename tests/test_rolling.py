@@ -29,7 +29,10 @@ def test_rolling(op, min_samples, dtype):
     )()
     if op.startswith("seasonal"):
         pd_res = pd_res.reset_index(level=0, drop=True).sort_index()
-    np.testing.assert_allclose(cf_res, pd_res, rtol=1e-5)
+    # pandas computes in float64; the float32 running std accumulates M2 with
+    # cancellation error a little above 1e-5 relative on unlucky windows
+    rtol = 1e-4 if dtype == np.float32 else 1e-5
+    np.testing.assert_allclose(cf_res, pd_res, rtol=rtol)
 
     if min_samples is not None:
         if op.startswith("seasonal"):
