@@ -12,13 +12,11 @@
 #include <stdexcept>
 #include <string>
 
-// The one type for lengths, offsets and counts in the kernels. Signed so that
-// mixing it with the int parameters that come from Python never changes the
-// sign of an expression, 64-bit so a group can be longer than 2^31.
+// The one type for lengths, offsets and counts, including the GroupedArray
+// indptr as it is stored. Signed so that mixing it with the int parameters
+// that come from Python never changes the sign of an expression, and 64-bit
+// so neither a group nor the whole array is limited to 2^31 elements.
 using index_t = std::int64_t;
-
-// Offsets between groups, as stored in the GroupedArray indptr.
-using indptr_t = int32_t;
 
 // Counts that index into the buffers: zero or less makes the growing loops in
 // the kernels start at -1 and read and write one element before them.

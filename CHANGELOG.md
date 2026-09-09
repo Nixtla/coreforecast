@@ -19,12 +19,18 @@
 - Arguments that used to read or write out of bounds are rejected with a
   `ValueError` or an `IndexError` instead: non-positive `window_size`,
   `min_samples` and `season_length`, negative `lag`, `d` and `k`, quantile
-  levels outside `[0, 1]`, `indptr` entries that are negative, decreasing or
-  too large for an int32, out-of-range group indices, and `ds`, `stats`,
+  levels outside `[0, 1]`, `indptr` entries that are negative or decreasing,
+  out-of-range group indices, and `ds`, `stats`,
   `periods` and `tails` arrays whose size doesn't match the group count.
   Calling `update` on a lag transform built with `lag=0` also raises now: an
   update reads the value that isn't in the array yet, so there is nothing for
   it to consume.
+- `GroupedArray.indptr` is stored and returned as `int64` instead of `int32`,
+  so arrays are no longer limited to `2**31` elements. Any integer dtype is
+  still accepted as input; the values that used to be rejected as "not
+  representable with 32-bit integers" are now checked like every other offset.
+  It is signed rather than unsigned so that arithmetic mixing it with numpy's
+  default integer stays integral instead of promoting to float64.
 
 ### Bug fixes
 

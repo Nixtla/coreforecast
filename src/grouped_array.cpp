@@ -38,11 +38,11 @@ template <typename T> inline void RequireOffsets(std::span<const T> values) {
 
 // One difference order per group, used both as a loop bound and to build the
 // tails offsets, so a short array is read past its end.
-inline void CheckDs(const CArray<indptr_t> &ds, index_t n_groups) {
+inline void CheckDs(const CArray<index_t> &ds, index_t n_groups) {
   if (ds.size() != n_groups) {
     throw std::invalid_argument("ds must have one element per group");
   }
-  for (indptr_t d : View(ds)) {
+  for (index_t d : View(ds)) {
     RequireNonNegative("d", d);
   }
 }
@@ -64,24 +64,24 @@ template <typename T> inline void SkipLags(std::span<T> out, index_t lag) {
 template <typename T> class GroupedArray {
 public:
   const py::array_t<T> data_;
-  const py::array_t<indptr_t> indptr_;
+  const py::array_t<index_t> indptr_;
   int num_threads_;
 
-  GroupedArray(const py::array_t<T> data, const py::array_t<indptr_t> indptr,
+  GroupedArray(const py::array_t<T> data, const py::array_t<index_t> indptr,
                int num_threads)
       : data_(data), indptr_(indptr), num_threads_(num_threads) {}
 
   index_t NumGroups() const noexcept { return indptr_.size() - 1; }
 
   std::span<const T> Data() const { return View(data_); }
-  std::span<const indptr_t> Indptr() const { return View(indptr_); }
+  std::span<const index_t> Indptr() const { return View(indptr_); }
 
   // The elements of group i.
   static std::span<const T> Group(std::span<const T> data,
-                                  std::span<const indptr_t> indptr, index_t i) {
+                                  std::span<const index_t> indptr, index_t i) {
     return data.subspan(indptr[i], indptr[i + 1] - indptr[i]);
   }
-  static std::span<T> Group(std::span<T> data, std::span<const indptr_t> indptr,
+  static std::span<T> Group(std::span<T> data, std::span<const index_t> indptr,
                             index_t i) {
     return data.subspan(indptr[i], indptr[i + 1] - indptr[i]);
   }
@@ -97,20 +97,20 @@ public:
       }
       i += num_groups;
     }
-    const indptr_t start = indptr_.data()[i];
-    const indptr_t end = indptr_.data()[i + 1];
+    const index_t start = indptr_.data()[i];
+    const index_t end = indptr_.data()[i + 1];
     auto buffer = data_.request();
     return py::array_t<T>({end - start}, {buffer.strides[0]},
                           static_cast<T *>(buffer.ptr) + start, data_);
   }
 
-  py::array_t<T> Take(const CArray<indptr_t> indices_arg) const {
+  py::array_t<T> Take(const CArray<index_t> indices_arg) const {
     const auto indices = View(indices_arg);
     const auto data = Data();
     const auto indptr = Indptr();
     const index_t num_groups = NumGroups();
     index_t out_size = 0;
-    for (indptr_t idx : indices) {
+    for (index_t idx : indices) {
       if (idx < 0 || idx >= num_groups) {
         throw std::out_of_range("Index out of range");
       }
@@ -119,7 +119,7 @@ public:
     py::array_t<T> out(out_size);
     auto out_view = MutableView(out);
     index_t j = 0;
-    for (indptr_t idx : indices) {
+    for (index_t idx : indices) {
       const auto group = Group(data, indptr, idx);
       std::copy(group.begin(), group.end(), out_view.begin() + j);
       j += std::ssize(group);
@@ -204,7 +204,7 @@ public:
   // Like Reduce with a per-group output size given by indptr_out, and no NaN
   // or lag handling.
   template <typename Func, typename... Args>
-  void VariableReduce(Func f, std::span<const indptr_t> indptr_out,
+  void VariableReduce(Func f, std::span<const index_t> indptr_out,
                       std::span<T> out, Args &&...args) const {
     ForEach([data = Data(), indptr = Indptr(), &f, indptr_out, out,
              &args...](index_t start_group, index_t end_group) {
@@ -258,7 +258,7 @@ public:
 
   // Transform with one parameter per group and no lag.
   template <typename Func>
-  void VariableTransform(Func f, std::span<const indptr_t> params,
+  void VariableTransform(Func f, std::span<const index_t> params,
                          std::span<T> out) const {
     ForEach([data = Data(), indptr = Indptr(), &f, params,
              out](index_t start_group, index_t end_group) {
@@ -305,7 +305,7 @@ public:
   // out_indptr.
   template <typename Func>
   void Zip(Func f, const GroupedArray<T> &other,
-           std::span<const indptr_t> out_indptr, std::span<T> out) const {
+           std::span<const index_t> out_indptr, std::span<T> out) const {
     ForEach([data = Data(), indptr = Indptr(), &f, other_data = other.Data(),
              other_indptr = other.Indptr(), out_indptr,
              out](index_t start_group, index_t end_group) {
@@ -347,16 +347,16 @@ public:
       throw std::invalid_argument("Number of groups must be the same");
     }
     py::array_t<T> out_data(data_.size() + other.data_.size());
-    py::array_t<indptr_t> out_indptr(indptr_.size());
+    py::array_t<index_t> out_indptr(indptr_.size());
     std::transform(indptr_.data(), indptr_.data() + indptr_.size(),
                    other.indptr_.data(), out_indptr.mutable_data(),
-                   std::plus<indptr_t>());
+                   std::plus<index_t>());
     Zip(grouped_array_functions::Append<T>, other, View(out_indptr),
         MutableView(out_data));
     return std::make_unique<GroupedArray<T>>(out_data, out_indptr,
                                              num_threads_);
   }
-  py::array_t<T> Tails(const CArray<indptr_t> out_indptr) {
+  py::array_t<T> Tails(const CArray<index_t> out_indptr) {
     if (out_indptr.size() != indptr_.size()) {
       throw std::invalid_argument(
           "indptr must have one element per group plus one");
@@ -714,21 +714,21 @@ public:
     Transform(seasonal::Difference<T>, 0, MutableView(out), d);
     return out;
   }
-  py::array_t<T> Differences(const CArray<indptr_t> ds) {
+  py::array_t<T> Differences(const CArray<index_t> ds) {
     CheckDs(ds, NumGroups());
     py::array_t<T> out(data_.size());
     VariableTransform(diff::Differences<T>, View(ds), MutableView(out));
     return out;
   }
   py::array_t<T> InvertDifference(int d, const CArray<T> tails) {
-    py::array_t<indptr_t> ds(NumGroups());
+    py::array_t<index_t> ds(NumGroups());
     std::fill(ds.mutable_data(), ds.mutable_data() + ds.size(), d);
     return InvertDifferences(ds, tails);
   }
-  py::array_t<T> InvertDifferences(const CArray<indptr_t> ds,
+  py::array_t<T> InvertDifferences(const CArray<index_t> ds,
                                    const CArray<T> tails) {
     CheckDs(ds, NumGroups());
-    py::array_t<indptr_t> tails_indptr(indptr_.size());
+    py::array_t<index_t> tails_indptr(indptr_.size());
     const auto ds_view = View(ds);
     const auto tails_offsets = MutableView(tails_indptr);
     tails_offsets[0] = 0;
@@ -748,39 +748,29 @@ public:
   }
 };
 
-// Validates indptr at the Python boundary and returns it as indptr_t. Every
-// entry is used as an offset into data, so all of them have to be
-// representable and describe a non-decreasing range, not just the last one:
-// casting straight to indptr_t would wrap a too-large value into one that can
-// still compare equal to the size of data. Takes py::object so that lists,
-// tuples and Series keep working, which py::array would reject.
-inline py::array_t<indptr_t> CheckedIndptr(const py::object &indptr,
-                                           py::ssize_t data_size) {
-  auto indptr64 = py::array_t < int64_t,
-       py::array::c_style | py::array::forcecast > ::ensure(indptr);
-  if (!indptr64) {
+// Validates indptr at the Python boundary. Every entry is used as an offset
+// into data, so all of them have to describe a non-decreasing range, not just
+// the last one. Takes py::object so that lists, tuples and Series keep
+// working, which py::array would reject.
+inline py::array_t<index_t> CheckedIndptr(const py::object &indptr,
+                                          py::ssize_t data_size) {
+  auto out = CArray<index_t>::ensure(indptr);
+  if (!out) {
     throw std::invalid_argument("indptr must be an integer array");
   }
-  if (indptr64.ndim() != 1) {
+  if (out.ndim() != 1) {
     throw std::invalid_argument("indptr must be a 1d array");
   }
-  if (indptr64.size() < 1) {
+  if (out.size() < 1) {
     throw std::invalid_argument("indptr must have at least one element");
   }
-  const int64_t *values = indptr64.data();
-  for (py::ssize_t i = 0; i < indptr64.size(); ++i) {
-    if (values[i] > std::numeric_limits<indptr_t>::max()) {
-      throw std::invalid_argument(
-          "indptr values must be representable with 32-bit integers");
-    }
-  }
-  RequireOffsets(View(indptr64));
-  if (data_size != values[indptr64.size() - 1]) {
+  const auto values = View(out);
+  RequireOffsets(values);
+  if (data_size != values.back()) {
     throw std::invalid_argument(
         "Last element of indptr must be equal to the size of data");
   }
-  return py::array_t < indptr_t,
-         py::array::c_style | py::array::forcecast > (indptr64);
+  return out;
 }
 
 template <typename T> void bind_ga(py::module &m, const std::string &name) {
