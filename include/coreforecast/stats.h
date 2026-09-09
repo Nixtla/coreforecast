@@ -3,6 +3,7 @@
 #include "SkipList.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <span>
 
@@ -29,6 +30,7 @@ template <typename T> T Sum(std::span<const T> x) {
 }
 
 template <typename T> T Dot(std::span<const T> a, std::span<const T> b) {
+  assert(a.size() == b.size());
   const index_t n = std::ssize(a);
   T s0 = 0, s1 = 0, s2 = 0, s3 = 0;
   index_t i = 0;

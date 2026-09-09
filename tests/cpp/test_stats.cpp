@@ -78,6 +78,8 @@ TEST_CASE("KPSS matches statsmodels") {
   CHECK(KPSS(In(x), 0) == doctest::Approx(5.063007444851195).epsilon(1e-9));
   CHECK(KPSS(In(x), 2) == doctest::Approx(1.7993721714555229).epsilon(1e-9));
   CHECK(KPSS(In(x), 5) == doctest::Approx(0.9572458516286745).epsilon(1e-9));
+  // lags past n - 1 have no pairs to sum and are clamped to it
+  CHECK(KPSS(In(x), 1000) == KPSS(In(x), 63));
 }
 
 TEST_CASE("Quantile interpolates linearly like numpy") {
