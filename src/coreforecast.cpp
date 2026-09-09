@@ -533,10 +533,11 @@ public:
     }
     return out;
   }
-  py::array_t<T> Periods(size_t max_lag) {
+  py::array_t<T> Periods(int max_lag) {
+    RequireNonNegative("max_season_length", max_lag);
     py::array_t<T> out(NumGroups());
     Reduce(seasonal::GreatestAutocovariance<T>, 1, MutableView(out), 0,
-           static_cast<index_t>(max_lag));
+           max_lag);
     return out;
   }
   py::array_t<T> Difference(int d) {
@@ -714,31 +715,33 @@ void BindRolling(py::module_ &roll, py::class_<GroupedArray<T>> &ga,
            "data"_a, "season_length"_a, "window_size"_a, "min_samples"_a,
            "skipna"_a = false);
 
+  // The window is checked before the output is allocated, so a bad one costs
+  // nothing and is rejected even when no group would run.
   ga.def(("_rolling_" + stat).c_str(),
          [transform](const GroupedArray<T> &self, int lag, int window_size,
                      int min_samples, bool skipna) {
+           const Window w = Window::Checked(window_size, min_samples, skipna);
            auto out = Alloc(self);
-           self.Transform(transform, lag, MutableView(out),
-                          Window::Checked(window_size, min_samples, skipna));
+           self.Transform(transform, lag, MutableView(out), w);
            return out;
          },
          "lag"_a, "window_size"_a, "min_samples"_a, "skipna"_a = false);
   ga.def(("_rolling_" + stat + "_update").c_str(),
          [update](const GroupedArray<T> &self, int lag, int window_size,
                   int min_samples, bool skipna) {
+           const Window w = Window::Checked(window_size, min_samples, skipna);
            auto out = AllocPerGroup(self);
-           self.Reduce(update, 1, MutableView(out), lag,
-                       Window::Checked(window_size, min_samples, skipna));
+           self.Reduce(update, 1, MutableView(out), lag, w);
            return out;
          },
          "lag"_a, "window_size"_a, "min_samples"_a, "skipna"_a = false);
   ga.def(("_seasonal_rolling_" + stat).c_str(),
          [seasonal](const GroupedArray<T> &self, int lag, int season_length,
                     int window_size, int min_samples, bool skipna) {
+           const SeasonalWindow sw = SeasonalWindow::Checked(
+               season_length, window_size, min_samples, skipna);
            auto out = Alloc(self);
-           self.Transform(seasonal, lag, MutableView(out),
-                          SeasonalWindow::Checked(season_length, window_size,
-                                                  min_samples, skipna));
+           self.Transform(seasonal, lag, MutableView(out), sw);
            return out;
          },
          "lag"_a, "season_length"_a, "window_size"_a, "min_samples"_a,
@@ -747,10 +750,10 @@ void BindRolling(py::module_ &roll, py::class_<GroupedArray<T>> &ga,
          [seasonal_update](const GroupedArray<T> &self, int lag,
                            int season_length, int window_size, int min_samples,
                            bool skipna) {
+           const SeasonalWindow sw = SeasonalWindow::Checked(
+               season_length, window_size, min_samples, skipna);
            auto out = AllocPerGroup(self);
-           self.Reduce(seasonal_update, 1, MutableView(out), lag,
-                       SeasonalWindow::Checked(season_length, window_size,
-                                               min_samples, skipna));
+           self.Reduce(seasonal_update, 1, MutableView(out), lag, sw);
            return out;
          },
          "lag"_a, "season_length"_a, "window_size"_a, "min_samples"_a,
@@ -803,9 +806,9 @@ void BindRollingQuantile(py::module_ &roll, py::class_<GroupedArray<T>> &ga) {
       [transform](const GroupedArray<T> &self, int lag, T p, int window_size,
                   int min_samples, bool skipna) {
         RequireProbability("p", p);
+        const Window w = Window::Checked(window_size, min_samples, skipna);
         auto out = Alloc(self);
-        self.Transform(transform, lag, MutableView(out),
-                       Window::Checked(window_size, min_samples, skipna), p);
+        self.Transform(transform, lag, MutableView(out), w, p);
         return out;
       },
       "lag"_a, "p"_a, "window_size"_a, "min_samples"_a, "skipna"_a = false);
@@ -814,9 +817,9 @@ void BindRollingQuantile(py::module_ &roll, py::class_<GroupedArray<T>> &ga) {
       [update](const GroupedArray<T> &self, int lag, T p, int window_size,
                int min_samples, bool skipna) {
         RequireProbability("p", p);
+        const Window w = Window::Checked(window_size, min_samples, skipna);
         auto out = AllocPerGroup(self);
-        self.Reduce(update, 1, MutableView(out), lag,
-                    Window::Checked(window_size, min_samples, skipna), p);
+        self.Reduce(update, 1, MutableView(out), lag, w, p);
         return out;
       },
       "lag"_a, "p"_a, "window_size"_a, "min_samples"_a, "skipna"_a = false);
@@ -825,11 +828,10 @@ void BindRollingQuantile(py::module_ &roll, py::class_<GroupedArray<T>> &ga) {
       [seasonal](const GroupedArray<T> &self, int lag, T p, int season_length,
                  int window_size, int min_samples, bool skipna) {
         RequireProbability("p", p);
+        const SeasonalWindow sw = SeasonalWindow::Checked(
+            season_length, window_size, min_samples, skipna);
         auto out = Alloc(self);
-        self.Transform(seasonal, lag, MutableView(out),
-                       SeasonalWindow::Checked(season_length, window_size,
-                                               min_samples, skipna),
-                       p);
+        self.Transform(seasonal, lag, MutableView(out), sw, p);
         return out;
       },
       "lag"_a, "p"_a, "season_length"_a, "window_size"_a, "min_samples"_a,
@@ -840,11 +842,10 @@ void BindRollingQuantile(py::module_ &roll, py::class_<GroupedArray<T>> &ga) {
                         int season_length, int window_size, int min_samples,
                         bool skipna) {
         RequireProbability("p", p);
+        const SeasonalWindow sw = SeasonalWindow::Checked(
+            season_length, window_size, min_samples, skipna);
         auto out = AllocPerGroup(self);
-        self.Reduce(seasonal_update, 1, MutableView(out), lag,
-                    SeasonalWindow::Checked(season_length, window_size,
-                                            min_samples, skipna),
-                    p);
+        self.Reduce(seasonal_update, 1, MutableView(out), lag, sw, p);
         return out;
       },
       "lag"_a, "p"_a, "season_length"_a, "window_size"_a, "min_samples"_a,
@@ -1000,11 +1001,11 @@ template <typename T> void BindDifferences(py::module_ &m) {
   m.def("diff", &Difference<T>);
 }
 
-template <typename T> int Period(const py::array_t<T> data, size_t max_lag) {
+template <typename T> int Period(const py::array_t<T> data, int max_lag) {
+  RequireNonNegative("max_season_length", max_lag);
   T out;
   const auto x = AsContiguous(data);
-  seasonal::GreatestAutocovariance(View(x), std::span<T>{&out, 1},
-                                   static_cast<index_t>(max_lag));
+  seasonal::GreatestAutocovariance(View(x), std::span<T>{&out, 1}, max_lag);
   return static_cast<int>(out);
 }
 

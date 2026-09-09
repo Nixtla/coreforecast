@@ -24,7 +24,8 @@
   `periods` and `tails` arrays whose size doesn't match the group count.
   Calling `update` on a lag transform built with `lag=0` also raises now: an
   update reads the value that isn't in the array yet, so there is nothing for
-  it to consume.
+  it to consume. A negative `max_season_length` is a `ValueError` like the
+  other counts rather than a `TypeError` from the binding.
 - `GroupedArray.indptr` is stored and returned as `int64` instead of `int32`,
   so arrays are no longer limited to `2**31` elements. Any integer dtype is
   still accepted as input; the values that used to be rejected as "not

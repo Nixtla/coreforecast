@@ -147,3 +147,9 @@ class TestSeasonLength:
 
     def test_find_season_length_without_seasonality(self):
         assert find_season_length(np.arange(1.0, 30.0), 10) == 0
+
+    def test_rejects_a_negative_max_season_length(self, ga):
+        with pytest.raises(ValueError, match="max_season_length must be non-negative"):
+            find_season_length(np.arange(1.0, 30.0), -1)
+        with pytest.raises(ValueError, match="max_season_length must be non-negative"):
+            ga._periods(-1)
