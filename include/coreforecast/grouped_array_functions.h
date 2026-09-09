@@ -15,14 +15,14 @@ inline void IndexFromEnd(std::span<const T> data, std::span<T> out, index_t k) {
 // out has k elements; the ones data can't fill are NaN
 template <typename T>
 inline void Head(std::span<const T> data, std::span<T> out, index_t k) {
-  const index_t m = std::min(k, std::ssize(data));
+  const index_t m = std::min<index_t>(k, std::ssize(data));
   std::copy_n(data.begin(), m, out.begin());
   FillNaN(out.subspan(m));
 }
 
 template <typename T>
 inline void Tail(std::span<const T> data, std::span<T> out, index_t k) {
-  const index_t m = std::min(k, std::ssize(data));
+  const index_t m = std::min<index_t>(k, std::ssize(data));
   FillNaN(out.first(k - m));
   std::copy_n(data.end() - m, m, out.begin() + (k - m));
 }

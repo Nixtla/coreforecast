@@ -58,7 +58,7 @@ inline void CheckStats(const CArray<T> &stats, index_t n_groups) {
 
 // NaN over the first `lag` positions of a group's output (or all of it).
 template <typename T> inline void SkipLags(std::span<T> out, index_t lag) {
-  FillNaN(out.first(std::min(lag, std::ssize(out))));
+  FillNaN(out.first(std::min<index_t>(lag, std::ssize(out))));
 }
 
 template <typename T> class GroupedArray {
