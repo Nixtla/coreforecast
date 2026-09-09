@@ -11,7 +11,8 @@
 // window; that Window is built here from a group the driver already checked,
 // so it does not go through Window::Checked.
 namespace expanding {
-// agg has one element: the number of values the last mean was taken over
+// agg is empty or has one element: the number of values the last mean was
+// taken over
 template <typename T>
 inline void MeanTransform(std::span<const T> data, std::span<T> out,
                           std::span<T> agg, bool skipna = false) {
@@ -22,7 +23,9 @@ inline void MeanTransform(std::span<const T> data, std::span<T> out,
       accum += data[i];
       out[i] = accum / (i + 1);
     }
-    agg[0] = static_cast<T>(n);
+    if (!agg.empty()) {
+      agg[0] = static_cast<T>(n);
+    }
     return;
   }
   T accum = 0.0;
@@ -34,7 +37,9 @@ inline void MeanTransform(std::span<const T> data, std::span<T> out,
     }
     out[i] = valid_count == 0 ? kNaN<T> : accum / valid_count;
   }
-  agg[0] = static_cast<T>(valid_count);
+  if (!agg.empty()) {
+    agg[0] = static_cast<T>(valid_count);
+  }
 }
 
 // agg has three elements, see rolling::StdTransformWithStats

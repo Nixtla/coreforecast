@@ -201,12 +201,18 @@ TEST_CASE_TEMPLATE("expanding transforms are cumulative statistics", T, float,
     }
     CheckClose(out, want);
     CHECK(agg[0] == static_cast<T>(Valid(data, 0, n, skipna).size()));
+    // the single-array entry points pass no agg; the result is the same
+    std::vector<T> without_agg(n);
+    expanding::MeanTransform(In(data), Out(without_agg), std::span<T>{}, skipna);
+    CheckClose(without_agg, out);
 
     expanding::StdTransform(In(data), Out(out), Out(agg), skipna);
     for (int i = 0; i < n; ++i) {
       want[i] = Std(Valid(data, 0, i + 1, skipna));
     }
     CheckClose(out, want);
+    expanding::StdTransform(In(data), Out(without_agg), std::span<T>{}, skipna);
+    CheckClose(without_agg, out);
 
     expanding::MinTransform(In(data), Out(out), skipna);
     for (int i = 0; i < n; ++i) {

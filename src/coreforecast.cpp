@@ -872,18 +872,16 @@ py::array_t<T> ExpandingOp(Func f, const py::array_t<T> data, Args... args) {
   });
 }
 
+// The single-array versions have nothing to resume from, so they pass an empty
+// agg and the kernels leave the stats out.
 template <typename T>
 py::array_t<T> ExpandingMean(const py::array_t<T> data, bool skipna = false) {
-  T tmp;
-  return ExpandingOp(expanding::MeanTransform<T>, data, std::span<T>{&tmp, 1},
-                     skipna);
+  return ExpandingOp(expanding::MeanTransform<T>, data, std::span<T>{}, skipna);
 }
 
 template <typename T>
 py::array_t<T> ExpandingStd(const py::array_t<T> data, bool skipna = false) {
-  T tmp[3];
-  return ExpandingOp(expanding::StdTransform<T>, data, std::span<T>{tmp},
-                     skipna);
+  return ExpandingOp(expanding::StdTransform<T>, data, std::span<T>{}, skipna);
 }
 
 template <typename T>
