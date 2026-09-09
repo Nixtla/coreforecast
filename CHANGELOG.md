@@ -49,6 +49,12 @@
   estimators run about twice as fast because their transform is evaluated once
   instead of once per statistic; results may differ from previous versions in
   the last bits because the summation order changed.
+- The kernels have their own tests under `tests/cpp`, built with
+  `-DCOREFORECAST_BUILD_TESTS=ON` against the `external_libs/doctest`
+  submodule; existing checkouts need `git submodule update --init` for it.
+  They are not part of the sdist or the wheels.
+- The private `_lib.rolling.rolling_quantile` and `seasonal_rolling_quantile`
+  take `p` right after `data`, the order the public functions already used.
 
 ### Documentation
 
