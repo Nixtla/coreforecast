@@ -9,7 +9,7 @@ from coreforecast.grouped_array import GroupedArray
 from . import lag_tfms_map, min_samples, season_length, window_size
 
 lag = 2
-lengths = np.random.randint(low=100, high=200, size=100)
+lengths = np.random.default_rng(seed=0).integers(low=100, high=200, size=100)
 indptr = np.append(0, lengths.cumsum()).astype(np.int32)
 
 
@@ -68,8 +68,8 @@ def pd_expanding_quantile(x, lag, p):
 
 
 @pytest.fixture
-def data():
-    return 10 * np.random.rand(indptr[-1])
+def data(rng):
+    return 10 * rng.random(indptr[-1])
 
 
 def test_lag():
@@ -99,13 +99,14 @@ def test_lag():
 @pytest.mark.parametrize("comb", list(lag_tfms_map.keys()))
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 def test_correctness(data, comb, dtype):
-    atol = 1e-4
+    # pandas computes in float64 whatever it is handed, so it stands in for the
+    # exact result. The float32 kernels keep their accumulator in float32 and
+    # the sliding std drifts as it slides, up to 8.3e-5 over a group here. That
+    # error is absolute, so atol is what has to absorb it: a window whose
+    # values are nearly equal has a std near zero and no relative accuracy left
+    # to give, which is why widening rtol only made the unlucky draws rarer.
     rtol = 1e-5 if dtype == np.float32 else 1e-7
-    if dtype == np.float32:
-        if "rolling_std" in comb:
-            rtol = 1e-2
-    if "expanding_std" in comb:
-        rtol *= 100
+    atol = 1e-3 if dtype == np.float32 and "std" in comb else 1e-4
     data = data.astype(dtype, copy=True)
     ga = GroupedArray(data, indptr)
     cf, args = lag_tfms_map[comb]
