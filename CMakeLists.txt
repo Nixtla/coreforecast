@@ -40,6 +40,8 @@ if(COREFORECAST_BUILD_TESTS)
   enable_testing()
   file(GLOB TEST_SOURCES tests/cpp/*.cpp)
   add_executable(kernel_tests ${TEST_SOURCES} ${SKIPLIST_SOURCE})
+  target_include_directories(kernel_tests SYSTEM
+                             PRIVATE external_libs/doctest/doctest)
   target_compile_options(kernel_tests PRIVATE ${COREFORECAST_WARNINGS})
   add_test(NAME kernel_tests COMMAND kernel_tests)
 endif()
