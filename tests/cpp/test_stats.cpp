@@ -128,9 +128,10 @@ TEST_CASE_TEMPLATE("BoxCox transforms round-trip", T, float, double) {
   }
   // negative input with a negative lambda has no real transform
   CHECK(std::isnan(scalers::BoxCoxTransform<T>(T{-1}, T{-0.5}, T{0})));
-  // lambda 0 is the log
-  CHECK(scalers::BoxCoxTransform<T>(T{std::exp(1.0)}, T{0}, T{0}) ==
-        doctest::Approx(1.0).epsilon(1e-5));
+  // lambda 0 is the log. static_cast rather than T{}: Clang doesn't fold
+  // std::exp, so the braces would be a narrowing error for float.
+  CHECK(scalers::BoxCoxTransform<T>(static_cast<T>(std::exp(1.0)), T{0},
+                                    T{0}) == doctest::Approx(1.0).epsilon(1e-5));
 }
 
 TEST_CASE_TEMPLATE("scaler stats with skipna ignore NaN", T, float, double) {
