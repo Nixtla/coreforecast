@@ -63,19 +63,19 @@ TEST_CASE_TEMPLATE("rolling transforms match an O(n*w) reference", T, float,
       CAPTURE(ms);
       std::vector<T> out(n);
 
-      rolling::MeanTransform(data.data(), n, out.data(), w, ms, skipna);
+      rolling::MeanTransform(In(data), Out(out), w, ms, skipna);
       CheckClose(out, RefRolling(data, w, ms, skipna, false, Mean<T>));
 
-      rolling::StdTransform(data.data(), n, out.data(), w, ms, skipna);
+      rolling::StdTransform(In(data), Out(out), w, ms, skipna);
       CheckClose(out, RefRolling(data, w, ms, skipna, true, Std<T>));
 
-      rolling::MinTransform(data.data(), n, out.data(), w, ms, skipna);
+      rolling::MinTransform(In(data), Out(out), w, ms, skipna);
       CheckClose(out, RefRolling(data, w, ms, skipna, false, Min<T>));
 
-      rolling::MaxTransform(data.data(), n, out.data(), w, ms, skipna);
+      rolling::MaxTransform(In(data), Out(out), w, ms, skipna);
       CheckClose(out, RefRolling(data, w, ms, skipna, false, Max<T>));
 
-      rolling::QuantileTransform(data.data(), n, out.data(), w, ms, p, skipna);
+      rolling::QuantileTransform(In(data), Out(out), w, ms, p, skipna);
       CheckClose(out, RefRolling(data, w, ms, skipna, false,
                                  [p](const auto &v) { return Quantile(v, p); }));
     }
@@ -86,9 +86,9 @@ TEST_CASE_TEMPLATE("rolling transforms on fewer samples than min_samples are NaN
                    T, float, double) {
   const auto data = Random<T>(2);
   std::vector<T> out(2, T{0});
-  rolling::MeanTransform(data.data(), 2, out.data(), 5, 3, false);
+  rolling::MeanTransform(In(data), Out(out), 5, 3, false);
   CheckClose(out, {NaN<T>, NaN<T>});
-  rolling::QuantileTransform(data.data(), 2, out.data(), 5, 3, T{0.5}, true);
+  rolling::QuantileTransform(In(data), Out(out), 5, 3, T{0.5}, true);
   CheckClose(out, {NaN<T>, NaN<T>});
 }
 
@@ -97,10 +97,10 @@ TEST_CASE_TEMPLATE("min and max without skipna are NaN from the first NaN on",
   const std::vector<T> data = {1, 2, NaN<T>, 4, 5, 6};
   std::vector<T> out(6);
   const std::vector<T> want = {1, 1, NaN<T>, NaN<T>, NaN<T>, NaN<T>};
-  rolling::MinTransform(data.data(), 6, out.data(), 2, 1, false);
+  rolling::MinTransform(In(data), Out(out), 2, 1, false);
   CheckClose(out, want);
   const std::vector<T> want_max = {1, 2, NaN<T>, NaN<T>, NaN<T>, NaN<T>};
-  rolling::MaxTransform(data.data(), 6, out.data(), 2, 1, false);
+  rolling::MaxTransform(In(data), Out(out), 2, 1, false);
   CheckClose(out, want_max);
 }
 
@@ -118,24 +118,24 @@ TEST_CASE_TEMPLATE("update equals the last element of transform", T, float,
       std::vector<T> full(n);
       T last;
 
-      rolling::MeanTransform(data.data(), n, full.data(), w, ms, skipna);
-      rolling::MeanUpdate(data.data(), n, &last, w, ms, skipna);
+      rolling::MeanTransform(In(data), Out(full), w, ms, skipna);
+      rolling::MeanUpdate(In(data), Out(last), w, ms, skipna);
       CheckClose(last, full[n - 1]);
 
-      rolling::StdTransform(data.data(), n, full.data(), w, ms, skipna);
-      rolling::StdUpdate(data.data(), n, &last, w, ms, skipna);
+      rolling::StdTransform(In(data), Out(full), w, ms, skipna);
+      rolling::StdUpdate(In(data), Out(last), w, ms, skipna);
       CheckClose(last, full[n - 1]);
 
-      rolling::MinTransform(data.data(), n, full.data(), w, ms, skipna);
-      rolling::MinUpdate(data.data(), n, &last, w, ms, skipna);
+      rolling::MinTransform(In(data), Out(full), w, ms, skipna);
+      rolling::MinUpdate(In(data), Out(last), w, ms, skipna);
       CheckClose(last, full[n - 1]);
 
-      rolling::MaxTransform(data.data(), n, full.data(), w, ms, skipna);
-      rolling::MaxUpdate(data.data(), n, &last, w, ms, skipna);
+      rolling::MaxTransform(In(data), Out(full), w, ms, skipna);
+      rolling::MaxUpdate(In(data), Out(last), w, ms, skipna);
       CheckClose(last, full[n - 1]);
 
-      rolling::QuantileTransform(data.data(), n, full.data(), w, ms, p, skipna);
-      rolling::QuantileUpdate(data.data(), n, &last, w, ms, p, skipna);
+      rolling::QuantileTransform(In(data), Out(full), w, ms, p, skipna);
+      rolling::QuantileUpdate(In(data), Out(last), w, ms, p, skipna);
       CheckClose(last, full[n - 1]);
     }
   }
@@ -156,19 +156,18 @@ TEST_CASE_TEMPLATE("seasonal rolling equals rolling applied per phase", T,
         sub.push_back(data[i]);
       }
       std::vector<T> sub_out(sub.size());
-      rolling::MeanTransform(sub.data(), static_cast<int>(sub.size()),
-                             sub_out.data(), w, ms, true);
+      rolling::MeanTransform(In(sub), Out(sub_out), w, ms, true);
       for (size_t j = 0; j < sub.size(); ++j) {
         want[phase + j * season] = sub_out[j];
       }
     }
     std::vector<T> out(n);
-    rolling::SeasonalMeanTransform(data.data(), n, out.data(), season, w, ms,
+    rolling::SeasonalMeanTransform(In(data), Out(out), season, w, ms,
                                    true);
     CheckClose(out, want);
 
     T last;
-    rolling::SeasonalMeanUpdate(data.data(), n, &last, season, w, ms, true);
+    rolling::SeasonalMeanUpdate(In(data), Out(last), season, w, ms, true);
     CheckClose(last, want[n - 1]);
   }
 }
@@ -181,9 +180,9 @@ TEST_CASE_TEMPLATE("expanding transforms are cumulative statistics", T, float,
     CAPTURE(skipna);
     std::vector<T> out(n);
     std::vector<T> want(n);
-    T agg[3];
+    std::vector<T> agg(3);
 
-    expanding::MeanTransform(data.data(), n, out.data(), agg, skipna);
+    expanding::MeanTransform(In(data), Out(out), Out(agg), skipna);
     for (int i = 0; i < n; ++i) {
       const auto v = Valid(data, 0, i + 1, skipna);
       want[i] = v.empty() ? NaN<T> : Mean(v);
@@ -191,13 +190,13 @@ TEST_CASE_TEMPLATE("expanding transforms are cumulative statistics", T, float,
     CheckClose(out, want);
     CHECK(agg[0] == static_cast<T>(Valid(data, 0, n, skipna).size()));
 
-    expanding::StdTransform(data.data(), n, out.data(), agg, skipna);
+    expanding::StdTransform(In(data), Out(out), Out(agg), skipna);
     for (int i = 0; i < n; ++i) {
       want[i] = Std(Valid(data, 0, i + 1, skipna));
     }
     CheckClose(out, want);
 
-    expanding::MinTransform(data.data(), n, out.data(), skipna);
+    expanding::MinTransform(In(data), Out(out), skipna);
     for (int i = 0; i < n; ++i) {
       const auto v = Valid(data, 0, i + 1, skipna);
       want[i] = v.empty() ? NaN<T> : Min(v);
@@ -205,7 +204,7 @@ TEST_CASE_TEMPLATE("expanding transforms are cumulative statistics", T, float,
     CheckClose(out, want);
 
     const T p = static_cast<T>(0.5);
-    expanding::QuantileTransform(data.data(), n, out.data(), p, skipna);
+    expanding::QuantileTransform(In(data), Out(out), p, skipna);
     for (int i = 0; i < n; ++i) {
       const auto v = Valid(data, 0, i + 1, skipna);
       want[i] = v.empty() ? NaN<T> : Quantile(v, p);
@@ -213,7 +212,7 @@ TEST_CASE_TEMPLATE("expanding transforms are cumulative statistics", T, float,
     CheckClose(out, want);
 
     T last;
-    expanding::QuantileUpdate(data.data(), n, &last, p, skipna);
+    expanding::QuantileUpdate(In(data), Out(last), p, skipna);
     CheckClose(last, want[n - 1]);
   }
 }

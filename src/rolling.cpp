@@ -5,8 +5,8 @@
 template <typename T, typename Func, typename... Args>
 py::array_t<T> RollingOp(Func f, const py::array_t<T> data, int window_size,
                          int min_samples, Args... args) {
-  return SkipLeadingNaN<T>(data, [&](const T *d, indptr_t n, T *o) {
-    f(d, n, o, window_size, min_samples, std::forward<Args>(args)...);
+  return SkipLeadingNaN<T>(data, [&](std::span<const T> in, std::span<T> out) {
+    f(in, out, window_size, min_samples, std::forward<Args>(args)...);
   });
 }
 
@@ -50,8 +50,8 @@ template <typename T, typename Func, typename... Args>
 py::array_t<T> SeasonalRollingOp(Func f, const py::array_t<T> data,
                                  int season_length, int window_size,
                                  int min_samples, Args... args) {
-  return SkipLeadingNaN<T>(data, [&](const T *d, indptr_t n, T *o) {
-    f(d, n, o, season_length, window_size, min_samples,
+  return SkipLeadingNaN<T>(data, [&](std::span<const T> in, std::span<T> out) {
+    f(in, out, season_length, window_size, min_samples,
       std::forward<Args>(args)...);
   });
 }

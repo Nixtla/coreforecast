@@ -12,15 +12,15 @@ using namespace helpers;
 
 TEST_CASE("FirstNotNaN finds the end of the leading run") {
   const std::vector<double> lead = {NaN<double>, NaN<double>, 1.0, NaN<double>};
-  CHECK(FirstNotNaN(lead.data(), 4) == 2);
+  CHECK(FirstNotNaN(In(lead).first(4)) == 2);
   const std::vector<double> none = {1.0, 2.0};
-  CHECK(FirstNotNaN(none.data(), 2) == 0);
+  CHECK(FirstNotNaN(In(none).first(2)) == 0);
   const std::vector<double> all = {NaN<double>, NaN<double>};
-  CHECK(FirstNotNaN(all.data(), 2) == 2);
-  CHECK(FirstNotNaN(all.data(), 0) == 0);
+  CHECK(FirstNotNaN(In(all).first(2)) == 2);
+  CHECK(FirstNotNaN(In(all).first(0)) == 0);
   // the overload with an output writes NaN over the run it skips
   std::vector<double> out(4, 0.0);
-  CHECK(FirstNotNaN(lead.data(), 4, out.data()) == 2);
+  CHECK(FirstNotNaN(In(lead), Out(out)) == 2);
   CheckClose(out, {NaN<double>, NaN<double>, 0.0, 0.0});
 }
 
@@ -31,21 +31,21 @@ TEST_CASE_TEMPLATE("Difference and InvertDifference round-trip", T, float,
   for (int d : {1, 2, 7}) {
     CAPTURE(d);
     std::vector<T> diffs(n);
-    seasonal::Difference(x.data(), n, diffs.data(), d);
+    seasonal::Difference(In(x), Out(diffs), d);
     for (int i = 0; i < d; ++i) {
       CHECK(std::isnan(diffs[i]));
     }
     // the inverse takes the differenced tail and the d values that preceded it
     std::vector<T> restored(n - d);
-    diff::InvertDifference(diffs.data() + d, n - d, x.data(), d,
-                           restored.data());
+    diff::InvertDifference(In(diffs).subspan(d), In(x).first(d),
+                           Out(restored));
     CheckClose(restored, std::vector<T>(x.begin() + d, x.end()));
   }
   // d = 0 is a copy; d > n is all NaN
   std::vector<T> out(n);
-  seasonal::Difference(x.data(), n, out.data(), 0);
+  seasonal::Difference(In(x), Out(out), 0);
   CheckClose(out, x);
-  seasonal::Difference(x.data(), n, out.data(), n + 1);
+  seasonal::Difference(In(x), Out(out), n + 1);
   CheckClose(out, std::vector<T>(n, NaN<T>));
 }
 
@@ -76,22 +76,22 @@ TEST_CASE("KPSS matches statsmodels") {
       2.23425813772013,      1.8993731077343552,   2.0621261728393607,
       2.6483485041986388,
   };
-  CHECK(KPSS(x.begin(), x.end(), 0) == doctest::Approx(5.063007444851195).epsilon(1e-9));
-  CHECK(KPSS(x.begin(), x.end(), 2) == doctest::Approx(1.7993721714555229).epsilon(1e-9));
-  CHECK(KPSS(x.begin(), x.end(), 5) == doctest::Approx(0.9572458516286745).epsilon(1e-9));
+  CHECK(KPSS(In(x), 0) == doctest::Approx(5.063007444851195).epsilon(1e-9));
+  CHECK(KPSS(In(x), 2) == doctest::Approx(1.7993721714555229).epsilon(1e-9));
+  CHECK(KPSS(In(x), 5) == doctest::Approx(0.9572458516286745).epsilon(1e-9));
 }
 
 TEST_CASE("Quantile interpolates linearly like numpy") {
   std::vector<double> v = {4.0, 1.0, 3.0, 2.0};
-  CHECK(stats::Quantile(v.begin(), v.end(), 0.5) == doctest::Approx(2.5));
+  CHECK(stats::Quantile(Out(v), 0.5) == doctest::Approx(2.5));
   v = {4.0, 1.0, 3.0, 2.0};
-  CHECK(stats::Quantile(v.begin(), v.end(), 0.25) == doctest::Approx(1.75));
+  CHECK(stats::Quantile(Out(v), 0.25) == doctest::Approx(1.75));
   v = {4.0, 1.0, 3.0, 2.0};
-  CHECK(stats::Quantile(v.begin(), v.end(), 0.0) == doctest::Approx(1.0));
+  CHECK(stats::Quantile(Out(v), 0.0) == doctest::Approx(1.0));
   v = {4.0, 1.0, 3.0, 2.0};
-  CHECK(stats::Quantile(v.begin(), v.end(), 1.0) == doctest::Approx(4.0));
+  CHECK(stats::Quantile(Out(v), 1.0) == doctest::Approx(4.0));
   v = {4.0};
-  CHECK(stats::Quantile(v.begin(), v.end(), 0.7) == doctest::Approx(4.0));
+  CHECK(stats::Quantile(Out(v), 0.7) == doctest::Approx(4.0));
 }
 
 TEST_CASE("Quantile and SortedQuantile agree") {
@@ -103,7 +103,7 @@ TEST_CASE("Quantile and SortedQuantile agree") {
   for (double p : {0.0, 0.1, 0.5, 0.9, 1.0}) {
     auto copy = data;
     CHECK(stats::SortedQuantile(list, p, data.size()) ==
-          doctest::Approx(stats::Quantile(copy.begin(), copy.end(), p)));
+          doctest::Approx(stats::Quantile(Out(copy), p)));
   }
 }
 
@@ -133,20 +133,20 @@ TEST_CASE_TEMPLATE("BoxCox transforms round-trip", T, float, double) {
 
 TEST_CASE_TEMPLATE("scaler stats with skipna ignore NaN", T, float, double) {
   const std::vector<T> x = {NaN<T>, 1, 2, 3, 4, NaN<T>, 10};
-  T stats[2];
-  scalers::MinMaxScalerStats(x.data(), 7, stats, true);
+  std::vector<T> stats(2);
+  scalers::MinMaxScalerStats(In(x), Out(stats), true);
   CHECK(stats[0] == T{1});
   CHECK(stats[1] == T{9});
-  scalers::StandardScalerStats(x.data(), 7, stats, true);
+  scalers::StandardScalerStats(In(x), Out(stats), true);
   CHECK(stats[0] == doctest::Approx(4.0));
   CHECK(stats[1] == doctest::Approx(std::sqrt(10.0))); // population std
-  scalers::RobustScalerIqrStats(x.data(), 7, stats, true);
+  scalers::RobustScalerIqrStats(In(x), Out(stats), true);
   CHECK(stats[0] == doctest::Approx(3.0));
   CHECK(stats[1] == doctest::Approx(2.0)); // q3 - q1 of {1,2,3,4,10}
   // nothing valid: both stats are NaN rather than left unwritten
   const std::vector<T> none = {NaN<T>, NaN<T>};
   stats[0] = stats[1] = T{0};
-  scalers::MinMaxScalerStats(none.data(), 2, stats, true);
+  scalers::MinMaxScalerStats(In(none), Out(stats), true);
   CHECK(std::isnan(stats[0]));
   CHECK(std::isnan(stats[1]));
 }

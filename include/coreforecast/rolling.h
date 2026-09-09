@@ -3,7 +3,10 @@
 #include "SkipList.h"
 
 #include <algorithm>
+#include <cmath>
+#include <functional>
 #include <memory>
+#include <span>
 #include <type_traits>
 #include <variant>
 #include <vector>
@@ -15,7 +18,7 @@ namespace rolling {
 
 template <typename T, bool SkipNA> class MeanAccumulator {
 public:
-  MeanAccumulator(int window_size) : window_size_(window_size) {}
+  MeanAccumulator(index_t window_size) : window_size_(window_size) {}
 
   void Update(T x) {
     if constexpr (SkipNA) {
@@ -26,11 +29,11 @@ public:
     accum_ += x;
   }
 
-  T Update(T x, int n) {
+  T Update(T x, index_t n) {
     Update(x);
     if constexpr (SkipNA) {
       if (valid_count_ == 0)
-        return std::numeric_limits<T>::quiet_NaN();
+        return kNaN<T>;
       return accum_ / static_cast<T>(valid_count_);
     } else {
       // NaN in accum_ naturally produces NaN result
@@ -49,7 +52,7 @@ public:
         valid_count_++;
       }
       if (valid_count_ == 0)
-        return std::numeric_limits<T>::quiet_NaN();
+        return kNaN<T>;
       return accum_ / static_cast<T>(valid_count_);
     } else {
       // No isnan check - NaN propagates naturally through arithmetic
@@ -59,72 +62,77 @@ public:
   }
 
 private:
-  int window_size_;
+  index_t window_size_;
   T accum_ = 0.0;
   // valid_count_ only exists when SkipNA=true
-  [[no_unique_address]] std::conditional_t<SkipNA, int, std::monostate>
+  [[no_unique_address]] std::conditional_t<SkipNA, index_t, std::monostate>
       valid_count_{};
 };
 
 template <typename T, typename Accumulator, typename... Args>
-inline void Transform(const T *data, int n, T *out, int window_size,
-                      int min_samples, Args &&...args) {
+inline void Transform(std::span<const T> data, std::span<T> out,
+                      index_t window_size, index_t min_samples,
+                      Args &&...args) {
   RequirePositive("window_size", window_size);
   RequirePositive("min_samples", min_samples);
+  const index_t n = std::ssize(data);
   if (n < min_samples) {
-    std::fill(out, out + n, std::numeric_limits<T>::quiet_NaN());
+    FillNaN(out);
     return;
   }
   Accumulator accumulator(window_size, std::forward<Args>(args)...);
   window_size = std::min(window_size, n);
   min_samples = std::min(min_samples, window_size);
-  for (int i = 0; i < min_samples - 1; ++i) {
+  for (index_t i = 0; i < min_samples - 1; ++i) {
     accumulator.Update(data[i]);
-    out[i] = std::numeric_limits<T>::quiet_NaN();
+    out[i] = kNaN<T>;
   }
-  for (int i = min_samples - 1; i < window_size; ++i) {
+  for (index_t i = min_samples - 1; i < window_size; ++i) {
     out[i] = accumulator.Update(data[i], i + 1);
   }
-  for (int i = window_size; i < n; ++i) {
+  for (index_t i = window_size; i < n; ++i) {
     out[i] = accumulator.Update(data[i], data[i - window_size]);
   }
 }
 
 template <typename T>
-inline void MeanTransform(const T *data, int n, T *out, int window_size,
-                          int min_samples, bool skipna = false) {
+inline void MeanTransform(std::span<const T> data, std::span<T> out,
+                          index_t window_size, index_t min_samples,
+                          bool skipna = false) {
   if (skipna) {
-    Transform<T, MeanAccumulator<T, true>>(data, n, out, window_size,
-                                           min_samples);
+    Transform<T, MeanAccumulator<T, true>>(data, out, window_size, min_samples);
   } else {
-    Transform<T, MeanAccumulator<T, false>>(data, n, out, window_size,
+    Transform<T, MeanAccumulator<T, false>>(data, out, window_size,
                                             min_samples);
   }
 }
 
+// `agg` is either empty or three elements: the count, mean and M2 of the last
+// window, which the expanding std uses to resume from.
 template <typename T>
-inline void StdTransformWithStats(const T *data, int n, T *out, T *agg,
-                                  bool save_stats, int window_size,
-                                  int min_samples, bool skipna = false) {
+inline void StdTransformWithStats(std::span<const T> data, std::span<T> out,
+                                  std::span<T> agg, index_t window_size,
+                                  index_t min_samples, bool skipna = false) {
   RequirePositive("window_size", window_size);
   RequirePositive("min_samples", min_samples);
+  const index_t n = std::ssize(data);
   if (!skipna) {
     // Fast path: original implementation without NaN checking
     T prev_avg = static_cast<T>(0.0);
     T curr_avg = data[0];
     T m2 = static_cast<T>(0.0);
-    int upper_limit = std::min(window_size, n);
-    for (int i = 0; i < upper_limit; ++i) {
+    const index_t upper_limit = std::min(window_size, n);
+    for (index_t i = 0; i < upper_limit; ++i) {
       prev_avg = curr_avg;
       curr_avg = prev_avg + (data[i] - prev_avg) / (i + 1);
       m2 += (data[i] - prev_avg) * (data[i] - curr_avg);
       if (i + 1 < min_samples) {
-        out[i] = std::numeric_limits<T>::quiet_NaN();
+        out[i] = kNaN<T>;
       } else {
         out[i] = sqrt(m2 / i);
       }
     }
-    for (int i = window_size; i < n; ++i) {
+    for (index_t i = window_size; i < n; ++i) {
       T delta = data[i] - data[i - window_size];
       prev_avg = curr_avg;
       curr_avg = prev_avg + delta / window_size;
@@ -133,7 +141,7 @@ inline void StdTransformWithStats(const T *data, int n, T *out, T *agg,
       m2 = std::max(m2, static_cast<T>(0.0));
       out[i] = sqrt(m2 / (window_size - 1));
     }
-    if (save_stats) {
+    if (!agg.empty()) {
       agg[0] = static_cast<T>(n);
       agg[1] = curr_avg;
       agg[2] = m2;
@@ -142,10 +150,10 @@ inline void StdTransformWithStats(const T *data, int n, T *out, T *agg,
     // Slow path: NaN-aware Welford's algorithm
     T mean = 0.0;
     T m2 = 0.0;
-    int count = 0;
-    int upper_limit = std::min(window_size, n);
+    index_t count = 0;
+    const index_t upper_limit = std::min(window_size, n);
     // Expanding window phase
-    for (int i = 0; i < upper_limit; ++i) {
+    for (index_t i = 0; i < upper_limit; ++i) {
       if (!std::isnan(data[i])) {
         count++;
         T delta = data[i] - mean;
@@ -154,16 +162,16 @@ inline void StdTransformWithStats(const T *data, int n, T *out, T *agg,
         m2 += delta * delta2;
       }
       if (count < min_samples) {
-        out[i] = std::numeric_limits<T>::quiet_NaN();
+        out[i] = kNaN<T>;
       } else if (count <= 1) {
-        out[i] = std::numeric_limits<T>::quiet_NaN();
+        out[i] = kNaN<T>;
       } else {
         T var = m2 / (count - 1);
         out[i] = sqrt(var < 0 ? 0.0 : var);
       }
     }
     // Sliding window phase
-    for (int i = window_size; i < n; ++i) {
+    for (index_t i = window_size; i < n; ++i) {
       // Remove old value
       T old_val = data[i - window_size];
       if (!std::isnan(old_val)) {
@@ -187,15 +195,15 @@ inline void StdTransformWithStats(const T *data, int n, T *out, T *agg,
         m2 += delta * delta2;
       }
       if (count < min_samples) {
-        out[i] = std::numeric_limits<T>::quiet_NaN();
+        out[i] = kNaN<T>;
       } else if (count <= 1) {
-        out[i] = std::numeric_limits<T>::quiet_NaN();
+        out[i] = kNaN<T>;
       } else {
         T var = m2 / (count - 1);
         out[i] = sqrt(var < 0 ? 0.0 : var);
       }
     }
-    if (save_stats) {
+    if (!agg.empty()) {
       agg[0] = static_cast<T>(count);
       agg[1] = mean;
       agg[2] = m2;
@@ -204,10 +212,10 @@ inline void StdTransformWithStats(const T *data, int n, T *out, T *agg,
 }
 
 template <typename T>
-inline void StdTransform(const T *data, int n, T *out, int window_size,
-                         int min_samples, bool skipna = false) {
-  T tmp;
-  StdTransformWithStats(data, n, out, &tmp, false, window_size, min_samples,
+inline void StdTransform(std::span<const T> data, std::span<T> out,
+                         index_t window_size, index_t min_samples,
+                         bool skipna = false) {
+  StdTransformWithStats(data, out, std::span<T>{}, window_size, min_samples,
                         skipna);
 }
 
@@ -223,15 +231,16 @@ public:
   // std::pair's default constructor value-initializes, which would zero the
   // whole ring buffer on every allocation; this aggregate's one is trivial
   struct Entry {
-    int index;
+    index_t index;
     T value;
   };
 
-  CompAccumulator(int window_size)
-      : buffer_(std::make_unique_for_overwrite<Entry[]>(window_size)),
+  CompAccumulator(index_t window_size)
+      : buffer_(std::make_unique_for_overwrite<Entry[]>(
+            static_cast<size_t>(window_size))),
         window_size_(window_size) {}
   inline bool Empty() const noexcept { return tail_ == -1; }
-  inline void PushBack(int i, T x) noexcept {
+  inline void PushBack(index_t i, T x) noexcept {
     if (tail_ == -1) {
       head_ = 0;
       tail_ = 0;
@@ -304,14 +313,14 @@ public:
 
   void Update(T x) noexcept { Insert(x); }
 
-  T Update(T x, int) noexcept {
+  T Update(T x, index_t) noexcept {
     Insert(x);
     if constexpr (!SkipNA) {
       if (has_nan_)
-        return std::numeric_limits<T>::quiet_NaN();
+        return kNaN<T>;
     }
     if (Empty())
-      return std::numeric_limits<T>::quiet_NaN();
+      return kNaN<T>;
     return Front().value;
   }
 
@@ -319,45 +328,47 @@ public:
     Insert(new_x);
     if constexpr (!SkipNA) {
       if (has_nan_)
-        return std::numeric_limits<T>::quiet_NaN();
+        return kNaN<T>;
     }
     if (Empty())
-      return std::numeric_limits<T>::quiet_NaN();
+      return kNaN<T>;
     return Front().value;
   }
 
 private:
   std::unique_ptr<Entry[]> buffer_;
-  int window_size_;
-  int head_ = 0;
-  int tail_ = -1;
-  int i_ = 0;
+  index_t window_size_;
+  index_t head_ = 0;
+  index_t tail_ = -1;
+  index_t i_ = 0;
   [[no_unique_address]] std::conditional_t<SkipNA, std::monostate, bool>
       has_nan_{};
   Comp comp_ = Comp();
 };
 
 template <typename T>
-void MinTransform(const T *data, int n, T *out, int window_size,
-                  int min_samples, bool skipna = false) {
+void MinTransform(std::span<const T> data, std::span<T> out,
+                  index_t window_size, index_t min_samples,
+                  bool skipna = false) {
   if (skipna) {
     Transform<T, CompAccumulator<T, std::greater_equal<T>, true>>(
-        data, n, out, window_size, min_samples);
+        data, out, window_size, min_samples);
   } else {
     Transform<T, CompAccumulator<T, std::greater_equal<T>, false>>(
-        data, n, out, window_size, min_samples);
+        data, out, window_size, min_samples);
   }
 }
 
 template <typename T>
-void MaxTransform(const T *data, int n, T *out, int window_size,
-                  int min_samples, bool skipna = false) {
+void MaxTransform(std::span<const T> data, std::span<T> out,
+                  index_t window_size, index_t min_samples,
+                  bool skipna = false) {
   if (skipna) {
     Transform<T, CompAccumulator<T, std::less_equal<T>, true>>(
-        data, n, out, window_size, min_samples);
+        data, out, window_size, min_samples);
   } else {
     Transform<T, CompAccumulator<T, std::less_equal<T>, false>>(
-        data, n, out, window_size, min_samples);
+        data, out, window_size, min_samples);
   }
 }
 
@@ -369,7 +380,7 @@ void MaxTransform(const T *data, int n, T *out, int window_size,
 // ============================================================================
 template <typename T, bool SkipNA> class QuantileAccumulator {
 public:
-  QuantileAccumulator(int window_size, T p)
+  QuantileAccumulator(index_t window_size, T p)
       : window_size_(window_size), p_(p) {}
 
   void Update(T x) {
@@ -387,15 +398,15 @@ public:
     }
   }
 
-  T Update(T x, int n) {
+  T Update(T x, index_t n) {
     Update(x);
     if constexpr (!SkipNA) {
       if (has_nan_)
-        return std::numeric_limits<T>::quiet_NaN();
+        return kNaN<T>;
       return stats::SortedQuantile(skip_list_, p_, n);
     } else {
       if (valid_count_ == 0)
-        return std::numeric_limits<T>::quiet_NaN();
+        return kNaN<T>;
       return stats::SortedQuantile(skip_list_, p_, valid_count_);
     }
   }
@@ -411,7 +422,7 @@ public:
         valid_count_++;
       }
       if (valid_count_ == 0)
-        return std::numeric_limits<T>::quiet_NaN();
+        return kNaN<T>;
       return stats::SortedQuantile(skip_list_, p_, valid_count_);
     } else {
       // Handle NaN entering or leaving window
@@ -423,7 +434,7 @@ public:
       }
 
       if (has_nan_)
-        return std::numeric_limits<T>::quiet_NaN();
+        return kNaN<T>;
 
       // Both values are valid (and no NaN seen yet)
       if (!old_is_nan) {
@@ -437,9 +448,9 @@ public:
   }
 
 private:
-  int window_size_;
+  index_t window_size_;
   T p_;
-  [[no_unique_address]] std::conditional_t<SkipNA, int, std::monostate>
+  [[no_unique_address]] std::conditional_t<SkipNA, index_t, std::monostate>
       valid_count_{};
   [[no_unique_address]] std::conditional_t<SkipNA, std::monostate, bool>
       has_nan_{};
@@ -447,180 +458,194 @@ private:
 };
 
 template <typename T>
-inline void QuantileTransform(const T *data, int n, T *out, int window_size,
-                              int min_samples, T p, bool skipna = false) {
+inline void QuantileTransform(std::span<const T> data, std::span<T> out,
+                              index_t window_size, index_t min_samples, T p,
+                              bool skipna = false) {
   RequireProbability("p", p);
   if (skipna) {
-    Transform<T, QuantileAccumulator<T, true>>(data, n, out, window_size,
+    Transform<T, QuantileAccumulator<T, true>>(data, out, window_size,
                                                min_samples, p);
   } else {
-    Transform<T, QuantileAccumulator<T, false>>(data, n, out, window_size,
+    Transform<T, QuantileAccumulator<T, false>>(data, out, window_size,
                                                 min_samples, p);
   }
 }
 
+// Applies a rolling transform to each of the season_length phases of `data`.
 template <typename Func, typename T, typename... Args>
-inline void SeasonalTransform(Func RollingTfm, const T *data, int n, T *out,
-                              int season_length, int window_size,
-                              int min_samples, Args &&...args) {
+inline void SeasonalTransform(Func RollingTfm, std::span<const T> data,
+                              std::span<T> out, index_t season_length,
+                              index_t window_size, index_t min_samples,
+                              Args &&...args) {
   RequirePositive("season_length", season_length);
-  int buff_size = n / season_length + (n % season_length > 0);
+  const index_t n = std::ssize(data);
+  const index_t buff_size = n / season_length + (n % season_length > 0);
   std::vector<T> season_data(buff_size);
   std::vector<T> season_out(buff_size);
-  for (int i = 0; i < std::min(n, season_length); ++i) {
-    int season_n = n / season_length + (i < n % season_length);
-    for (int j = 0; j < season_n; ++j) {
+  for (index_t i = 0; i < std::min(n, season_length); ++i) {
+    const index_t season_n = n / season_length + (i < n % season_length);
+    for (index_t j = 0; j < season_n; ++j) {
       season_data[j] = data[i + j * season_length];
     }
-    RollingTfm(season_data.data(), season_n, season_out.data(), window_size,
+    RollingTfm(std::span<const T>{season_data}.first(season_n),
+               std::span<T>{season_out}.first(season_n), window_size,
                min_samples, std::forward<Args>(args)...);
-    for (int j = 0; j < season_n; ++j) {
+    for (index_t j = 0; j < season_n; ++j) {
       out[i + j * season_length] = season_out[j];
     }
   }
 }
 
 template <typename T>
-inline void SeasonalMeanTransform(const T *data, int n, T *out,
-                                  int season_length, int window_size,
-                                  int min_samples, bool skipna = false) {
-  SeasonalTransform(MeanTransform<T>, data, n, out, season_length, window_size,
+inline void SeasonalMeanTransform(std::span<const T> data, std::span<T> out,
+                                  index_t season_length, index_t window_size,
+                                  index_t min_samples, bool skipna = false) {
+  SeasonalTransform(MeanTransform<T>, data, out, season_length, window_size,
                     min_samples, skipna);
-};
-
-template <typename T>
-inline void SeasonalStdTransform(const T *data, int n, T *out,
-                                 int season_length, int window_size,
-                                 int min_samples, bool skipna = false) {
-  SeasonalTransform(StdTransform<T>, data, n, out, season_length, window_size,
-                    min_samples, skipna);
-};
-
-template <typename T>
-inline void SeasonalMinTransform(const T *data, int n, T *out,
-                                 int season_length, int window_size,
-                                 int min_samples, bool skipna = false) {
-  SeasonalTransform(MinTransform<T>, data, n, out, season_length, window_size,
-                    min_samples, skipna);
-};
-
-template <typename T>
-inline void SeasonalMaxTransform(const T *data, int n, T *out,
-                                 int season_length, int window_size,
-                                 int min_samples, bool skipna = false) {
-  SeasonalTransform(MaxTransform<T>, data, n, out, season_length, window_size,
-                    min_samples, skipna);
-};
-
-template <typename T>
-void SeasonalQuantileTransform(const T *data, int n, T *out, int season_length,
-                               int window_size, int min_samples, T p,
-                               bool skipna = false) {
-  SeasonalTransform(QuantileTransform<T>, data, n, out, season_length,
-                    window_size, min_samples, p, skipna);
-};
-
-template <typename Func, typename T, typename... Args>
-inline void Update(Func RollingTfm, const T *data, int n, T *out,
-                   int window_size, int min_samples, Args &&...args) {
-  // hoisted from the kernel: the buffer below is sized from window_size
-  RequirePositive("window_size", window_size);
-  if (n < min_samples) {
-    *out = std::numeric_limits<T>::quiet_NaN();
-    return;
-  }
-  int n_samples = std::min(window_size, n);
-  std::vector<T> buffer(n_samples);
-  RollingTfm(data + n - n_samples, n_samples, buffer.data(), window_size,
-             min_samples, std::forward<Args>(args)...);
-  *out = buffer[n_samples - 1];
 }
 
 template <typename T>
-void MeanUpdate(const T *data, int n, T *out, int window_size, int min_samples,
-                bool skipna = false) {
-  Update(MeanTransform<T>, data, n, out, window_size, min_samples, skipna);
-};
+inline void SeasonalStdTransform(std::span<const T> data, std::span<T> out,
+                                 index_t season_length, index_t window_size,
+                                 index_t min_samples, bool skipna = false) {
+  SeasonalTransform(StdTransform<T>, data, out, season_length, window_size,
+                    min_samples, skipna);
+}
 
 template <typename T>
-void StdUpdate(const T *data, int n, T *out, int window_size, int min_samples,
-               bool skipna = false) {
-  Update(StdTransform<T>, data, n, out, window_size, min_samples, skipna);
-};
+inline void SeasonalMinTransform(std::span<const T> data, std::span<T> out,
+                                 index_t season_length, index_t window_size,
+                                 index_t min_samples, bool skipna = false) {
+  SeasonalTransform(MinTransform<T>, data, out, season_length, window_size,
+                    min_samples, skipna);
+}
 
 template <typename T>
-void MinUpdate(const T *data, int n, T *out, int window_size, int min_samples,
-               bool skipna = false) {
-  Update(MinTransform<T>, data, n, out, window_size, min_samples, skipna);
-};
+inline void SeasonalMaxTransform(std::span<const T> data, std::span<T> out,
+                                 index_t season_length, index_t window_size,
+                                 index_t min_samples, bool skipna = false) {
+  SeasonalTransform(MaxTransform<T>, data, out, season_length, window_size,
+                    min_samples, skipna);
+}
 
 template <typename T>
-void MaxUpdate(const T *data, int n, T *out, int window_size, int min_samples,
-               bool skipna = false) {
-  Update(MaxTransform<T>, data, n, out, window_size, min_samples, skipna);
-};
+void SeasonalQuantileTransform(std::span<const T> data, std::span<T> out,
+                               index_t season_length, index_t window_size,
+                               index_t min_samples, T p, bool skipna = false) {
+  SeasonalTransform(QuantileTransform<T>, data, out, season_length,
+                    window_size, min_samples, p, skipna);
+}
+
+// The value the rolling transform would put at the last position; out has
+// one element.
+template <typename Func, typename T, typename... Args>
+inline void Update(Func RollingTfm, std::span<const T> data, std::span<T> out,
+                   index_t window_size, index_t min_samples, Args &&...args) {
+  // hoisted from the kernel: the buffer below is sized from window_size
+  RequirePositive("window_size", window_size);
+  const index_t n = std::ssize(data);
+  if (n < min_samples) {
+    out[0] = kNaN<T>;
+    return;
+  }
+  const index_t n_samples = std::min(window_size, n);
+  std::vector<T> buffer(n_samples);
+  RollingTfm(data.last(n_samples), std::span<T>{buffer}, window_size,
+             min_samples, std::forward<Args>(args)...);
+  out[0] = buffer[n_samples - 1];
+}
 
 template <typename T>
-void QuantileUpdate(const T *data, int n, T *out, int window_size,
-                    int min_samples, T p, bool skipna = false) {
-  Update(QuantileTransform<T>, data, n, out, window_size, min_samples, p,
-         skipna);
-};
+void MeanUpdate(std::span<const T> data, std::span<T> out, index_t window_size,
+                index_t min_samples, bool skipna = false) {
+  Update(MeanTransform<T>, data, out, window_size, min_samples, skipna);
+}
+
+template <typename T>
+void StdUpdate(std::span<const T> data, std::span<T> out, index_t window_size,
+               index_t min_samples, bool skipna = false) {
+  Update(StdTransform<T>, data, out, window_size, min_samples, skipna);
+}
+
+template <typename T>
+void MinUpdate(std::span<const T> data, std::span<T> out, index_t window_size,
+               index_t min_samples, bool skipna = false) {
+  Update(MinTransform<T>, data, out, window_size, min_samples, skipna);
+}
+
+template <typename T>
+void MaxUpdate(std::span<const T> data, std::span<T> out, index_t window_size,
+               index_t min_samples, bool skipna = false) {
+  Update(MaxTransform<T>, data, out, window_size, min_samples, skipna);
+}
+
+template <typename T>
+void QuantileUpdate(std::span<const T> data, std::span<T> out,
+                    index_t window_size, index_t min_samples, T p,
+                    bool skipna = false) {
+  Update(QuantileTransform<T>, data, out, window_size, min_samples, p, skipna);
+}
 
 template <typename Func, typename T, typename... Args>
-inline void SeasonalUpdate(Func RollingUpdate, const T *data, int n, T *out,
-                           int season_length, int window_size, int min_samples,
+inline void SeasonalUpdate(Func RollingUpdate, std::span<const T> data,
+                           std::span<T> out, index_t season_length,
+                           index_t window_size, index_t min_samples,
                            Args &&...args) {
   RequirePositive("season_length", season_length);
   RequirePositive("window_size", window_size);
-  int season = n % season_length;
-  int season_n = n / season_length + (season > 0);
+  const index_t n = std::ssize(data);
+  const index_t season = n % season_length;
+  const index_t season_n = n / season_length + (season > 0);
   if (season_n < min_samples) {
-    *out = std::numeric_limits<T>::quiet_NaN();
+    out[0] = kNaN<T>;
     return;
   }
-  int n_samples = std::min(window_size, season_n);
+  const index_t n_samples = std::min(window_size, season_n);
   std::vector<T> season_data(n_samples);
-  for (int i = 0; i < n_samples; ++i) {
+  for (index_t i = 0; i < n_samples; ++i) {
     season_data[i] = data[n - 1 - (n_samples - 1 - i) * season_length];
   }
-  RollingUpdate(season_data.data(), n_samples, out, window_size, min_samples,
+  RollingUpdate(std::span<const T>{season_data}, out, window_size, min_samples,
                 std::forward<Args>(args)...);
 }
 
 template <typename T>
-void SeasonalMeanUpdate(const T *data, int n, T *out, int season_length,
-                        int window_size, int min_samples, bool skipna = false) {
-  SeasonalUpdate(MeanUpdate<T>, data, n, out, season_length, window_size,
+void SeasonalMeanUpdate(std::span<const T> data, std::span<T> out,
+                        index_t season_length, index_t window_size,
+                        index_t min_samples, bool skipna = false) {
+  SeasonalUpdate(MeanUpdate<T>, data, out, season_length, window_size,
                  min_samples, skipna);
-};
+}
 
 template <typename T>
-void SeasonalStdUpdate(const T *data, int n, T *out, int season_length,
-                       int window_size, int min_samples, bool skipna = false) {
-  SeasonalUpdate(StdUpdate<T>, data, n, out, season_length, window_size,
+void SeasonalStdUpdate(std::span<const T> data, std::span<T> out,
+                       index_t season_length, index_t window_size,
+                       index_t min_samples, bool skipna = false) {
+  SeasonalUpdate(StdUpdate<T>, data, out, season_length, window_size,
                  min_samples, skipna);
-};
+}
 
 template <typename T>
-void SeasonalMinUpdate(const T *data, int n, T *out, int season_length,
-                       int window_size, int min_samples, bool skipna = false) {
-  SeasonalUpdate(MinUpdate<T>, data, n, out, season_length, window_size,
+void SeasonalMinUpdate(std::span<const T> data, std::span<T> out,
+                       index_t season_length, index_t window_size,
+                       index_t min_samples, bool skipna = false) {
+  SeasonalUpdate(MinUpdate<T>, data, out, season_length, window_size,
                  min_samples, skipna);
-};
+}
 
 template <typename T>
-void SeasonalMaxUpdate(const T *data, int n, T *out, int season_length,
-                       int window_size, int min_samples, bool skipna = false) {
-  SeasonalUpdate(MaxUpdate<T>, data, n, out, season_length, window_size,
+void SeasonalMaxUpdate(std::span<const T> data, std::span<T> out,
+                       index_t season_length, index_t window_size,
+                       index_t min_samples, bool skipna = false) {
+  SeasonalUpdate(MaxUpdate<T>, data, out, season_length, window_size,
                  min_samples, skipna);
-};
+}
 
 template <typename T>
-void SeasonalQuantileUpdate(const T *data, int n, T *out, int season_length,
-                            int window_size, int min_samples, T p,
-                            bool skipna = false) {
-  SeasonalUpdate(QuantileUpdate<T>, data, n, out, season_length, window_size,
+void SeasonalQuantileUpdate(std::span<const T> data, std::span<T> out,
+                            index_t season_length, index_t window_size,
+                            index_t min_samples, T p, bool skipna = false) {
+  SeasonalUpdate(QuantileUpdate<T>, data, out, season_length, window_size,
                  min_samples, p, skipna);
-};
+}
 } // namespace rolling

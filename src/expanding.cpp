@@ -5,21 +5,23 @@
 
 template <typename T, typename Func, typename... Args>
 py::array_t<T> ExpandingOp(Func f, const py::array_t<T> data, Args... args) {
-  return SkipLeadingNaN<T>(data, [&](const T *d, indptr_t n, T *o) {
-    f(d, n, o, std::forward<Args>(args)...);
+  return SkipLeadingNaN<T>(data, [&](std::span<const T> in, std::span<T> out) {
+    f(in, out, std::forward<Args>(args)...);
   });
 }
 
 template <typename T>
 py::array_t<T> ExpandingMean(const py::array_t<T> data, bool skipna = false) {
   T tmp;
-  return ExpandingOp(expanding::MeanTransform<T>, data, &tmp, skipna);
+  return ExpandingOp(expanding::MeanTransform<T>, data, std::span<T>{&tmp, 1},
+                     skipna);
 }
 
 template <typename T>
 py::array_t<T> ExpandingStd(const py::array_t<T> data, bool skipna = false) {
   T tmp[3];
-  return ExpandingOp(expanding::StdTransform<T>, data, tmp, skipna);
+  return ExpandingOp(expanding::StdTransform<T>, data, std::span<T>{tmp},
+                     skipna);
 }
 
 template <typename T>

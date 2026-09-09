@@ -6,7 +6,8 @@ template <typename T>
 T BoxCoxLambdaGuerrero(py::array_t<T> data, int period, T lower, T upper) {
   T out;
   const auto x = AsContiguous(data);
-  scalers::BoxCoxLambdaGuerrero(x.data(), x.size(), &out, period, lower, upper);
+  scalers::BoxCoxLambdaGuerrero(View(x), std::span<T>{&out, 1}, period, lower,
+                                upper);
   return out;
 }
 
@@ -14,7 +15,7 @@ template <typename T>
 T BoxCoxLambdaLogLik(py::array_t<T> data, T lower, T upper) {
   T out;
   const auto x = AsContiguous(data);
-  scalers::BoxCoxLambdaLogLik(x.data(), x.size(), &out, lower, upper);
+  scalers::BoxCoxLambdaLogLik(View(x), std::span<T>{&out, 1}, lower, upper);
   return out;
 }
 

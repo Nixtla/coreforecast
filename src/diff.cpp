@@ -6,7 +6,7 @@
 template <typename T> int NumDiffs(const py::array_t<T> data, int max_d) {
   T out;
   const auto x = AsContiguous(data);
-  diff::NumDiffs(x.data(), x.size(), &out, max_d);
+  diff::NumDiffs(View(x), std::span<T>{&out, 1}, max_d);
   return static_cast<int>(out);
 }
 
@@ -14,7 +14,7 @@ template <typename T>
 int NumSeasDiffs(const py::array_t<T> data, int period, int max_d) {
   T out;
   const auto x = AsContiguous(data);
-  diff::NumSeasDiffs(x.data(), x.size(), &out, period, max_d);
+  diff::NumSeasDiffs(View(x), std::span<T>{&out, 1}, period, max_d);
   return static_cast<int>(out);
 }
 
@@ -23,7 +23,7 @@ py::array_t<T> Difference(const py::array_t<T> data, int d) {
   RequireNonNegative("d", d);
   const auto x = AsContiguous(data);
   py::array_t<T> out(x.size());
-  seasonal::Difference(x.data(), x.size(), out.mutable_data(), d);
+  seasonal::Difference(View(x), MutableView(out), d);
   return out;
 }
 

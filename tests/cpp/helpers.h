@@ -4,6 +4,7 @@
 #include <cmath>
 #include <limits>
 #include <random>
+#include <span>
 #include <vector>
 
 #include "doctest.h"
@@ -11,6 +12,13 @@
 namespace helpers {
 
 template <typename T> constexpr T NaN = std::numeric_limits<T>::quiet_NaN();
+
+// Spans over test vectors, so kernel calls deduce T.
+template <typename T> std::span<const T> In(const std::vector<T> &v) {
+  return v;
+}
+template <typename T> std::span<T> Out(std::vector<T> &v) { return v; }
+template <typename T> std::span<T> Out(T &scalar) { return {&scalar, 1}; }
 
 // Fixed seed so a failure reproduces; uniform so no value is special.
 template <typename T> std::vector<T> Random(int n, unsigned seed = 7) {

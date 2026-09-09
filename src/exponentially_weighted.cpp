@@ -5,8 +5,8 @@
 template <typename T>
 py::array_t<T> ExponentiallyWeightedMean(const py::array_t<T> data, T alpha,
                                          bool skipna = false) {
-  return SkipLeadingNaN<T>(data, [&](const T *d, indptr_t n, T *o) {
-    exponentially_weighted::MeanTransform<T>(d, n, o, alpha, skipna);
+  return SkipLeadingNaN<T>(data, [&](std::span<const T> in, std::span<T> out) {
+    exponentially_weighted::MeanTransform<T>(in, out, alpha, skipna);
   });
 }
 

@@ -4,20 +4,20 @@
 
 #include <cmath>
 #include <numeric>
+#include <span>
 
-template <typename Iterator>
-auto KPSS(Iterator begin, Iterator end, size_t lags) {
-  using T = std::iter_value_t<Iterator>;
-  auto n = std::distance(begin, end);
+#include "common.h"
 
-  const Eigen::Map<const Eigen::VectorX<T>> v(std::to_address(begin), n);
+template <typename T> T KPSS(std::span<const T> x, index_t lags) {
+  const index_t n = std::ssize(x);
+  const Eigen::Map<const Eigen::VectorX<T>> v(x.data(), n);
   T mean = v.mean();
   Eigen::VectorX<T> resids = v.array() - mean;
   Eigen::VectorX<T> cresids(n);
   std::partial_sum(resids.begin(), resids.end(), cresids.begin());
   T eta = cresids.squaredNorm() / (n * n);
   T s = resids.array().square().sum();
-  for (size_t i = 1; i < lags + 1; ++i) {
+  for (index_t i = 1; i < lags + 1; ++i) {
     T tmp = resids.head(n - i).dot(resids.tail(n - i));
     s += 2 * tmp * (1.0 - (i / (lags + 1.0)));
   }
