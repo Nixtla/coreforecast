@@ -41,6 +41,21 @@
   attribute differed between identical fits. It is now deterministic padding:
   zero for a group that produced a lambda, NaN for an empty or all-NaN group,
   whose whole row the driver fills.
+- `ExpandingMean`, `ExpandingStd`, `ExpandingMin`, `ExpandingMax` and
+  `ExponentiallyWeightedMean` ignored `skipna` in `update()`. Every other lag
+  transform forwards it to a kernel, but these five carry their accumulator in
+  Python and incorporated a NaN unconditionally, so one arriving through the
+  incremental path made the statistic NaN for that group permanently even with
+  `skipna=True`. `transform()` was always correct, so training features and
+  the features produced while predicting recursively disagreed with nothing
+  raised.
+- The same five ignored a value arriving through `update()` when their group
+  had produced no statistic yet, which happens when everything before the lag
+  is NaN: the driver skips such a group and fills its stats row with NaN, and
+  the accumulators read that as a poisoned state instead of an empty one, so
+  they never recovered. They now seed from the first value they see, matching
+  the transform, which computes over whatever follows the leading run. This
+  affected `skipna=False` too, since a leading run of NaNs is supported there.
 
 ### Build
 
