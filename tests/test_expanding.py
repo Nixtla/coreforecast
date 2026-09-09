@@ -16,7 +16,10 @@ def test_expanding(op, dtype):
     serie = pd.Series(x)
     cf_res = getattr(cf_expanding, op)(x)
     pd_res = getattr(serie.expanding(), op.replace("expanding_", ""))()
-    np.testing.assert_allclose(cf_res, pd_res, rtol=1e-5)
+    # pandas computes in float64; the float32 std of the first two values is
+    # dominated by cancellation and lands around 5e-5 relative on unlucky draws
+    rtol = 1e-4 if dtype == np.float32 else 1e-5
+    np.testing.assert_allclose(cf_res, pd_res, rtol=rtol)
 
 
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
