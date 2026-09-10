@@ -106,6 +106,25 @@ TEST_CASE_TEMPLATE("min and max without skipna are NaN from the first NaN on",
   CheckClose(out, want_max);
 }
 
+TEST_CASE_TEMPLATE("expanding quantile update without skipna is NaN past a NaN",
+                   T, float, double) {
+  // the transform reports NaN from the NaN on; the update used to sort the
+  // NaN into its buffer and return a quantile of whatever came out
+  const std::vector<T> data = {1, 2, NaN<T>, 4, 5, 6};
+  std::vector<T> full(6);
+  T last = T{0};
+  const T p = static_cast<T>(0.5);
+  expanding::QuantileTransform(In(data), Out(full), p, false);
+  expanding::QuantileUpdate(In(data), Out(last), p, false);
+  CHECK(std::isnan(full[5]));
+  CHECK(std::isnan(last));
+  // with skipna the NaN is dropped from both
+  expanding::QuantileTransform(In(data), Out(full), p, true);
+  expanding::QuantileUpdate(In(data), Out(last), p, true);
+  CheckClose(last, full[5]);
+  CheckClose(last, T{4});
+}
+
 TEST_CASE_TEMPLATE("update equals the last element of transform", T, float,
                    double) {
   const int n = 17;

@@ -56,6 +56,10 @@
   they never recovered. They now seed from the first value they see, matching
   the transform, which computes over whatever follows the leading run. This
   affected `skipna=False` too, since a leading run of NaNs is supported there.
+- `ExpandingQuantile.update()` with `skipna=False` put an interior NaN into
+  the buffer it partially sorts, and `nth_element` can't order one, so it
+  returned a quantile of whatever order the NaN left the buffer in. It now
+  returns NaN, which is what the transform reports from that NaN on.
 
 ### Build
 
@@ -77,3 +81,9 @@
   NaN statistics". It doesn't for min-max, where the result is whichever value
   wins an unordered comparison. With `skipna=False` only a leading run of NaNs
   is supported; pass `skipna=True` for anything else.
+- The lag transforms' `skipna` documentation said that with `skipna=False`
+  "NaN values propagate through the calculation". They do in `transform()`,
+  but `update()` recomputes the rolling statistics from the last window and
+  recovers once the NaN leaves it, and the expanding accumulators seed from the
+  first value they see. The docstrings now say what the scalers' do: only a
+  leading run of NaNs is supported without `skipna`.

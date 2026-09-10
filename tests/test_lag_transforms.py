@@ -280,10 +280,7 @@ def update_and_transform(factory, arrays, dtype):
     return np.array(updates), np.array(expected)
 
 
-@pytest.mark.parametrize("name", list(update_consistency_tfms))
-@pytest.mark.parametrize("skipna,series", update_consistency_cases)
-@pytest.mark.parametrize("dtype", [np.float32, np.float64])
-def test_update_matches_transform(name, skipna, series, dtype):
+def check_update_matches_transform(name, skipna, series, dtype):
     rng = np.random.default_rng(0)
     arrays = [consistency_series("clean", rng), consistency_series(series, rng)]
     rtol, atol = (1e-3, 1e-4) if dtype == np.float32 else (1e-9, 1e-12)
@@ -301,3 +298,20 @@ def test_update_matches_transform(name, skipna, series, dtype):
             equal_nan=True,
             err_msg=f"{name} lag={lag} skipna={skipna} series={series}",
         )
+
+
+@pytest.mark.parametrize("name", list(update_consistency_tfms))
+@pytest.mark.parametrize("skipna,series", update_consistency_cases)
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_update_matches_transform(name, skipna, series, dtype):
+    check_update_matches_transform(name, skipna, series, dtype)
+
+
+# the transform reports NaN from an interior NaN on without skipna. The update
+# recomputes the quantile from the whole group and used to put the NaN in the
+# buffer it partially sorts, which nth_element can't order, so it returned a
+# quantile of whatever order the NaN left the buffer in.
+@pytest.mark.parametrize("series", ["interior_nan", "nan_via_update", "long_nan_run"])
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_expanding_quantile_update_is_nan_past_an_interior_nan(series, dtype):
+    check_update_matches_transform("ExpandingQuantile", False, series, dtype)

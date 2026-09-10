@@ -140,7 +140,8 @@ class RollingMean(_RollingBase):
         min_samples (int, optional): Minimum number of samples required to compute the statistic.
             If None, defaults to window_size.
         skipna (bool): If True, exclude NaN values from calculations.
-            When False (default), NaN values propagate through the calculation."""
+            When False (default), only a leading run of NaNs is supported; an
+            interior one leaves the result unspecified, so pass True for that."""
 
     stat_name = "mean"
 
@@ -154,7 +155,8 @@ class RollingStd(_RollingBase):
         min_samples (int, optional): Minimum number of samples required to compute the statistic.
             If None, defaults to window_size.
         skipna (bool): If True, exclude NaN values from calculations.
-            When False (default), NaN values propagate through the calculation."""
+            When False (default), only a leading run of NaNs is supported; an
+            interior one leaves the result unspecified, so pass True for that."""
 
     stat_name = "std"
 
@@ -168,7 +170,8 @@ class RollingMin(_RollingBase):
         min_samples (int, optional): Minimum number of samples required to compute the statistic.
             If None, defaults to window_size.
         skipna (bool): If True, exclude NaN values from calculations.
-            When False (default), NaN values propagate through the calculation."""
+            When False (default), only a leading run of NaNs is supported; an
+            interior one leaves the result unspecified, so pass True for that."""
 
     stat_name = "min"
 
@@ -182,7 +185,8 @@ class RollingMax(_RollingBase):
         min_samples (int, optional): Minimum number of samples required to compute the statistic.
             If None, defaults to window_size.
         skipna (bool): If True, exclude NaN values from calculations.
-            When False (default), NaN values propagate through the calculation."""
+            When False (default), only a leading run of NaNs is supported; an
+            interior one leaves the result unspecified, so pass True for that."""
 
     stat_name = "max"
 
@@ -197,7 +201,8 @@ class RollingQuantile(_RollingBase):
         min_samples (int, optional): Minimum number of samples required to compute the statistic.
             If None, defaults to window_size.
         skipna (bool): If True, exclude NaN values from calculations.
-            When False (default), NaN values propagate through the calculation."""
+            When False (default), only a leading run of NaNs is supported; an
+            interior one leaves the result unspecified, so pass True for that."""
 
     def __init__(
         self,
@@ -266,7 +271,8 @@ class SeasonalRollingMean(_SeasonalRollingBase):
         min_samples (int, optional): Minimum number of samples required to compute the statistic.
             If None, defaults to window_size.
         skipna (bool): If True, exclude NaN values from calculations.
-            When False (default), NaN values propagate through the calculation."""
+            When False (default), only a leading run of NaNs is supported; an
+            interior one leaves the result unspecified, so pass True for that."""
 
     stat_name = "mean"
 
@@ -281,7 +287,8 @@ class SeasonalRollingStd(_SeasonalRollingBase):
         min_samples (int, optional): Minimum number of samples required to compute the statistic.
             If None, defaults to window_size.
         skipna (bool): If True, exclude NaN values from calculations.
-            When False (default), NaN values propagate through the calculation."""
+            When False (default), only a leading run of NaNs is supported; an
+            interior one leaves the result unspecified, so pass True for that."""
 
     stat_name = "std"
 
@@ -296,7 +303,8 @@ class SeasonalRollingMin(_SeasonalRollingBase):
         min_samples (int, optional): Minimum number of samples required to compute the statistic.
             If None, defaults to window_size.
         skipna (bool): If True, exclude NaN values from calculations.
-            When False (default), NaN values propagate through the calculation."""
+            When False (default), only a leading run of NaNs is supported; an
+            interior one leaves the result unspecified, so pass True for that."""
 
     stat_name = "min"
 
@@ -311,7 +319,8 @@ class SeasonalRollingMax(_SeasonalRollingBase):
         min_samples (int, optional): Minimum number of samples required to compute the statistic.
             If None, defaults to window_size.
         skipna (bool): If True, exclude NaN values from calculations.
-            When False (default), NaN values propagate through the calculation."""
+            When False (default), only a leading run of NaNs is supported; an
+            interior one leaves the result unspecified, so pass True for that."""
 
     stat_name = "max"
 
@@ -327,7 +336,8 @@ class SeasonalRollingQuantile(_SeasonalRollingBase):
         min_samples (int, optional): Minimum number of samples required to compute the statistic.
             If None, defaults to window_size.
         skipna (bool): If True, exclude NaN values from calculations.
-            When False (default), NaN values propagate through the calculation."""
+            When False (default), only a leading run of NaNs is supported; an
+            interior one leaves the result unspecified, so pass True for that."""
 
     def __init__(
         self,
@@ -402,7 +412,8 @@ class ExpandingMean(_ExpandingBase):
     Args:
         lag (int): Number of periods to offset by before applying the transformation
         skipna (bool): If True, exclude NaN values from calculations.
-            When False (default), NaN values propagate through the calculation."""
+            When False (default), only a leading run of NaNs is supported; an
+            interior one leaves the result unspecified, so pass True for that."""
 
     def transform(self, ga: "GroupedArray") -> np.ndarray:
         out, n = ga._expanding_mean(self.lag, self.skipna)
@@ -434,7 +445,8 @@ class ExpandingStd(_ExpandingBase):
     Args:
         lag (int): Number of periods to offset by before applying the transformation
         skipna (bool): If True, exclude NaN values from calculations.
-            When False (default), NaN values propagate through the calculation."""
+            When False (default), only a leading run of NaNs is supported; an
+            interior one leaves the result unspecified, so pass True for that."""
 
     def transform(self, ga: "GroupedArray") -> np.ndarray:
         out, self.stats_ = ga._expanding_std(self.lag, self.skipna)
@@ -495,7 +507,8 @@ class ExpandingMin(_ExpandingComp):
     Args:
         lag (int): Number of periods to offset by before applying the transformation
         skipna (bool): If True, exclude NaN values from calculations.
-            When False (default), NaN values propagate through the calculation."""
+            When False (default), only a leading run of NaNs is supported; an
+            interior one leaves the result unspecified, so pass True for that."""
 
     stat = "min"
     _comp_fn = np.minimum
@@ -508,7 +521,8 @@ class ExpandingMax(_ExpandingComp):
     Args:
         lag (int): Number of periods to offset by before applying the transformation
         skipna (bool): If True, exclude NaN values from calculations.
-            When False (default), NaN values propagate through the calculation."""
+            When False (default), only a leading run of NaNs is supported; an
+            interior one leaves the result unspecified, so pass True for that."""
 
     stat = "max"
     _comp_fn = np.maximum
@@ -524,7 +538,8 @@ class ExpandingQuantile(_BaseLagTransform):
         p (float):
             Quantile to compute
         skipna (bool): If True, exclude NaN values from calculations.
-            When False (default), NaN values propagate through the calculation."""
+            When False (default), only a leading run of NaNs is supported; an
+            interior one leaves the result unspecified, so pass True for that."""
 
     def __init__(self, lag: int, p: float, skipna: bool = False):
         self.lag = lag
@@ -545,7 +560,8 @@ class ExponentiallyWeightedMean(_BaseLagTransform):
         lag (int): Number of periods to offset by before applying the transformation
         alpha (float): Smoothing factor
         skipna (bool): If True, exclude NaN values from calculations using forward-fill behavior.
-            When False (default), NaN values propagate through the calculation."""
+            When False (default), only a leading run of NaNs is supported; an
+            interior one leaves the result unspecified, so pass True for that."""
 
     def __init__(self, lag: int, alpha: float, skipna: bool = False):
         self.lag = lag
