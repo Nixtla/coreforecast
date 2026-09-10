@@ -1,6 +1,8 @@
 #pragma once
 
+#include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <span>
 #include <vector>
 
@@ -74,6 +76,13 @@ inline void QuantileUpdate(std::span<const T> data, std::span<T> out, T p,
   assert(p >= 0 && p <= 1);
   std::vector<T> buffer;
   if (!skipna) {
+    // the transform's accumulator reports NaN from the first one on, and
+    // nth_element can't order a buffer that has one
+    if (std::any_of(data.begin(), data.end(),
+                    [](T x) { return std::isnan(x); })) {
+      out[0] = kNaN<T>;
+      return;
+    }
     buffer.assign(data.begin(), data.end());
   } else {
     std::copy_if(data.begin(), data.end(), std::back_inserter(buffer),
