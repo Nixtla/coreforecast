@@ -220,7 +220,7 @@ Name | Type | Description | Default
 `lag` | <code>[int](#int)</code> | Number of periods to offset by before applying the transformation. | *required*
 `window_size` | <code>[int](#int)</code> | Length of the rolling window. | *required*
 `min_samples` | <code>[int](#int)</code> | Minimum number of samples required to compute the statistic. If None, defaults to window_size. | <code>None</code>
-`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), NaN values propagate through the calculation. | <code>False</code>
+`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), only a leading run of NaNs is supported; an interior one leaves the result unspecified, so pass True for that. | <code>False</code>
 
 ### `RollingStd`
 
@@ -235,7 +235,7 @@ Name | Type | Description | Default
 `lag` | <code>[int](#int)</code> | Number of periods to offset by before applying the transformation. | *required*
 `window_size` | <code>[int](#int)</code> | Length of the rolling window. | *required*
 `min_samples` | <code>[int](#int)</code> | Minimum number of samples required to compute the statistic. If None, defaults to window_size. | <code>None</code>
-`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), NaN values propagate through the calculation. | <code>False</code>
+`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), only a leading run of NaNs is supported; an interior one leaves the result unspecified, so pass True for that. | <code>False</code>
 
 ### `RollingMin`
 
@@ -250,7 +250,7 @@ Name | Type | Description | Default
 `lag` | <code>[int](#int)</code> | Number of periods to offset by before applying the transformation. | *required*
 `window_size` | <code>[int](#int)</code> | Length of the rolling window. | *required*
 `min_samples` | <code>[int](#int)</code> | Minimum number of samples required to compute the statistic. If None, defaults to window_size. | <code>None</code>
-`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), NaN values propagate through the calculation. | <code>False</code>
+`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), only a leading run of NaNs is supported; an interior one leaves the result unspecified, so pass True for that. | <code>False</code>
 
 ### `RollingMax`
 
@@ -265,7 +265,7 @@ Name | Type | Description | Default
 `lag` | <code>[int](#int)</code> | Number of periods to offset by before applying the transformation. | *required*
 `window_size` | <code>[int](#int)</code> | Length of the rolling window. | *required*
 `min_samples` | <code>[int](#int)</code> | Minimum number of samples required to compute the statistic. If None, defaults to window_size. | <code>None</code>
-`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), NaN values propagate through the calculation. | <code>False</code>
+`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), only a leading run of NaNs is supported; an interior one leaves the result unspecified, so pass True for that. | <code>False</code>
 
 ### `RollingQuantile`
 
@@ -285,7 +285,7 @@ Name | Type | Description | Default
 `p` | <code>[float](#float)</code> | Quantile to compute | *required*
 `window_size` | <code>[int](#int)</code> | Length of the rolling window | *required*
 `min_samples` | <code>[int](#int)</code> | Minimum number of samples required to compute the statistic. If None, defaults to window_size. | <code>None</code>
-`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), NaN values propagate through the calculation. | <code>False</code>
+`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), only a leading run of NaNs is supported; an interior one leaves the result unspecified, so pass True for that. | <code>False</code>
 
 ### `SeasonalRollingMean`
 
@@ -301,7 +301,7 @@ Name | Type | Description | Default
 `season_length` | <code>[int](#int)</code> | Length of the seasonal period, e.g. 7 for weekly data | *required*
 `window_size` | <code>[int](#int)</code> | Length of the rolling window | *required*
 `min_samples` | <code>[int](#int)</code> | Minimum number of samples required to compute the statistic. If None, defaults to window_size. | <code>None</code>
-`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), NaN values propagate through the calculation. | <code>False</code>
+`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), only a leading run of NaNs is supported; an interior one leaves the result unspecified, so pass True for that. | <code>False</code>
 
 ### `SeasonalRollingStd`
 
@@ -317,7 +317,7 @@ Name | Type | Description | Default
 `season_length` | <code>[int](#int)</code> | Length of the seasonal period, e.g. 7 for weekly data | *required*
 `window_size` | <code>[int](#int)</code> | Length of the rolling window | *required*
 `min_samples` | <code>[int](#int)</code> | Minimum number of samples required to compute the statistic. If None, defaults to window_size. | <code>None</code>
-`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), NaN values propagate through the calculation. | <code>False</code>
+`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), only a leading run of NaNs is supported; an interior one leaves the result unspecified, so pass True for that. | <code>False</code>
 
 ### `SeasonalRollingMin`
 
@@ -333,7 +333,7 @@ Name | Type | Description | Default
 `season_length` | <code>[int](#int)</code> | Length of the seasonal period, e.g. 7 for weekly data | *required*
 `window_size` | <code>[int](#int)</code> | Length of the rolling window | *required*
 `min_samples` | <code>[int](#int)</code> | Minimum number of samples required to compute the statistic. If None, defaults to window_size. | <code>None</code>
-`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), NaN values propagate through the calculation. | <code>False</code>
+`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), only a leading run of NaNs is supported; an interior one leaves the result unspecified, so pass True for that. | <code>False</code>
 
 ### `SeasonalRollingMax`
 
@@ -349,7 +349,7 @@ Name | Type | Description | Default
 `season_length` | <code>[int](#int)</code> | Length of the seasonal period, e.g. 7 for weekly data | *required*
 `window_size` | <code>[int](#int)</code> | Length of the rolling window | *required*
 `min_samples` | <code>[int](#int)</code> | Minimum number of samples required to compute the statistic. If None, defaults to window_size. | <code>None</code>
-`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), NaN values propagate through the calculation. | <code>False</code>
+`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), only a leading run of NaNs is supported; an interior one leaves the result unspecified, so pass True for that. | <code>False</code>
 
 ### `SeasonalRollingQuantile`
 
@@ -370,7 +370,7 @@ Name | Type | Description | Default
 `season_length` | <code>[int](#int)</code> | Length of the seasonal period, e.g. 7 for weekly data | *required*
 `window_size` | <code>[int](#int)</code> | Length of the rolling window | *required*
 `min_samples` | <code>[int](#int)</code> | Minimum number of samples required to compute the statistic. If None, defaults to window_size. | <code>None</code>
-`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), NaN values propagate through the calculation. | <code>False</code>
+`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), only a leading run of NaNs is supported; an interior one leaves the result unspecified, so pass True for that. | <code>False</code>
   
 ### `ExpandingMean`
 
@@ -383,7 +383,7 @@ Expanding Mean
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `lag` | <code>[int](#int)</code> | Number of periods to offset by before applying the transformation | *required*
-`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), NaN values propagate through the calculation. | <code>False</code>
+`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), only a leading run of NaNs is supported; an interior one leaves the result unspecified, so pass True for that. | <code>False</code>
 
 ### `ExpandingStd`
 
@@ -396,7 +396,7 @@ Expanding Standard Deviation
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `lag` | <code>[int](#int)</code> | Number of periods to offset by before applying the transformation | *required*
-`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), NaN values propagate through the calculation. | <code>False</code>
+`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), only a leading run of NaNs is supported; an interior one leaves the result unspecified, so pass True for that. | <code>False</code>
 
 ### `ExpandingMin`
 
@@ -409,7 +409,7 @@ Expanding Minimum
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `lag` | <code>[int](#int)</code> | Number of periods to offset by before applying the transformation | *required*
-`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), NaN values propagate through the calculation. | <code>False</code>
+`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), only a leading run of NaNs is supported; an interior one leaves the result unspecified, so pass True for that. | <code>False</code>
 
 ### `ExpandingMax`
 
@@ -422,7 +422,7 @@ Expanding Maximum
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `lag` | <code>[int](#int)</code> | Number of periods to offset by before applying the transformation | *required*
-`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), NaN values propagate through the calculation. | <code>False</code>
+`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), only a leading run of NaNs is supported; an interior one leaves the result unspecified, so pass True for that. | <code>False</code>
 
 ### `ExpandingQuantile`
 
@@ -440,7 +440,7 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `lag` | <code>[int](#int)</code> | Number of periods to offset by before applying the transformation | *required*
 `p` | <code>[float](#float)</code> | Quantile to compute | *required*
-`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), NaN values propagate through the calculation. | <code>False</code>
+`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations. When False (default), only a leading run of NaNs is supported; an interior one leaves the result unspecified, so pass True for that. | <code>False</code>
 
 ### `ExponentiallyWeightedMean`
 
@@ -458,4 +458,4 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `lag` | <code>[int](#int)</code> | Number of periods to offset by before applying the transformation | *required*
 `alpha` | <code>[float](#float)</code> | Smoothing factor | *required*
-`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations using forward-fill behavior. When False (default), NaN values propagate through the calculation. | <code>False</code>
+`skipna` | <code>[bool](#bool)</code> | If True, exclude NaN values from calculations using forward-fill behavior. When False (default), only a leading run of NaNs is supported; an interior one leaves the result unspecified, so pass True for that. | <code>False</code>
