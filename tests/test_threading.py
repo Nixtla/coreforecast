@@ -1,8 +1,9 @@
 """The multi-threaded GroupedArray path.
 
-Groups are split across threads, so results must not depend on how many are
-used, and a failure inside a worker must surface as a Python exception rather
-than taking the interpreter down with it.
+Groups are handed out to threads in chunks, so results must not depend on how
+many are used or on how uneven the groups are, and a failure inside a worker
+must surface as a Python exception rather than taking the interpreter down with
+it.
 """
 
 import numpy as np
@@ -43,11 +44,25 @@ def grouped(rng):
     return rng.normal(size=indptr[-1]), indptr
 
 
+@pytest.fixture
+def skewed(rng):
+    # one group holding half the elements, then a run of empty ones, then the
+    # short rest: an even split by group count leaves one thread with half the
+    # work and another with none of it
+    short = rng.integers(low=5, high=40, size=60)
+    lengths = np.concatenate([[short.sum()], np.zeros(5, dtype=int), short])
+    indptr = np.append(0, lengths.cumsum()).astype(np.int32)
+    return rng.normal(size=indptr[-1]), indptr
+
+
+@pytest.mark.parametrize("shape", ["grouped", "skewed"])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 @pytest.mark.parametrize("num_threads", thread_counts)
 @pytest.mark.parametrize("name,op", operations, ids=[o[0] for o in operations])
-def test_results_do_not_depend_on_thread_count(name, op, num_threads, grouped, dtype):
-    data, indptr = grouped
+def test_results_do_not_depend_on_thread_count(
+    name, op, num_threads, dtype, shape, request
+):
+    data, indptr = request.getfixturevalue(shape)
     data = data.astype(dtype)
     serial = op(GroupedArray(data, indptr, num_threads=1))
     parallel = op(GroupedArray(data, indptr, num_threads=num_threads))
