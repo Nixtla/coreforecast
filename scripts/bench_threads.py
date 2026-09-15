@@ -2,8 +2,8 @@
 
 Not part of tests/test_efficiency.py: that suite runs under CodSpeed in
 simulation mode, which counts instructions and so can't see what threads do.
-With --check the four-thread speedups on the uniform dataset have to clear the
-floors below, which is what the CI job runs.
+With --check every kernel's two-thread speedup on the uniform dataset has to
+clear MIN_SPEEDUP, which is what the CI job runs.
 """
 
 import argparse
@@ -16,19 +16,22 @@ from coreforecast.grouped_array import GroupedArray
 
 THREAD_COUNTS = [1, 2, 4]
 
-# The floor is the four-thread speedup a --check run has to clear. Each is
-# about half of what a quiet four-core box does, so the noise of a shared
-# runner doesn't trip it but the regression it guards against does: before the
-# skip list got a per-thread coin toss the quantiles ran at 0.47x. rolling_mean
-# gets a lower one still: at 2.6 ms serial it is the kernel where spawning the
-# threads and the noise of the machine weigh most.
+# The gate is on two threads, not four: GitHub's four vCPUs are two cores plus
+# their hyperthreads, where box-cox gets 2.3x rather than the 3.8x it gets on
+# four real cores, so a four-thread floor would say more about the runner than
+# about the code. Two threads measured 1.9x to 2.0x on both machines, and the
+# regression this guards against (quantiles before the skip list got a
+# per-thread coin toss) was 0.51x there, so the margin is wide either way.
+CHECKED_THREADS = 2
+MIN_SPEEDUP = 1.5
+
 KERNELS = [
-    ("rolling_mean", lambda ga: ga._rolling_mean(1, 7, 1), 1.5),
-    ("rolling_max", lambda ga: ga._rolling_max(1, 7, 1), 2.5),
-    ("robust_iqr_stats", lambda ga: ga._robust_iqr_stats(), 2.5),
-    ("boxcox_loglik", lambda ga: ga._boxcox_loglik(-0.9, 2.0), 2.5),
-    ("rolling_quantile (w=7)", lambda ga: ga._rolling_quantile(1, 0.5, 7, 1), 2.5),
-    ("rolling_quantile (w=100)", lambda ga: ga._rolling_quantile(1, 0.5, 100, 1), 2.5),
+    ("rolling_mean", lambda ga: ga._rolling_mean(1, 7, 1)),
+    ("rolling_max", lambda ga: ga._rolling_max(1, 7, 1)),
+    ("robust_iqr_stats", lambda ga: ga._robust_iqr_stats()),
+    ("boxcox_loglik", lambda ga: ga._boxcox_loglik(-0.9, 2.0)),
+    ("rolling_quantile (w=7)", lambda ga: ga._rolling_quantile(1, 0.5, 7, 1)),
+    ("rolling_quantile (w=100)", lambda ga: ga._rolling_quantile(1, 0.5, 100, 1)),
 ]
 
 
@@ -51,7 +54,7 @@ def tiny(rng):
     return build(rng, np.full(200, 20))
 
 
-# Only the uniform case is held to the floors. The other two are what the rest
+# Only the uniform case is checked. The other two are what the rest
 # of the threading plan is about: handing work out dynamically so one huge
 # group doesn't pin a thread, and not spawning at all for an array this small.
 DATASETS = [
@@ -86,19 +89,20 @@ def run(name, dataset, repeats, floors):
     print(header)
     print("|" + "-" * (len(header) - 2) + "|")
     below = []
-    for kernel_name, fn, floor in KERNELS:
-        times = [
-            time_it(fn, GroupedArray(data, indptr, num_threads=t), repeats)
+    for kernel_name, fn in KERNELS:
+        times = {
+            t: time_it(fn, GroupedArray(data, indptr, num_threads=t), repeats)
             for t in THREAD_COUNTS
-        ]
-        speedups = [times[0] / t for t in times[1:]]
+        }
+        speedups = {t: times[1] / times[t] for t in THREAD_COUNTS[1:]}
         row = f"| {kernel_name}".ljust(28)
-        row += "".join(f"| {t:>9.3f} " for t in times)
-        row += "".join(f"| {s:>10.2f} " for s in speedups)
+        row += "".join(f"| {times[t]:>9.3f} " for t in THREAD_COUNTS)
+        row += "".join(f"| {speedups[t]:>10.2f} " for t in THREAD_COUNTS[1:])
         print(row + "|")
-        if floors and speedups[-1] < floor:
+        if floors and speedups[CHECKED_THREADS] < MIN_SPEEDUP:
             below.append(
-                f"{kernel_name}: {speedups[-1]:.2f}x on 4 threads, floor {floor:.2f}x"
+                f"{kernel_name}: {speedups[CHECKED_THREADS]:.2f}x on "
+                f"{CHECKED_THREADS} threads, floor {MIN_SPEEDUP:.2f}x"
             )
     return below
 
@@ -108,14 +112,15 @@ def main():
     parser.add_argument(
         "--check",
         action="store_true",
-        help="exit non-zero if a four-thread speedup is under its floor",
+        help=f"exit non-zero if a {CHECKED_THREADS}-thread speedup is under "
+        f"{MIN_SPEEDUP}x",
     )
     args = parser.parse_args()
     cores = available_cores()
     print(f"{cores} cores available")
-    if args.check and cores < max(THREAD_COUNTS):
+    if args.check and cores < CHECKED_THREADS:
         # passing here would make the gate disappear the day a runner shrinks
-        sys.exit(f"--check needs {max(THREAD_COUNTS)} cores to mean anything")
+        sys.exit(f"--check needs {CHECKED_THREADS} cores to mean anything")
     rng = np.random.default_rng(0)
     below = []
     for name, dataset, repeats, floors in DATASETS:
