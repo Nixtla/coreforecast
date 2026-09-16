@@ -45,14 +45,16 @@
 ### Performance
 
 - Threads take groups off a shared counter in chunks as they finish instead of
-  being handed an equal share of the group count up front, so uneven group
-  lengths no longer leave threads idle while one thread works through the long
-  ones. On four threads here, 1000 series ordered longest first went from 3.0x
-  to 3.5x, and a panel whose first series holds half the elements from 1.6x to
-  1.9x. Evenly sized groups are unchanged, and so are the results: every group
-  writes its own slice of the output whichever thread runs it. A single group
-  is never split across threads, so one group holding half the elements caps
-  the speedup at 2x however many threads are used.
+  being handed an equal share of the group count up front, and the chunks go
+  out heaviest first so the longest groups are started while there is still
+  other work to run alongside them. Uneven group lengths used to leave threads
+  idle: on four threads here, 1000 series ordered longest first went from 3.0x
+  to 3.5x, and a panel holding one series with half the elements from 1.5x to
+  1.9x wherever in the panel that series sits. Evenly sized groups are
+  unchanged, and so are the results: every group writes its own slice of the
+  output whichever thread runs it. A single group is never split across
+  threads, so one holding half the elements caps the speedup at 2x however
+  many threads are used.
 
 ### Build
 

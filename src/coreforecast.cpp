@@ -127,13 +127,13 @@ public:
 
   // The workers only touch raw buffers, never the Python API, so the GIL is
   // released around them; the scheduling itself lives in parallel.h, which
-  // knows nothing about Python.
+  // knows nothing about Python. It takes the indptr because how long each
+  // group is decides the order the chunks go out in.
   template <typename Func> void ForEach(Func f) const {
-    const index_t n_groups = NumGroups();
-    const int n_threads = static_cast<int>(
-        std::clamp<index_t>(num_threads_, 1, std::max<index_t>(1, n_groups)));
+    const int n_threads = static_cast<int>(std::clamp<index_t>(
+        num_threads_, 1, std::max<index_t>(1, NumGroups())));
     py::gil_scoped_release release;
-    parallel::ForEach(n_groups, n_threads, f);
+    parallel::ForEach(Indptr(), n_threads, f);
   }
 
   // One row of n_out results per group, from the group minus its leading NaN
