@@ -35,6 +35,13 @@
 
 ### Bug fixes
 
+- `ExpandingMin`, `ExpandingMax` and `ExponentiallyWeightedMean` seeded the
+  state of an empty group from the output position before its end, which
+  belongs to another group, so a value the group got later through `update()`
+  was folded into that group's statistic. `ExpandingMean` read the same
+  position, and on an array with no elements the read raised an `IndexError`
+  from all four. An empty group now starts from a NaN state, as with the
+  other accumulators.
 - `LocalBoxCoxScaler.stats_` had an uninitialised second column: the lambda
   kernels write one value per group and the array holding them was never
   cleared. Transforms were unaffected since that column is not read, but the
