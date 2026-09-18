@@ -1,7 +1,10 @@
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <numeric>
+#include <set>
 #include <stdexcept>
+#include <thread>
 #include <vector>
 
 #include "parallel.h"
@@ -42,6 +45,22 @@ void CheckAllVisitedOnce(index_t n_groups, int n_threads) {
                     [](int count) { return count == 1; }));
 }
 
+// The threads that ran the groups, each group writing its own slot like an
+// output. `park` runs first on every chunk.
+template <typename Park>
+std::set<std::thread::id> Runners(index_t n_groups, int n_threads, Park park) {
+  std::vector<std::thread::id> ids(n_groups);
+  const auto indptr = FlatIndptr(n_groups);
+  parallel::ForEach(indptr, n_threads,
+                    [&ids, &park](index_t start_group, index_t end_group) {
+                      park();
+                      for (index_t i = start_group; i < end_group; ++i) {
+                        ids[i] = std::this_thread::get_id();
+                      }
+                    });
+  return {ids.begin(), ids.end()};
+}
+
 } // namespace
 
 TEST_CASE("every group is visited exactly once") {
@@ -50,6 +69,40 @@ TEST_CASE("every group is visited exactly once") {
       CheckAllVisitedOnce(n_groups, n_threads);
     }
   }
+}
+
+TEST_CASE("no thread runs without a group of its own") {
+  const auto here = std::this_thread::get_id();
+  const auto nothing = [] {};
+  // one group runs on the calling thread however many threads were asked for
+  CHECK(Runners(1, 8, nothing) == std::set<std::thread::id>{here});
+  CHECK(Runners(0, 8, nothing).empty());
+  CHECK(Runners(3, 8, nothing).size() <= 3);
+  // an empty indptr is malformed, but it means no groups rather than -1 of them
+  parallel::ForEach(std::span<const index_t>{}, 8,
+                    [](index_t start_group, index_t end_group) {
+                      CHECK(start_group == end_group);
+                    });
+}
+
+TEST_CASE("the calling thread is one of the workers") {
+  constexpr index_t kGroups = 64;
+  constexpr int kThreads = 4;
+  std::atomic<int> arrived{0};
+  // Every chunk holds its thread until kThreads of them are inside f, which
+  // takes every thread including the calling one; a thread that doesn't turn
+  // up is a timeout here rather than a hang.
+  const auto deadline =
+      std::chrono::steady_clock::now() + std::chrono::seconds(30);
+  const auto ids = Runners(kGroups, kThreads, [&arrived, deadline] {
+    arrived.fetch_add(1);
+    while (arrived.load() < kThreads &&
+           std::chrono::steady_clock::now() < deadline) {
+      std::this_thread::yield();
+    }
+  });
+  CHECK(ids.size() == kThreads);
+  CHECK(ids.count(std::this_thread::get_id()) == 1);
 }
 
 TEST_CASE("equal chunks keep their index order") {
@@ -61,6 +114,7 @@ TEST_CASE("equal chunks keep their index order") {
   CHECK(parallel::ChunkStarts(indptr, 4) == std::vector<index_t>{0, 4, 8});
   CHECK(parallel::ChunkStarts(indptr, 100) == std::vector<index_t>{0});
   CHECK(parallel::ChunkStarts(FlatIndptr(0), 1).empty());
+  CHECK(parallel::ChunkStarts(std::span<const index_t>{}, 1).empty());
 }
 
 TEST_CASE("the heaviest chunks are handed out first") {
@@ -82,30 +136,31 @@ TEST_CASE("a throwing chunk surfaces once the other workers have joined") {
   constexpr int kThreads = 4;
   std::atomic<int> order{0};
   std::atomic<bool> threw{false};
-  std::atomic<int> started{0};
-  std::atomic<int> finished{0};
+  std::atomic<int> in_flight{0};
   const auto indptr = FlatIndptr(kGroups);
-  // Whichever chunk runs first throws, and the rest park until it has, so
-  // returning without joining leaves workers reading these locals: a use after
-  // return for ASan, a race for TSan, and started != finished here. Keying on
-  // the running order rather than on a group index keeps the parked workers
-  // from waiting on a chunk that the scheduler hasn't handed out yet.
-  auto run_and_throw = [&order, &threw, &started, &finished, &indptr] {
+  // Whichever chunk runs first throws, and the rest park until it has, so they
+  // are inside f while the exception is stashed. Returning without joining
+  // them would leave workers reading the scheduler's locals after it has gone,
+  // a use after return for ASan and a race for TSan, and in_flight above zero
+  // here. Keying on the running order rather than on a group index keeps the
+  // parked workers from waiting on a chunk that the scheduler hasn't handed
+  // out yet.
+  auto run_and_throw = [&order, &threw, &in_flight, &indptr] {
     parallel::ForEach(indptr, kThreads,
-                      [&order, &threw, &started, &finished](index_t, index_t) {
+                      [&order, &threw, &in_flight](index_t, index_t) {
                         if (order.fetch_add(1) == 0) {
                           threw.store(true);
                           throw std::runtime_error("boom");
                         }
-                        started.fetch_add(1);
+                        in_flight.fetch_add(1);
                         while (!threw.load()) {
+                          std::this_thread::yield();
                         }
-                        finished.fetch_add(1);
+                        in_flight.fetch_sub(1);
                       });
   };
   CHECK_THROWS_AS(run_and_throw(), std::runtime_error);
-  CHECK(started.load() > 0);
-  CHECK(finished.load() == started.load());
+  CHECK(in_flight.load() == 0);
 
   CheckAllVisitedOnce(kGroups, kThreads);
 }
