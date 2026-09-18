@@ -44,6 +44,13 @@
 
 ### Performance
 
+- Rolling min and max, with their seasonal, update and expanding variants, use
+  a block scan (van Herk / Gil-Werman) instead of a monotonic deque. The deque
+  popped entries in a loop whose exit depended on the data, which mispredicted
+  about once per element; the scan does three compare-selects per element with
+  no such branch. About 3x faster on random data, 2.6 to 3.9 ns per element
+  instead of 9.5 on a Neoverse N1, and the same on monotonic data. Results are
+  unchanged.
 - Threads take groups off a shared counter in chunks as they finish instead of
   being handed an equal share of the group count up front, and the chunks go
   out heaviest first so the longest groups are started while there is still
