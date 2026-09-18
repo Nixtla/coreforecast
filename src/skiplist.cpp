@@ -30,11 +30,17 @@ std::uint64_t Next() {
 
 bool tossCoin() { return (Next() >> 63) != 0; }
 
+// Seeds the calling thread only: the state is thread_local, so a seed set on
+// the main thread doesn't reach the workers a multi-threaded rolling quantile
+// spawns. Nothing calls this today.
 void seedRand(unsigned seed) {
-  state = seed * kDefaultSeed;
-  if (state == 0) {
-    state = kDefaultSeed;
-  }
+  // splitmix64, so neighbouring seeds don't start from neighbouring states
+  // (seed * kDefaultSeed gave 0 and 1 the same stream). It's a bijection whose
+  // one preimage of zero doesn't fit in an unsigned, so no seed sticks.
+  std::uint64_t z = seed + kDefaultSeed;
+  z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ULL;
+  z = (z ^ (z >> 27)) * 0x94D049BB133111EBULL;
+  state = z ^ (z >> 31);
 }
 
 void _throw_exceeds_size(size_t /* index */) {
