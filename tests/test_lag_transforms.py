@@ -156,3 +156,33 @@ def test_correctness_quantiles(data, dtype, p, window_type):
     pres_upd = pres[indptr[1:] - 1]
     np.testing.assert_allclose(cres, pres, rtol=rtol)
     np.testing.assert_allclose(cres_upd, pres_upd, rtol=rtol)
+
+
+# the accumulators that keep their last output read it from the position before
+# the group's end, which for an empty group belongs to another group, or to
+# nothing when the array has no elements
+@pytest.mark.parametrize("comb", list(lag_tfms_map.keys()))
+def test_update_gives_nan_to_an_empty_group(comb, rng):
+    cf, args = lag_tfms_map[comb]
+    a, b = rng.uniform(1.0, 11.0, size=(2, 40))
+    empty = np.array([])
+
+    def grouped(arrays):
+        return GroupedArray(
+            np.hstack(arrays), np.append(0, np.cumsum([len(x) for x in arrays]))
+        )
+
+    def fit_and_update(arrays):
+        tfm = cf(1, *args)
+        tfm.transform(grouped([x[:-1] for x in arrays]))
+        stats = getattr(tfm, "stats_", None)
+        if stats is not None:
+            is_empty = np.array([x.size == 0 for x in arrays])
+            assert np.isnan(stats[is_empty]).all()
+        return tfm.update(grouped(arrays))
+
+    expected = fit_and_update([a, b])
+    got = fit_and_update([empty, a, empty, empty, b, empty])
+    np.testing.assert_array_equal(got[[1, 4]], expected)
+    np.testing.assert_array_equal(got[[0, 2, 3, 5]], np.full(4, np.nan))
+    np.testing.assert_array_equal(fit_and_update([empty]), [np.nan])

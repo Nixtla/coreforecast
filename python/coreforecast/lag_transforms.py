@@ -368,6 +368,16 @@ class SeasonalRollingQuantile(_SeasonalRollingBase):
         )
 
 
+def _last_of_each(out: np.ndarray, indptr: np.ndarray) -> np.ndarray:
+    """The last output of each group, NaN for an empty one: the position
+    before its end belongs to another group."""
+    ends = indptr[1:]
+    nonempty = ends > indptr[:-1]
+    last = np.full(ends.size, np.nan, dtype=out.dtype)
+    last[nonempty] = out[ends[nonempty] - 1]
+    return last
+
+
 class _ExpandingBase(_BaseLagTransform):
     stats_: np.ndarray
     skipna: bool
@@ -392,7 +402,7 @@ class ExpandingMean(_ExpandingBase):
 
     def transform(self, ga: "GroupedArray") -> np.ndarray:
         out, n = ga._expanding_mean(self.lag, self.skipna)
-        cumsum = n * out[ga.indptr[1:] - 1]
+        cumsum = n * _last_of_each(out, ga.indptr)
         self.stats_ = np.hstack([n[:, None], cumsum[:, None]])
         return out
 
@@ -432,7 +442,7 @@ class _ExpandingComp(_ExpandingBase):
 
     def transform(self, ga: "GroupedArray") -> np.ndarray:
         out = getattr(ga, f"_expanding_{self.stat}")(self.lag, self.skipna)
-        self.stats_ = out[ga.indptr[1:] - 1]
+        self.stats_ = _last_of_each(out, ga.indptr)
         return out
 
     def update(self, ga: "GroupedArray") -> np.ndarray:
@@ -503,7 +513,7 @@ class ExponentiallyWeightedMean(_BaseLagTransform):
 
     def transform(self, ga: "GroupedArray") -> np.ndarray:
         out = ga._exponentially_weighted_mean(self.lag, self.alpha, self.skipna)
-        self.stats_ = out[ga.indptr[1:] - 1]
+        self.stats_ = _last_of_each(out, ga.indptr)
         return out
 
     def update(self, ga: "GroupedArray") -> np.ndarray:
