@@ -138,9 +138,10 @@ jobs:
       # gcc + libstdc++ on Ubuntu, AppleClang + libc++ on macOS: the two
       # differ on what they constant-fold, so a narrowing that gcc accepts
       # in a braced initializer is an error under clang.
-      # TSan is its own build because it can't be combined with ASan, and it is
-      # the only job that runs the scheduler in parallel.h with instrumentation;
-      # AppleClang supports it on arm64, so both OSes get both.
+      # TSan is its own build because it can't be combined with ASan, and this
+      # is the only job that runs the scheduler in parallel.h under it: the
+      # Python suite covers it under ASan but never TSan. AppleClang supports
+      # it on arm64, so both OSes get both.
       matrix:
         os: [ubuntu-latest, macos-latest]
         sanitizer: ["address,undefined", "thread"]

@@ -7,6 +7,7 @@ set(PYBIND11_NEWPYTHON ON)
 
 find_package(pybind11 CONFIG REQUIRED)
 # the scheduler in parallel.h spawns std::threads in both targets
+set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 include_directories(include/coreforecast)

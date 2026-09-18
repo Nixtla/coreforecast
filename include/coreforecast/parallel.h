@@ -10,6 +10,7 @@
 #include <cassert>
 #include <exception>
 #include <span>
+#include <system_error>
 #include <thread>
 #include <vector>
 
@@ -22,6 +23,12 @@ namespace parallel {
 // next to the groups they hand out.
 inline constexpr index_t kChunksPerThread = 16;
 
+// indptr.size() - 1, except that an empty indptr has no groups rather than -1
+// of them.
+inline index_t NumGroups(std::span<const index_t> indptr) {
+  return indptr.empty() ? 0 : std::ssize(indptr) - 1;
+}
+
 inline index_t ChunkSize(index_t n_groups, int n_threads) {
   return std::max<index_t>(1, n_groups / (kChunksPerThread * n_threads));
 }
@@ -31,15 +38,12 @@ inline index_t ChunkSize(index_t n_groups, int n_threads) {
 //
 // The order matters because a group is never split: a thread that starts the
 // longest one last has nothing left to overlap it with, and the call can't
-// finish before that group does. Handing chunks out in index order costs about
-// a fifth of the four-thread speedup when the longest group sits at the end.
-// Chunks of equal weight keep their index order, so evenly sized groups are
-// walked exactly as they are laid out.
+// finish before that group does. Chunks of equal weight keep their index
+// order, so evenly sized groups are walked exactly as they are laid out.
 inline std::vector<index_t> ChunkStarts(std::span<const index_t> indptr,
                                         index_t chunk) {
-  assert(!indptr.empty());
   assert(chunk > 0);
-  const index_t n_groups = std::ssize(indptr) - 1;
+  const index_t n_groups = NumGroups(indptr);
   std::vector<index_t> starts;
   starts.reserve(static_cast<size_t>((n_groups + chunk - 1) / chunk));
   for (index_t start = 0; start < n_groups; start += chunk) {
@@ -56,20 +60,22 @@ inline std::vector<index_t> ChunkStarts(std::span<const index_t> indptr,
   return starts;
 }
 
-// Calls f(start_group, end_group) over the chunks of [0, n_groups), which is
-// indptr.size() - 1 groups, until they run out. Chunks go out off a shared
-// counter in the order ChunkStarts puts them in, so a thread that drew short
-// groups takes more of them instead of idling while another works through the
-// long ones. One group holding half the elements still caps the speedup at 2x.
+// Calls f(start_group, end_group) over the chunks of [0, n_groups) until they
+// run out. Chunks go out off a shared counter in the order ChunkStarts puts
+// them in, so a thread that drew short groups takes more of them instead of
+// idling while another works through the long ones. The calling thread is
+// worker 0 and at most one thread per group runs, so no thread ever starts
+// without a chunk to run and a spawn that fails only costs a thread.
 //
 // Every group writes only its own slice of the output, so neither the thread
 // count nor the order the chunks go out in changes the result. Exceptions
-// can't cross a thread boundary, so each worker stashes its own and we rethrow
-// once everything has been joined.
+// can't cross a thread boundary, so a worker that throws stashes its own and
+// stops the counter, the rest hand back after the chunk they are on, and it
+// is rethrown once everything has been joined.
 template <typename Func>
 inline void ForEach(std::span<const index_t> indptr, int n_threads, Func f) {
-  assert(!indptr.empty());
-  const index_t n_groups = std::ssize(indptr) - 1;
+  const index_t n_groups = NumGroups(indptr);
+  n_threads = static_cast<int>(std::min<index_t>(n_threads, n_groups));
   if (n_threads < 2) {
     f(0, n_groups);
     return;
@@ -78,31 +84,30 @@ inline void ForEach(std::span<const index_t> indptr, int n_threads, Func f) {
   const std::vector<index_t> starts = ChunkStarts(indptr, chunk);
   std::atomic<size_t> next_chunk{0};
   std::vector<std::exception_ptr> errors(n_threads);
-  std::vector<std::thread> threads;
-  threads.reserve(n_threads);
-  std::exception_ptr spawn_error;
-  try {
-    for (int t = 0; t < n_threads; ++t) {
-      threads.emplace_back(
-          [&f, &errors, &next_chunk, &starts, t, chunk, n_groups]() {
-            try {
-              for (size_t i = next_chunk.fetch_add(1); i < starts.size();
-                   i = next_chunk.fetch_add(1)) {
-                f(starts[i], std::min(starts[i] + chunk, n_groups));
-              }
-            } catch (...) {
-              errors[t] = std::current_exception();
-            }
-          });
+  const auto worker = [&f, &errors, &next_chunk, &starts, chunk,
+                       n_groups](int t) {
+    try {
+      for (size_t i = next_chunk.fetch_add(1); i < starts.size();
+           i = next_chunk.fetch_add(1)) {
+        f(starts[i], std::min(starts[i] + chunk, n_groups));
+      }
+    } catch (...) {
+      errors[t] = std::current_exception();
+      next_chunk.store(starts.size());
     }
-  } catch (...) {
-    spawn_error = std::current_exception();
+  };
+  std::vector<std::thread> threads;
+  threads.reserve(n_threads - 1);
+  for (int t = 1; t < n_threads; ++t) {
+    try {
+      threads.emplace_back(worker, t);
+    } catch (const std::system_error &) {
+      break;
+    }
   }
+  worker(0);
   for (auto &thread : threads) {
     thread.join();
-  }
-  if (spawn_error) {
-    std::rethrow_exception(spawn_error);
   }
   for (auto &error : errors) {
     if (error) {
