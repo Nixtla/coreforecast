@@ -368,6 +368,16 @@ class SeasonalRollingQuantile(_SeasonalRollingBase):
         )
 
 
+def _last_of_each(out: np.ndarray, indptr: np.ndarray) -> np.ndarray:
+    """The last output of each group, NaN for an empty one: the position
+    before its end belongs to another group."""
+    ends = indptr[1:]
+    nonempty = ends > indptr[:-1]
+    last = np.full(ends.size, np.nan, dtype=out.dtype)
+    last[nonempty] = out[ends[nonempty] - 1]
+    return last
+
+
 class _ExpandingBase(_BaseLagTransform):
     stats_: np.ndarray
     skipna: bool
@@ -376,27 +386,27 @@ class _ExpandingBase(_BaseLagTransform):
         self.lag = lag
         self.skipna = skipna
 
-    def _skip(self, x: np.ndarray) -> np.ndarray:
-        """Which incoming values must not enter the accumulator.
-
-        For the accumulators that keep their count of values in the first
-        column of stats_; the running comparisons and the EWM read emptiness
-        off their NaN state instead."""
-        skip = np.isnan(x)
-        if not self.skipna:
-            # the accumulator still has to walk through the leading run of
-            # NaNs that the transform strips, so a NaN only propagates once a
-            # real value has been seen
-            skip &= self.stats_[:, 0] == 0.0
-        return skip
-
     def take(self, idxs: np.ndarray) -> "_ExpandingBase":
         out = self.__class__(self.lag, self.skipna)
         out.stats_ = self.stats_[idxs].copy()
         return out
 
 
-class ExpandingMean(_ExpandingBase):
+class _ExpandingCounted(_ExpandingBase):
+    """Accumulators whose first stats_ column counts the values taken in."""
+
+    def _keep(self, x: np.ndarray) -> np.ndarray:
+        """Which incoming values enter the accumulator."""
+        if not self.skipna:
+            return np.ones(x.shape, dtype=bool)
+        # the driver fills the row of a group it skipped with NaN: its lagged
+        # history had no value, so there is nothing to add to and the first
+        # value seeds it, as the transform does after a leading run of NaNs
+        self.stats_[np.isnan(self.stats_[:, 0])] = 0.0
+        return ~np.isnan(x)
+
+
+class ExpandingMean(_ExpandingCounted):
     """Expanding Mean
 
     Args:
@@ -406,29 +416,22 @@ class ExpandingMean(_ExpandingBase):
 
     def transform(self, ga: "GroupedArray") -> np.ndarray:
         out, n = ga._expanding_mean(self.lag, self.skipna)
-        cumsum = n * out[ga.indptr[1:] - 1]
-        # the driver fills the whole row of a group it skipped, which means it
-        # saw no value rather than a poisoned accumulator, so an update has to
-        # be able to seed from it. A NaN count is the only way to tell the two
-        # apart: an interior NaN without skipna leaves the count finite.
-        empty = np.isnan(n)
-        n = np.where(empty, 0.0, n)
-        cumsum = np.where(empty, 0.0, cumsum)
+        cumsum = n * _last_of_each(out, ga.indptr)
         self.stats_ = np.hstack([n[:, None], cumsum[:, None]])
         return out
 
     def update(self, ga: "GroupedArray") -> np.ndarray:
         x = ga._index_from_end(self._update_lag)
-        skip = self._skip(x)
-        self.stats_[:, 0] += ~skip
-        self.stats_[:, 1] += np.where(skip, 0.0, x)
+        keep = self._keep(x)
+        self.stats_[:, 0] += keep
+        self.stats_[:, 1] += np.where(keep, x, 0.0)
         n = self.stats_[:, 0]
         return np.divide(
             self.stats_[:, 1], n, out=np.full_like(n, np.nan), where=n > 0.0
         )
 
 
-class ExpandingStd(_ExpandingBase):
+class ExpandingStd(_ExpandingCounted):
     """Expanding Standard Deviation
 
     Args:
@@ -438,27 +441,17 @@ class ExpandingStd(_ExpandingBase):
 
     def transform(self, ga: "GroupedArray") -> np.ndarray:
         out, self.stats_ = ga._expanding_std(self.lag, self.skipna)
-        # see ExpandingMean.transform: a skipped group's row is "nothing seen
-        # yet", which is a zeroed Welford state. Only a whole NaN row is one;
-        # an interior NaN without skipna leaves the count finite and has to
-        # keep propagating.
-        self.stats_[np.isnan(self.stats_).all(axis=1)] = 0.0
         return out
 
     def update(self, ga: "GroupedArray") -> np.ndarray:
         x = ga._index_from_end(self._update_lag)
-        prev_n = self.stats_[:, 0].copy()
-        prev_avg = self.stats_[:, 1].copy()
-        prev_m2 = self.stats_[:, 2].copy()
-        skip = self._skip(x)
+        keep = self._keep(x)
+        prev_n, prev_avg, prev_m2 = self.stats_.T
         n = prev_n + 1.0
-        curr_avg = prev_avg + (x - prev_avg) / n
+        avg = prev_avg + (x - prev_avg) / n
         # avoid possible loss of precision
-        m2 = np.maximum(prev_m2 + (x - prev_avg) * (x - curr_avg), 0.0)
-        # a skipped value leaves the count, the mean and M2 untouched
-        self.stats_[:, 0] = np.where(skip, prev_n, n)
-        self.stats_[:, 1] = np.where(skip, prev_avg, curr_avg)
-        self.stats_[:, 2] = np.where(skip, prev_m2, m2)
+        m2 = np.maximum(prev_m2 + (x - prev_avg) * (x - avg), 0.0)
+        self.stats_[keep] = np.column_stack([n, avg, m2])[keep]
         n = self.stats_[:, 0]
         # the kernel needs two values before it reports a deviation
         var = np.divide(
@@ -474,18 +467,16 @@ class _ExpandingComp(_ExpandingBase):
 
     def transform(self, ga: "GroupedArray") -> np.ndarray:
         out = getattr(ga, f"_expanding_{self.stat}")(self.lag, self.skipna)
-        self.stats_ = out[ga.indptr[1:] - 1]
+        self.stats_ = _last_of_each(out, ga.indptr)
         return out
 
     def update(self, ga: "GroupedArray") -> np.ndarray:
         x = ga._index_from_end(self._update_lag)
+        # with skipna a NaN doesn't enter the comparison, and a NaN state, a
+        # group the driver skipped because its lagged history had no value,
+        # takes the first one
         comp_fn = self._skipna_comp_fn if self.skipna else self._comp_fn
-        # a NaN state is a group the driver skipped, so the first value it gets
-        # seeds the statistic instead of being compared against a NaN that
-        # np.minimum/np.maximum would keep forever. Without skipna a group with
-        # nothing after its leading run of NaNs is the only defined way to get
-        # here, and that is exactly the case that has to seed.
-        self.stats_ = np.where(np.isnan(self.stats_), x, comp_fn(self.stats_, x))
+        self.stats_ = comp_fn(self.stats_, x)
         return self.stats_
 
 
@@ -554,19 +545,18 @@ class ExponentiallyWeightedMean(_BaseLagTransform):
 
     def transform(self, ga: "GroupedArray") -> np.ndarray:
         out = ga._exponentially_weighted_mean(self.lag, self.alpha, self.skipna)
-        self.stats_ = out[ga.indptr[1:] - 1]
+        self.stats_ = _last_of_each(out, ga.indptr)
         return out
 
     def update(self, ga: "GroupedArray") -> np.ndarray:
         x = ga._index_from_end(self._update_lag)
         ewm = self.alpha * x + (1 - self.alpha) * self.stats_
-        # a NaN state is a group the driver skipped, so the first value it gets
-        # seeds the mean, which is what the kernel does with the first value
-        # after a leading run of NaNs
-        ewm = np.where(np.isnan(self.stats_), x, ewm)
         if self.skipna:
-            # a NaN forward-fills the previous mean
+            # a NaN forward-fills the previous mean, and a NaN state, a group
+            # the driver skipped because its lagged history had no value, takes
+            # the first one
             ewm = np.where(np.isnan(x), self.stats_, ewm)
+            ewm = np.where(np.isnan(self.stats_), x, ewm)
         self.stats_ = ewm
         return self.stats_
 

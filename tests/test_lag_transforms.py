@@ -103,7 +103,8 @@ def test_correctness(data, comb, dtype):
     # sliding std drifts by up to 8.3e-5 over a group here, and that error is
     # absolute: a window of nearly equal values has no relative accuracy left.
     if dtype == np.float32:
-        rtol, atol = 1e-5, 1e-3 if "std" in comb else 1e-4
+        rtol = 1e-5
+        atol = 1e-3 if "std" in comb else 1e-4
     else:
         rtol, atol = 1e-7, 0.0
     data = data.astype(dtype, copy=True)
@@ -207,9 +208,38 @@ update_consistency_tfms = {
 def test_update_consistency_covers_every_transform():
     # Lag has no statistic to accumulate and no skipna argument
     assert set(update_consistency_tfms) == set(lag_tf.__all__) - {"Lag"}
-    windowed = {name for name in update_consistency_tfms if "Rolling" in name}
-    assert windowed | set(accumulating_tfms) == set(update_consistency_tfms)
-    assert not windowed & set(accumulating_tfms)
+
+
+# the accumulators that keep their last output read it from the position before
+# the group's end, which for an empty group belongs to another group, or to
+# nothing when the array has no elements. Without skipna the NaN the update
+# reads from the empty group hid that, with it the neighbour's value survived
+@pytest.mark.parametrize("name", list(update_consistency_tfms))
+@pytest.mark.parametrize("skipna", [False, True])
+def test_update_gives_nan_to_an_empty_group(name, skipna, rng):
+    factory = functools.partial(update_consistency_tfms[name], 1, skipna)
+    a, b = rng.uniform(1.0, 11.0, size=(2, 40))
+    empty = np.array([])
+
+    def grouped(arrays):
+        return GroupedArray(
+            np.hstack(arrays), np.append(0, np.cumsum([len(x) for x in arrays]))
+        )
+
+    def fit_and_update(arrays):
+        tfm = factory()
+        tfm.transform(grouped([x[:-1] for x in arrays]))
+        stats = getattr(tfm, "stats_", None)
+        if stats is not None:
+            is_empty = np.array([x.size == 0 for x in arrays])
+            assert np.isnan(stats[is_empty]).all()
+        return tfm.update(grouped(arrays))
+
+    expected = fit_and_update([a, b])
+    got = fit_and_update([empty, a, empty, empty, b, empty])
+    np.testing.assert_array_equal(got[[1, 4]], expected)
+    np.testing.assert_array_equal(got[[0, 2, 3, 5]], np.full(4, np.nan))
+    np.testing.assert_array_equal(fit_and_update([empty]), [np.nan])
 
 
 n_hist = 40
@@ -224,7 +254,7 @@ def consistency_series(name, rng):
     if name == "leading_nans":
         x[:5] = np.nan
     elif name == "all_nan_history":
-        # the kernel never runs, so its stats row is NaN and the update seeds
+        # the kernel never runs, so the update starts from a NaN stats row
         x[:n_hist] = np.nan
     elif name == "single_valid":
         x[: n_hist - 1] = np.nan
@@ -244,31 +274,19 @@ def consistency_series(name, rng):
     return x
 
 
-# the only NaNs skipna=False supports
-leading_run_series = [
-    "clean",
-    "leading_nans",
+# a leading run of NaNs, which the driver strips before the kernel runs, is the
+# only NaN supported without skipna
+leading_run_series = ["clean", "leading_nans"]
+# the NaNs skipna is for: a run longer than the lagged history, so the kernel
+# never ran and the update starts from a NaN stats row, and NaNs anywhere
+# else, including ones that arrive through an update
+skipna_series = [
     "all_nan_history",
     "single_valid",
-]
-# NaNs anywhere else. The transforms report NaN from one of those to the end
-# of the group; a windowed update would have to scan the group's values every
-# time to know, which is the work skipna=False exists to skip.
-interior_nan_series = [
     "interior_nan",
     "leading_and_interior_nans",
     "nan_via_update",
     "long_nan_run",
-]
-# the transforms whose update accumulates over the whole group: the NaN is
-# already in the state they resume from, so keeping it costs nothing
-accumulating_tfms = [
-    "ExpandingMean",
-    "ExpandingStd",
-    "ExpandingMin",
-    "ExpandingMax",
-    "ExpandingQuantile",
-    "ExponentiallyWeightedMean",
 ]
 
 
@@ -279,7 +297,7 @@ def consistency_ga(arrays, dtype):
     )
 
 
-def update_and_transform(factory, arrays, dtype):
+def assert_updates_match_transform(factory, arrays, dtype, err_msg):
     tfm = factory()
     tfm.transform(consistency_ga([a[:n_hist] for a in arrays], dtype))
     updates, expected = [], []
@@ -290,25 +308,26 @@ def update_and_transform(factory, arrays, dtype):
         padded = [np.append(a, 0.0) for a in step]
         out = factory().transform(consistency_ga(padded, dtype))
         expected.append(out[np.cumsum([len(a) for a in padded]) - 1])
-    return np.array(updates), np.array(expected)
+    rtol, atol = (1e-3, 1e-4) if dtype == np.float32 else (1e-9, 1e-12)
+    np.testing.assert_allclose(
+        np.array(updates),
+        np.array(expected),
+        rtol=rtol,
+        atol=atol,
+        equal_nan=True,
+        err_msg=err_msg,
+    )
 
 
 def check_update_matches_transform(name, skipna, series, dtype):
     rng = np.random.default_rng(0)
     arrays = [consistency_series("clean", rng), consistency_series(series, rng)]
-    rtol, atol = (1e-3, 1e-4) if dtype == np.float32 else (1e-9, 1e-12)
     for lag in (1, 2):
-        got, expected = update_and_transform(
-            functools.partial(update_consistency_tfms[name], lag, skipna),
+        factory = functools.partial(update_consistency_tfms[name], lag, skipna)
+        assert_updates_match_transform(
+            factory,
             arrays,
             dtype,
-        )
-        np.testing.assert_allclose(
-            got,
-            expected,
-            rtol=rtol,
-            atol=atol,
-            equal_nan=True,
             err_msg=f"{name} lag={lag} skipna={skipna} series={series}",
         )
 
@@ -321,8 +340,10 @@ def test_update_matches_transform(name, skipna, series, dtype):
     check_update_matches_transform(name, skipna, series, dtype)
 
 
+# without skipna the updates are what they always were: a group whose lagged
+# history had no value never seeds, and a NaN anywhere else is unspecified
 @pytest.mark.parametrize("name", list(update_consistency_tfms))
-@pytest.mark.parametrize("series", interior_nan_series)
+@pytest.mark.parametrize("series", skipna_series)
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 def test_update_matches_transform_with_skipna(name, series, dtype):
     check_update_matches_transform(name, True, series, dtype)
