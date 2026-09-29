@@ -22,6 +22,18 @@ namespace parallel {
 // next to the groups they hand out.
 inline constexpr index_t kChunksPerThread = 16;
 
+// Estimated work a thread has to be handed for starting it to pay off. Spawning
+// and joining one costs about 20 us on a Neoverse N1, and a call only broke
+// even on two threads once it held about 70 us of work.
+inline constexpr double kMinNsPerThread = 50'000;
+
+// How many threads a call estimated to take work_ns on one thread should get:
+// what was requested, but no more than its work keeps busy, and at least one.
+inline int ThreadCount(int requested, double work_ns) {
+  const double affordable = std::max(1.0, work_ns / kMinNsPerThread);
+  return std::max(1, static_cast<int>(std::min<double>(requested, affordable)));
+}
+
 // indptr.size() - 1, except that an empty indptr has no groups rather than -1
 // of them.
 inline index_t NumGroups(std::span<const index_t> indptr) {

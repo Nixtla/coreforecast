@@ -91,6 +91,14 @@
   output whichever thread runs it. A single group is never split across
   threads, so one holding half the elements caps the speedup at 2x however
   many threads are used.
+- A grouped call starts fewer threads than `num_threads` when it holds too
+  little work to pay for them. Each operation carries a rough cost per element
+  and per group, and a thread is only started for about 50 us of estimated
+  work. Starting and joining threads costs tens of microseconds, so small arrays
+  used to run several times slower with threads than without: a rolling mean
+  over 4,000 elements took 8x longer on four threads. Those calls now run at
+  serial speed, while quantiles and the box-cox likelihood still use every
+  thread from a few thousand elements. Results are unchanged.
 
 ### Build
 
