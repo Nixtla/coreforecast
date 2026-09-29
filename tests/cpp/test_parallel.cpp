@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cstdlib>
+#include <new>
 #include <numeric>
 #include <set>
 #include <stdexcept>
@@ -13,6 +15,32 @@
 #include "helpers.h"
 
 using namespace helpers;
+
+namespace {
+
+// How many more allocations this thread makes before one throws
+// std::bad_alloc, or -1 for none. Only the thread that sets it is affected.
+thread_local int allocs_before_failure = -1;
+thread_local bool alloc_failed = false;
+
+} // namespace
+
+void *operator new(std::size_t size) {
+  if (allocs_before_failure == 0) {
+    allocs_before_failure = -1;
+    alloc_failed = true;
+    throw std::bad_alloc();
+  }
+  if (allocs_before_failure > 0) {
+    --allocs_before_failure;
+  }
+  if (void *p = std::malloc(size == 0 ? 1 : size)) {
+    return p;
+  }
+  throw std::bad_alloc();
+}
+void operator delete(void *p) noexcept { std::free(p); }
+void operator delete(void *p, std::size_t) noexcept { std::free(p); }
 
 namespace {
 
@@ -163,6 +191,47 @@ TEST_CASE("a throwing chunk surfaces once the other workers have joined") {
   CHECK(in_flight.load() == 0);
 
   CheckAllVisitedOnce(kGroups, kThreads);
+}
+
+TEST_CASE("a spawn that runs out of memory only costs a thread") {
+  constexpr index_t kGroups = 64;
+  constexpr int kThreads = 4;
+  const auto indptr = FlatIndptr(kGroups);
+  bool finished_after_failure = false;
+  // Fails each allocation the calling thread makes inside ForEach in turn,
+  // spawns included, until there are none left to fail. std::thread allocates
+  // its state with operator new, so it can throw std::bad_alloc rather than
+  // std::system_error, and doing so with a worker already running must not
+  // unwind past it.
+  for (int n_allocs = 0;; ++n_allocs) {
+    REQUIRE(n_allocs < 64);
+    INFO("failing allocation ", n_allocs);
+    std::vector<std::atomic<int>> visits(kGroups);
+    bool threw = false;
+    alloc_failed = false;
+    allocs_before_failure = n_allocs;
+    try {
+      parallel::ForEach(indptr, kThreads,
+                        [&visits](index_t start_group, index_t end_group) {
+                          for (index_t i = start_group; i < end_group; ++i) {
+                            visits[i].fetch_add(1);
+                          }
+                        });
+    } catch (const std::bad_alloc &) {
+      threw = true;
+    }
+    allocs_before_failure = -1;
+    if (!alloc_failed) {
+      break;
+    }
+    if (!threw) {
+      finished_after_failure = true;
+      CHECK(std::all_of(
+          visits.begin(), visits.end(),
+          [](const std::atomic<int> &count) { return count.load() == 1; }));
+    }
+  }
+  CHECK(finished_after_failure);
 }
 
 TEST_CASE("rolling quantile over threads equals the serial result") {

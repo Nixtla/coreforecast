@@ -10,7 +10,6 @@
 #include <cassert>
 #include <exception>
 #include <span>
-#include <system_error>
 #include <thread>
 #include <vector>
 
@@ -101,7 +100,7 @@ inline void ForEach(std::span<const index_t> indptr, int n_threads, Func f) {
   for (int t = 1; t < n_threads; ++t) {
     try {
       threads.emplace_back(worker, t);
-    } catch (const std::system_error &) {
+    } catch (...) {
       break;
     }
   }
