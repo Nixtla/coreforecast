@@ -186,6 +186,11 @@ jobs:
 
   run_benchmarks:
     runs-on: ubuntu-22.04
+    # CodSpeed authenticates through GitHub OIDC; job-level permissions replace
+    # the workflow's, so contents: read has to be repeated for the checkout
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Clone repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # 7.0.1
@@ -210,5 +215,4 @@ jobs:
         uses: CodSpeedHQ/action@373d6868929f444bc08d901fd0eb0ad52a8875ea # 5.2.1
         with:
           mode: simulation
-          token: ${{ secrets.CODESPEED_TOKEN }}
           run: uv run pytest tests/test_efficiency.py --codspeed
