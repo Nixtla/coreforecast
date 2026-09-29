@@ -35,7 +35,7 @@ operations = [
     ("robust_mad_stats", lambda ga: ga._robust_mad_stats()),
     ("num_diffs", lambda ga: ga._num_diffs(2)),
     ("diff", lambda ga: ga._diff(1)),
-    ("tail", lambda ga: ga._tail(3)),
+    ("tail", lambda ga: ga._tail(60)),
 ]
 
 

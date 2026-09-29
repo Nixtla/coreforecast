@@ -31,12 +31,15 @@ namespace cost {
 inline constexpr double kCopy = 0.5;
 // running sums and extrema, applying scaler stats, undoing differences
 inline constexpr double kScan = 3;
-// robust stats, which sort, and box-cox, which takes a pow per element
+// robust stats, which sort, box-cox, which takes a pow per element, and the
+// KPSS test, which sweeps each group once per lag
 inline constexpr double kSort = 25;
 // quantiles, which walk a skip list or partition, and the box-cox likelihood
 inline constexpr double kHeavy = 300;
 // the seasonal strength test, which fits an STL decomposition
 inline constexpr double kStl = 7000;
+// visiting a group at all, on top of its elements
+inline constexpr double kGroup = 10;
 } // namespace cost
 
 // Entries used as offsets into a buffer: a negative one makes a slice start
@@ -148,8 +151,10 @@ public:
   // which only read the end of each group.
   double Work(double ns_per_element,
               index_t window = std::numeric_limits<index_t>::max()) const {
-    return ns_per_element * std::min(static_cast<double>(data_.size()),
-                                     static_cast<double>(NumGroups()) * window);
+    const auto n_groups = static_cast<double>(NumGroups());
+    return ns_per_element *
+               std::min(static_cast<double>(data_.size()), n_groups * window) +
+           cost::kGroup * n_groups;
   }
 
   // The workers only touch raw buffers, never the Python API, so the GIL is
@@ -364,7 +369,8 @@ public:
     py::array_t<T> out(offsets[NumGroups()]);
     // each group's tail is as long as its output slot
     VariableReduce(
-        cost::kCopy * static_cast<double>(offsets[NumGroups()]),
+        cost::kCopy * static_cast<double>(offsets[NumGroups()]) +
+            cost::kGroup * static_cast<double>(NumGroups()),
         [](std::span<const T> in, std::span<T> tail) {
           grouped_array_functions::Tail(in, tail, std::ssize(tail));
         },
@@ -501,7 +507,7 @@ public:
 
   py::array_t<T> NumDiffs(int max_d) {
     py::array_t<T> out(NumGroups());
-    Reduce(Work(cost::kScan), diff::NumDiffs<T>, 1, MutableView(out), 0, max_d);
+    Reduce(Work(cost::kSort), diff::NumDiffs<T>, 1, MutableView(out), 0, max_d);
     return out;
   }
   py::array_t<T> NumSeasDiffs(int period, int max_d) {
