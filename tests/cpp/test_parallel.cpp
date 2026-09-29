@@ -159,6 +159,21 @@ TEST_CASE("the heaviest chunks are handed out first") {
         std::vector<index_t>{6, 0, 2, 4, 8});
 }
 
+TEST_CASE("a call gets only the threads its work keeps busy") {
+  constexpr double kThread = parallel::kMinNsPerThread;
+  // too little work for a second thread, however many were asked for
+  CHECK(parallel::ThreadCount(8, 0) == 1);
+  CHECK(parallel::ThreadCount(8, 1.9 * kThread) == 1);
+  // one thread per full share of work
+  CHECK(parallel::ThreadCount(8, 2 * kThread) == 2);
+  CHECK(parallel::ThreadCount(8, 3.5 * kThread) == 3);
+  // plenty of work still gets no more than was asked for
+  CHECK(parallel::ThreadCount(4, 1e12) == 4);
+  CHECK(parallel::ThreadCount(1, 1e12) == 1);
+  CHECK(parallel::ThreadCount(0, 1e12) == 1);
+  CHECK(parallel::ThreadCount(-5, 1e12) == 1);
+}
+
 TEST_CASE("a throwing chunk surfaces once the other workers have joined") {
   constexpr index_t kGroups = 64;
   constexpr int kThreads = 4;

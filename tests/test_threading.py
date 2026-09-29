@@ -3,7 +3,9 @@
 Groups are handed out to threads in chunks, so results must not depend on how
 many are used or on how uneven the groups are, and a failure inside a worker
 must surface as a Python exception rather than taking the interpreter down with
-it.
+it. A call runs on fewer threads than requested when it holds too little work to
+pay for them, so the fixtures are big enough for even the cheapest kernels
+here to get two.
 """
 
 import numpy as np
@@ -39,7 +41,7 @@ operations = [
 
 @pytest.fixture
 def grouped(rng):
-    lengths = rng.integers(low=40, high=90, size=50)
+    lengths = rng.integers(low=40, high=90, size=4_000)
     indptr = np.append(0, lengths.cumsum()).astype(np.int32)
     return rng.normal(size=indptr[-1]), indptr
 
@@ -50,7 +52,7 @@ def skewed(rng):
     # elements: an even split by group count leaves one thread with half the
     # work and another with none of it, and the heaviest chunk is the one the
     # scheduler has to pull out of index order
-    short = rng.integers(low=5, high=40, size=60)
+    short = rng.integers(low=5, high=40, size=10_000)
     lengths = np.concatenate([short, np.zeros(5, dtype=int), [short.sum()]])
     indptr = np.append(0, lengths.cumsum()).astype(np.int32)
     return rng.normal(size=indptr[-1]), indptr

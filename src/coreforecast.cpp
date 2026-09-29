@@ -22,6 +22,23 @@ using namespace pybind11::literals;
 // type has to be hidden too; internal linkage is the portable way to say it.
 namespace {
 
+// Roughly how long each kind of kernel spends on an element it reads, in
+// nanoseconds on a Neoverse N1, so that a call too small to pay for its threads
+// runs on the calling thread instead. Kernels within a few times of each other
+// share a tier: only the order of magnitude decides the thread count.
+namespace cost {
+// lags, heads, tails, differences, appends, the standard scaler's stats
+inline constexpr double kCopy = 0.5;
+// running sums and extrema, applying scaler stats, undoing differences
+inline constexpr double kScan = 3;
+// robust stats, which sort, and box-cox, which takes a pow per element
+inline constexpr double kSort = 25;
+// quantiles, which walk a skip list or partition, and the box-cox likelihood
+inline constexpr double kHeavy = 300;
+// the seasonal strength test, which fits an STL decomposition
+inline constexpr double kStl = 7000;
+} // namespace cost
+
 // Entries used as offsets into a buffer: a negative one makes a slice start
 // before it and a decreasing one makes a slice run backwards.
 template <typename T> inline void RequireOffsets(std::span<const T> values) {
@@ -126,25 +143,36 @@ public:
     return out;
   }
 
+  // How long a kernel costing ns_per_element takes over the whole array on one
+  // thread, counting at most `window` elements per group for the updates,
+  // which only read the end of each group.
+  double Work(double ns_per_element,
+              index_t window = std::numeric_limits<index_t>::max()) const {
+    return ns_per_element * std::min(static_cast<double>(data_.size()),
+                                     static_cast<double>(NumGroups()) * window);
+  }
+
   // The workers only touch raw buffers, never the Python API, so the GIL is
   // released around them; the scheduling itself lives in parallel.h, which
   // knows nothing about Python. It takes the indptr because how long each
   // group is decides the order the chunks go out in, read here while the GIL
-  // is still held since it comes out of a pybind11 array.
-  template <typename Func> void ForEach(Func f) const {
+  // is still held since it comes out of a pybind11 array. work_ns is the
+  // estimate from Work, which caps the threads at what the call can use.
+  template <typename Func> void ForEach(double work_ns, Func f) const {
     const auto indptr = Indptr();
+    const int n_threads = parallel::ThreadCount(num_threads_, work_ns);
     py::gil_scoped_release release;
-    parallel::ForEach(indptr, num_threads_, f);
+    parallel::ForEach(indptr, n_threads, f);
   }
 
   // One row of n_out results per group, from the group minus its leading NaN
   // run and its last `lag` elements. An empty remainder gets a NaN row.
   template <typename Func, typename... Args>
-  void Reduce(Func f, index_t n_out, std::span<T> out, int lag,
+  void Reduce(double work_ns, Func f, index_t n_out, std::span<T> out, int lag,
               Args &&...args) const {
     RequireNonNegative("lag", lag);
-    ForEach([data = Data(), indptr = Indptr(), &f, n_out, out, lag,
-             &args...](index_t start_group, index_t end_group) {
+    ForEach(work_ns, [data = Data(), indptr = Indptr(), &f, n_out, out, lag,
+                      &args...](index_t start_group, index_t end_group) {
       for (index_t i = start_group; i < end_group; ++i) {
         const auto group = Group(data, indptr, i);
         const auto row = out.subspan(n_out * i, n_out);
@@ -163,10 +191,11 @@ public:
   // Like Reduce with a per-group output size given by indptr_out, and no NaN
   // or lag handling.
   template <typename Func, typename... Args>
-  void VariableReduce(Func f, std::span<const index_t> indptr_out,
-                      std::span<T> out, Args &&...args) const {
-    ForEach([data = Data(), indptr = Indptr(), &f, indptr_out, out,
-             &args...](index_t start_group, index_t end_group) {
+  void VariableReduce(double work_ns, Func f,
+                      std::span<const index_t> indptr_out, std::span<T> out,
+                      Args &&...args) const {
+    ForEach(work_ns, [data = Data(), indptr = Indptr(), &f, indptr_out, out,
+                      &args...](index_t start_group, index_t end_group) {
       for (index_t i = start_group; i < end_group; ++i) {
         f(Group(data, indptr, i), Group(out, indptr_out, i),
           std::forward<Args>(args)...);
@@ -175,10 +204,10 @@ public:
   }
 
   template <typename Func>
-  void ScalerTransform(Func f, std::span<const T> stats,
+  void ScalerTransform(double work_ns, Func f, std::span<const T> stats,
                        std::span<T> out) const {
-    ForEach([data = Data(), indptr = Indptr(), &f, stats,
-             out](index_t start_group, index_t end_group) {
+    ForEach(work_ns, [data = Data(), indptr = Indptr(), &f, stats,
+                      out](index_t start_group, index_t end_group) {
       for (index_t i = start_group; i < end_group; ++i) {
         const T offset = stats[2 * i];
         T scale = stats[2 * i + 1];
@@ -196,10 +225,11 @@ public:
   // positions after it are NaN; f fills the rest from the group without its
   // last `lag` elements.
   template <typename Func, typename... Args>
-  void Transform(Func f, int lag, std::span<T> out, Args &&...args) const {
+  void Transform(double work_ns, Func f, int lag, std::span<T> out,
+                 Args &&...args) const {
     RequireNonNegative("lag", lag);
-    ForEach([data = Data(), indptr = Indptr(), &f, lag, out,
-             &args...](index_t start_group, index_t end_group) {
+    ForEach(work_ns, [data = Data(), indptr = Indptr(), &f, lag, out,
+                      &args...](index_t start_group, index_t end_group) {
       for (index_t i = start_group; i < end_group; ++i) {
         const auto group = Group(data, indptr, i);
         const auto group_out = Group(out, indptr, i);
@@ -217,10 +247,11 @@ public:
 
   // Transform with one parameter per group and no lag.
   template <typename Func>
-  void VariableTransform(Func f, std::span<const index_t> params,
+  void VariableTransform(double work_ns, Func f,
+                         std::span<const index_t> params,
                          std::span<T> out) const {
-    ForEach([data = Data(), indptr = Indptr(), &f, params,
-             out](index_t start_group, index_t end_group) {
+    ForEach(work_ns, [data = Data(), indptr = Indptr(), &f, params,
+                      out](index_t start_group, index_t end_group) {
       for (index_t i = start_group; i < end_group; ++i) {
         const auto group = Group(data, indptr, i);
         const auto group_out = Group(out, indptr, i);
@@ -235,11 +266,12 @@ public:
 
   // Transform that also leaves n_agg stats per group in agg.
   template <typename Func, typename... Args>
-  void TransformAndReduce(Func f, int lag, std::span<T> out, index_t n_agg,
-                          std::span<T> agg, Args &&...args) const {
+  void TransformAndReduce(double work_ns, Func f, int lag, std::span<T> out,
+                          index_t n_agg, std::span<T> agg,
+                          Args &&...args) const {
     RequireNonNegative("lag", lag);
-    ForEach([data = Data(), indptr = Indptr(), &f, lag, out, n_agg, agg,
-             &args...](index_t start_group, index_t end_group) {
+    ForEach(work_ns, [data = Data(), indptr = Indptr(), &f, lag, out, n_agg,
+                      agg, &args...](index_t start_group, index_t end_group) {
       for (index_t i = start_group; i < end_group; ++i) {
         const auto group = Group(data, indptr, i);
         const auto group_out = Group(out, indptr, i);
@@ -263,11 +295,11 @@ public:
   // f(group, other's group, output group), with the output groups delimited by
   // out_indptr.
   template <typename Func>
-  void Zip(Func f, const GroupedArray<T> &other,
+  void Zip(double work_ns, Func f, const GroupedArray<T> &other,
            std::span<const index_t> out_indptr, std::span<T> out) const {
-    ForEach([data = Data(), indptr = Indptr(), &f, other_data = other.Data(),
-             other_indptr = other.Indptr(), out_indptr,
-             out](index_t start_group, index_t end_group) {
+    ForEach(work_ns, [data = Data(), indptr = Indptr(), &f,
+                      other_data = other.Data(), other_indptr = other.Indptr(),
+                      out_indptr, out](index_t start_group, index_t end_group) {
       for (index_t i = start_group; i < end_group; ++i) {
         f(Group(data, indptr, i), Group(other_data, other_indptr, i),
           Group(out, out_indptr, i));
@@ -285,19 +317,22 @@ public:
   py::array_t<T> IndexFromEnd(int k) {
     RequireNonNegative("k", k);
     py::array_t<T> out(NumGroups());
-    Reduce(grouped_array_functions::IndexFromEnd<T>, 1, MutableView(out), 0, k);
+    Reduce(Work(cost::kCopy, 1), grouped_array_functions::IndexFromEnd<T>, 1,
+           MutableView(out), 0, k);
     return out;
   }
   py::array_t<T> Head(int k) {
     RequireNonNegative("k", k);
     py::array_t<T> out(k * NumGroups());
-    Reduce(grouped_array_functions::Head<T>, k, MutableView(out), 0, k);
+    Reduce(Work(cost::kCopy, k), grouped_array_functions::Head<T>, k,
+           MutableView(out), 0, k);
     return out;
   }
   py::array_t<T> Tail(int k) {
     RequireNonNegative("k", k);
     py::array_t<T> out(k * NumGroups());
-    Reduce(grouped_array_functions::Tail<T>, k, MutableView(out), 0, k);
+    Reduce(Work(cost::kCopy, k), grouped_array_functions::Tail<T>, k,
+           MutableView(out), 0, k);
     return out;
   }
   std::unique_ptr<GroupedArray<T>> Append(const GroupedArray<T> &other) {
@@ -309,8 +344,8 @@ public:
     std::transform(indptr_.data(), indptr_.data() + indptr_.size(),
                    other.indptr_.data(), out_indptr.mutable_data(),
                    std::plus<index_t>());
-    Zip(grouped_array_functions::Append<T>, other, View(out_indptr),
-        MutableView(out_data));
+    Zip(Work(cost::kCopy), grouped_array_functions::Append<T>, other,
+        View(out_indptr), MutableView(out_data));
     return std::make_unique<GroupedArray<T>>(out_data, out_indptr,
                                              num_threads_);
   }
@@ -329,6 +364,7 @@ public:
     py::array_t<T> out(offsets[NumGroups()]);
     // each group's tail is as long as its output slot
     VariableReduce(
+        cost::kCopy * static_cast<double>(offsets[NumGroups()]),
         [](std::span<const T> in, std::span<T> tail) {
           grouped_array_functions::Tail(in, tail, std::ssize(tail));
         },
@@ -338,7 +374,7 @@ public:
 
   py::array_t<T> LagTransform(int lag) {
     py::array_t<T> out(data_.size());
-    Transform(lag::LagTransform<T>, lag, MutableView(out));
+    Transform(Work(cost::kCopy), lag::LagTransform<T>, lag, MutableView(out));
     return out;
   }
 
@@ -346,80 +382,84 @@ public:
   ExpandingMeanTransform(int lag, bool skipna = false) {
     py::array_t<T> out(data_.size());
     py::array_t<T> agg(NumGroups());
-    TransformAndReduce(expanding::MeanTransform<T>, lag, MutableView(out), 1,
-                       MutableView(agg), skipna);
+    TransformAndReduce(Work(cost::kScan), expanding::MeanTransform<T>, lag,
+                       MutableView(out), 1, MutableView(agg), skipna);
     return std::make_tuple(out, agg);
   }
   std::tuple<py::array_t<T>, py::array_t<T>>
   ExpandingStdTransform(int lag, bool skipna = false) {
     py::array_t<T> out(data_.size());
     py::array_t<T> agg({NumGroups(), index_t{3}});
-    TransformAndReduce(expanding::StdTransform<T>, lag, MutableView(out), 3,
-                       MutableView(agg), skipna);
+    TransformAndReduce(Work(cost::kScan), expanding::StdTransform<T>, lag,
+                       MutableView(out), 3, MutableView(agg), skipna);
     return std::make_tuple(out, agg);
   }
   py::array_t<T> ExpandingMinTransform(int lag, bool skipna = false) {
     py::array_t<T> out(data_.size());
-    Transform(expanding::MinTransform<T>, lag, MutableView(out), skipna);
+    Transform(Work(cost::kScan), expanding::MinTransform<T>, lag,
+              MutableView(out), skipna);
     return out;
   }
   py::array_t<T> ExpandingMaxTransform(int lag, bool skipna = false) {
     py::array_t<T> out(data_.size());
-    Transform(expanding::MaxTransform<T>, lag, MutableView(out), skipna);
+    Transform(Work(cost::kScan), expanding::MaxTransform<T>, lag,
+              MutableView(out), skipna);
     return out;
   }
   py::array_t<T> ExpandingQuantileTransform(int lag, T p, bool skipna = false) {
     RequireProbability("p", p);
     py::array_t<T> out(data_.size());
-    Transform(expanding::QuantileTransform<T>, lag, MutableView(out), p,
-              skipna);
+    Transform(Work(cost::kHeavy), expanding::QuantileTransform<T>, lag,
+              MutableView(out), p, skipna);
     return out;
   }
   py::array_t<T> ExpandingQuantileUpdate(int lag, T p, bool skipna = false) {
     RequireProbability("p", p);
     py::array_t<T> out(NumGroups());
-    Reduce(expanding::QuantileUpdate<T>, 1, MutableView(out), lag, p, skipna);
+    Reduce(Work(cost::kSort), expanding::QuantileUpdate<T>, 1, MutableView(out),
+           lag, p, skipna);
     return out;
   }
 
   py::array_t<T> ExponentiallyWeightedMeanTransform(int lag, T alpha,
                                                     bool skipna = false) {
     py::array_t<T> out(data_.size());
-    Transform(exponentially_weighted::MeanTransform<T>, lag, MutableView(out),
-              alpha, skipna);
+    Transform(Work(cost::kScan), exponentially_weighted::MeanTransform<T>, lag,
+              MutableView(out), alpha, skipna);
     return out;
   }
 
   template <typename Func>
-  py::array_t<T> ScalerStats(Func func, bool skipna = false) {
+  py::array_t<T> ScalerStats(double ns_per_element, Func func,
+                             bool skipna = false) {
     py::array_t<T> out({NumGroups(), index_t{2}});
-    Reduce(func, 2, MutableView(out), 0, skipna);
+    Reduce(Work(ns_per_element), func, 2, MutableView(out), 0, skipna);
     return out;
   }
   py::array_t<T> MinMaxScalerStats(bool skipna = false) {
-    return ScalerStats(scalers::MinMaxScalerStats<T>, skipna);
+    return ScalerStats(cost::kScan, scalers::MinMaxScalerStats<T>, skipna);
   }
   py::array_t<T> StandardScalerStats(bool skipna = false) {
-    return ScalerStats(scalers::StandardScalerStats<T>, skipna);
+    return ScalerStats(cost::kCopy, scalers::StandardScalerStats<T>, skipna);
   }
   py::array_t<T> RobustIqrScalerStats(bool skipna = false) {
-    return ScalerStats(scalers::RobustScalerIqrStats<T>, skipna);
+    return ScalerStats(cost::kSort, scalers::RobustScalerIqrStats<T>, skipna);
   }
   py::array_t<T> RobustMadScalerStats(bool skipna = false) {
-    return ScalerStats(scalers::RobustScalerMadStats<T>, skipna);
+    return ScalerStats(cost::kSort, scalers::RobustScalerMadStats<T>, skipna);
   }
   py::array_t<T> ApplyScaler(const CArray<T> stats) {
     CheckStats(stats, NumGroups());
     py::array_t<T> out(data_.size());
-    ScalerTransform(scalers::CommonScalerTransform<T>, View(stats),
-                    MutableView(out));
+    ScalerTransform(Work(cost::kScan), scalers::CommonScalerTransform<T>,
+                    View(stats), MutableView(out));
     return out;
   }
   py::array_t<T> InvertScaler(const CArray<T> stats) {
     CheckStats(stats, NumGroups());
     py::array_t<T> out(data_.size());
-    ScalerTransform(scalers::CommonScalerInverseTransform<T>, View(stats),
-                    MutableView(out));
+    ScalerTransform(Work(cost::kScan), scalers::CommonScalerInverseTransform<T>,
+                    View(stats), MutableView(out));
     return out;
   }
   // The lambda kernels produce one value per group; the second column is
@@ -434,40 +474,41 @@ public:
   py::array_t<T> BoxCoxLambdaGuerrero(int period, T lower, T upper) {
     RequirePositive("season_length", period);
     py::array_t<T> out = LambdaStats();
-    Reduce(scalers::BoxCoxLambdaGuerrero<T>, 2, MutableView(out), 0, period,
-           lower, upper);
+    Reduce(Work(cost::kSort), scalers::BoxCoxLambdaGuerrero<T>, 2,
+           MutableView(out), 0, period, lower, upper);
     return out;
   }
   py::array_t<T> BoxCoxLambdaLogLik(T lower, T upper) {
     py::array_t<T> out = LambdaStats();
-    Reduce(scalers::BoxCoxLambdaLogLik<T>, 2, MutableView(out), 0, lower,
-           upper);
+    Reduce(Work(cost::kHeavy), scalers::BoxCoxLambdaLogLik<T>, 2,
+           MutableView(out), 0, lower, upper);
     return out;
   }
   py::array_t<T> BoxCoxTransform(const CArray<T> lambdas) {
     CheckStats(lambdas, NumGroups());
     py::array_t<T> out(data_.size());
-    ScalerTransform(scalers::BoxCoxTransform<T>, View(lambdas),
-                    MutableView(out));
+    ScalerTransform(Work(cost::kSort), scalers::BoxCoxTransform<T>,
+                    View(lambdas), MutableView(out));
     return out;
   }
   py::array_t<T> BoxCoxInverseTransform(const CArray<T> lambdas) {
     CheckStats(lambdas, NumGroups());
     py::array_t<T> out(data_.size());
-    ScalerTransform(scalers::BoxCoxInverseTransform<T>, View(lambdas),
-                    MutableView(out));
+    ScalerTransform(Work(cost::kSort), scalers::BoxCoxInverseTransform<T>,
+                    View(lambdas), MutableView(out));
     return out;
   }
 
   py::array_t<T> NumDiffs(int max_d) {
     py::array_t<T> out(NumGroups());
-    Reduce(diff::NumDiffs<T>, 1, MutableView(out), 0, max_d);
+    Reduce(Work(cost::kScan), diff::NumDiffs<T>, 1, MutableView(out), 0, max_d);
     return out;
   }
   py::array_t<T> NumSeasDiffs(int period, int max_d) {
     RequireNonNegative("season_length", period);
     py::array_t<T> out(NumGroups());
-    Reduce(diff::NumSeasDiffs<T>, 1, MutableView(out), 0, period, max_d);
+    Reduce(Work(cost::kStl), diff::NumSeasDiffs<T>, 1, MutableView(out), 0,
+           period, max_d);
     return out;
   }
   py::array_t<T> NumSeasDiffsPeriods(int max_d, const CArray<T> periods) {
@@ -485,7 +526,7 @@ public:
       RequireNonNegative("season_length", periods_view[i]);
       rows[2 * i] = periods_view[i];
     }
-    Reduce(diff::NumSeasDiffsPeriods<T>, 2, rows, 0, max_d);
+    Reduce(Work(cost::kStl), diff::NumSeasDiffsPeriods<T>, 2, rows, 0, max_d);
     py::array_t<T> out(NumGroups());
     const auto out_view = MutableView(out);
     for (index_t i = 0; i < NumGroups(); ++i) {
@@ -496,20 +537,22 @@ public:
   py::array_t<T> Periods(int max_lag) {
     RequireNonNegative("max_season_length", max_lag);
     py::array_t<T> out(NumGroups());
-    Reduce(seasonal::GreatestAutocovariance<T>, 1, MutableView(out), 0,
-           max_lag);
+    Reduce(Work(cost::kSort), seasonal::GreatestAutocovariance<T>, 1,
+           MutableView(out), 0, max_lag);
     return out;
   }
   py::array_t<T> Difference(int d) {
     RequireNonNegative("d", d);
     py::array_t<T> out(data_.size());
-    Transform(seasonal::Difference<T>, 0, MutableView(out), d);
+    Transform(Work(cost::kCopy), seasonal::Difference<T>, 0, MutableView(out),
+              d);
     return out;
   }
   py::array_t<T> Differences(const CArray<index_t> ds) {
     CheckDs(ds, NumGroups());
     py::array_t<T> out(data_.size());
-    VariableTransform(diff::Differences<T>, View(ds), MutableView(out));
+    VariableTransform(Work(cost::kCopy), diff::Differences<T>, View(ds),
+                      MutableView(out));
     return out;
   }
   py::array_t<T> InvertDifference(int d, const CArray<T> tails) {
@@ -535,7 +578,8 @@ public:
     }
     auto tails_ga = GroupedArray<T>(tails, tails_indptr, num_threads_);
     py::array_t<T> out(data_.size());
-    Zip(diff::InvertDifference<T>, tails_ga, Indptr(), MutableView(out));
+    Zip(Work(cost::kScan), diff::InvertDifference<T>, tails_ga, Indptr(),
+        MutableView(out));
     return out;
   }
 };
@@ -682,7 +726,8 @@ void BindRolling(py::module_ &roll, py::class_<GroupedArray<T>> &ga,
                      int min_samples, bool skipna) {
            const Window w = Window::Checked(window_size, min_samples, skipna);
            auto out = Alloc(self);
-           self.Transform(transform, lag, MutableView(out), w);
+           self.Transform(self.Work(cost::kScan), transform, lag,
+                          MutableView(out), w);
            return out;
          },
          "lag"_a, "window_size"_a, "min_samples"_a, "skipna"_a = false);
@@ -691,7 +736,8 @@ void BindRolling(py::module_ &roll, py::class_<GroupedArray<T>> &ga,
                   int min_samples, bool skipna) {
            const Window w = Window::Checked(window_size, min_samples, skipna);
            auto out = AllocPerGroup(self);
-           self.Reduce(update, 1, MutableView(out), lag, w);
+           self.Reduce(self.Work(cost::kScan, w.window_size), update, 1,
+                       MutableView(out), lag, w);
            return out;
          },
          "lag"_a, "window_size"_a, "min_samples"_a, "skipna"_a = false);
@@ -701,7 +747,8 @@ void BindRolling(py::module_ &roll, py::class_<GroupedArray<T>> &ga,
            const SeasonalWindow sw = SeasonalWindow::Checked(
                season_length, window_size, min_samples, skipna);
            auto out = Alloc(self);
-           self.Transform(seasonal, lag, MutableView(out), sw);
+           self.Transform(self.Work(cost::kScan), seasonal, lag,
+                          MutableView(out), sw);
            return out;
          },
          "lag"_a, "season_length"_a, "window_size"_a, "min_samples"_a,
@@ -713,7 +760,8 @@ void BindRolling(py::module_ &roll, py::class_<GroupedArray<T>> &ga,
            const SeasonalWindow sw = SeasonalWindow::Checked(
                season_length, window_size, min_samples, skipna);
            auto out = AllocPerGroup(self);
-           self.Reduce(seasonal_update, 1, MutableView(out), lag, sw);
+           self.Reduce(self.Work(cost::kScan, sw.window.window_size),
+                       seasonal_update, 1, MutableView(out), lag, sw);
            return out;
          },
          "lag"_a, "season_length"_a, "window_size"_a, "min_samples"_a,
@@ -768,7 +816,8 @@ void BindRollingQuantile(py::module_ &roll, py::class_<GroupedArray<T>> &ga) {
         RequireProbability("p", p);
         const Window w = Window::Checked(window_size, min_samples, skipna);
         auto out = Alloc(self);
-        self.Transform(transform, lag, MutableView(out), w, p);
+        self.Transform(self.Work(cost::kHeavy), transform, lag,
+                       MutableView(out), w, p);
         return out;
       },
       "lag"_a, "p"_a, "window_size"_a, "min_samples"_a, "skipna"_a = false);
@@ -779,7 +828,8 @@ void BindRollingQuantile(py::module_ &roll, py::class_<GroupedArray<T>> &ga) {
         RequireProbability("p", p);
         const Window w = Window::Checked(window_size, min_samples, skipna);
         auto out = AllocPerGroup(self);
-        self.Reduce(update, 1, MutableView(out), lag, w, p);
+        self.Reduce(self.Work(cost::kHeavy, w.window_size), update, 1,
+                    MutableView(out), lag, w, p);
         return out;
       },
       "lag"_a, "p"_a, "window_size"_a, "min_samples"_a, "skipna"_a = false);
@@ -791,7 +841,8 @@ void BindRollingQuantile(py::module_ &roll, py::class_<GroupedArray<T>> &ga) {
         const SeasonalWindow sw = SeasonalWindow::Checked(
             season_length, window_size, min_samples, skipna);
         auto out = Alloc(self);
-        self.Transform(seasonal, lag, MutableView(out), sw, p);
+        self.Transform(self.Work(cost::kHeavy), seasonal, lag, MutableView(out),
+                       sw, p);
         return out;
       },
       "lag"_a, "p"_a, "season_length"_a, "window_size"_a, "min_samples"_a,
@@ -805,7 +856,8 @@ void BindRollingQuantile(py::module_ &roll, py::class_<GroupedArray<T>> &ga) {
         const SeasonalWindow sw = SeasonalWindow::Checked(
             season_length, window_size, min_samples, skipna);
         auto out = AllocPerGroup(self);
-        self.Reduce(seasonal_update, 1, MutableView(out), lag, sw, p);
+        self.Reduce(self.Work(cost::kHeavy, sw.window.window_size),
+                    seasonal_update, 1, MutableView(out), lag, sw, p);
         return out;
       },
       "lag"_a, "p"_a, "season_length"_a, "window_size"_a, "min_samples"_a,

@@ -66,7 +66,7 @@ def tiny(rng):
 
 # Only the uniform case is checked. The other two are what the rest
 # of the threading plan is about: handing work out dynamically so one huge
-# group doesn't pin a thread, and not spawning at all for an array this small.
+# group doesn't pin a thread, and not spawning threads a call can't pay for.
 DATASETS = [
     ("uniform", uniform, 5, True),
     ("one huge group", huge_group, 5, False),
