@@ -133,6 +133,9 @@ void BoxCoxLambdaGuerrero(std::span<const T> x, std::span<T> out,
   if (std::any_of(x.begin(), x.end(), [](T v) { return v <= 0.0; })) {
     lower = std::max(lower, T{0.0});
   }
+  // each subseries needs at least two values to have a standard deviation, so
+  // nonseasonal data is split in pairs, as R's forecast::guerrero does
+  period = std::max(period, index_t{2});
   const index_t n_seasons = n / period;
   const index_t n_full = n_seasons * period;
   // build matrix with subseries having full periods
