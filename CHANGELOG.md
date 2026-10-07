@@ -67,6 +67,13 @@
   so quantiles scale like the other kernels (4x on four threads, from 0.5x) and
   are slightly faster on a single thread. Results are unchanged: the heights
   only affect how the list is searched, not the order it keeps.
+- `boxcox_lambda(method="guerrero", season_length=1)` and `LocalBoxCoxScaler`
+  with the same settings split the series into subseries of one value, which
+  have no standard deviation, so the criterion was undefined for every lambda
+  and the result was close to `upper` whatever the data. Nonseasonal data is now
+  split in pairs, as R's `forecast::BoxCox.lambda` does, and gives the same
+  lambda as R (0.1108 for AirPassengers with `frequency = 1`, was 1.9999).
+  Seasonal periods are unchanged.
 
 ### Performance
 
