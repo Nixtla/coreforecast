@@ -120,16 +120,11 @@ def test_guerrero_correctness(dtype):
 
 
 def test_num_diffs_against_r():
-    # forecast::ndiffs(x, max.d = 2) returns 2. The KPSS test on the first
-    # difference has to use trunc(3 * sqrt(18) / 13) = 0 lags, computed from the
-    # differenced length, not the 1 lag of the original 19 observations.
-    # fmt: off
     x = np.array([
         0.062627, -0.404694, -1.371174, -2.375583, -4.232515, -4.486966, -4.42123,
         -3.927546, -6.171507, -5.725627, -6.106631, -8.044207, -8.447748, -8.05527,
         -7.904924, -7.481338, -6.745412, -5.971468, -6.134676,
     ])
-    # fmt: on
     assert num_diffs(x, max_d=2) == 2
 
 

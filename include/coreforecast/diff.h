@@ -58,8 +58,6 @@ void NumDiffs(std::span<const T> x, std::span<T> out, index_t max_d) {
   }
   constexpr T threshold = 0.463; // alpha = 0.05
   index_t d = 0;
-  // as in R's forecast::ndiffs, the number of lags depends on the length of
-  // the series being tested, which shrinks by one with every difference
   const auto n_lags = [](index_t len) {
     return static_cast<index_t>(std::floor(3 * std::sqrt(len) / 13));
   };
