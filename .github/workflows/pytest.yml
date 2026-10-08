@@ -223,6 +223,8 @@ jobs:
         run: uv run python scripts/bench_threads.py --check
 
   run_benchmarks:
+    # disabled until we have a CodSpeed token
+    if: false
     runs-on: ubuntu-22.04
     steps:
       - name: Clone repo
@@ -245,7 +247,7 @@ jobs:
         run: uv sync --group dev
 
       - name: Run benchmarks
-        uses: CodSpeedHQ/action@373d6868929f444bc08d901fd0eb0ad52a8875ea # 5.2.1
+        uses: CodSpeedHQ/action@c4fd08a3a159bd0cc208da1e0edf32b8c47d75e5 # 5.4.0
         with:
           mode: simulation
           token: ${{ secrets.CODESPEED_TOKEN }}
