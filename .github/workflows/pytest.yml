@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [310, 311, 312, 313, 314, 315]
+        python-version: [311, 312, 313, 314, 315]
         os-platform:
           [
             [ubuntu-latest, manylinux_x86_64],
@@ -32,10 +32,6 @@ jobs:
             [macos-15-intel, macosx_x86_64],
             [macos-latest, macosx_arm64],
           ]
-        # the numpy and pandas locked for 3.10 have no win_arm64 wheels
-        exclude:
-          - python-version: 310
-            os-platform: [windows-11-arm, win_arm64]
     steps:
       - name: Clone repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
