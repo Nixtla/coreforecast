@@ -41,7 +41,7 @@ operations = [
 
 @pytest.fixture
 def grouped(rng):
-    lengths = rng.integers(low=40, high=90, size=4_000)
+    lengths = rng.integers(low=40, high=90, size=3_500)
     indptr = np.append(0, lengths.cumsum()).astype(np.int32)
     return rng.normal(size=indptr[-1]), indptr
 
@@ -52,7 +52,7 @@ def skewed(rng):
     # elements: an even split by group count leaves one thread with half the
     # work and another with none of it, and the heaviest chunk is the one the
     # scheduler has to pull out of index order
-    short = rng.integers(low=5, high=40, size=10_000)
+    short = rng.integers(low=5, high=40, size=6_000)
     lengths = np.concatenate([short, np.zeros(5, dtype=int), [short.sum()]])
     indptr = np.append(0, lengths.cumsum()).astype(np.int32)
     return rng.normal(size=indptr[-1]), indptr

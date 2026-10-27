@@ -349,8 +349,9 @@ public:
     std::transform(indptr_.data(), indptr_.data() + indptr_.size(),
                    other.indptr_.data(), out_indptr.mutable_data(),
                    std::plus<index_t>());
-    Zip(Work(cost::kCopy), grouped_array_functions::Append<T>, other,
-        View(out_indptr), MutableView(out_data));
+    Zip(Work(cost::kCopy) + other.Work(cost::kCopy),
+        grouped_array_functions::Append<T>, other, View(out_indptr),
+        MutableView(out_data));
     return std::make_unique<GroupedArray<T>>(out_data, out_indptr,
                                              num_threads_);
   }
