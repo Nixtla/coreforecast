@@ -1,3 +1,4 @@
+import copy
 import math
 
 import numpy as np
@@ -295,6 +296,56 @@ def test_seasonal_differences_correctness(data, indptr, dtype):
     combined = sc.stack([sc, sc])
     np.testing.assert_equal(combined.diffs_, np.tile(sc.diffs_, 2))
     np.testing.assert_equal(combined.tails_[0], np.tile(sc.tails_[0], 2))
+
+
+def _ga_from_series(series):
+    sizes = np.array([s.size for s in series])
+    return GroupedArray(np.hstack(series), np.append(0, sizes.cumsum()))
+
+
+@pytest.mark.parametrize(
+    "scaler, x, expected_diffs",
+    [
+        (
+            AutoDifferences(max_diffs=2),
+            np.arange(30.0),
+            [2, 1, 0],
+        ),
+        (
+            AutoSeasonalDifferences(season_length=4, max_diffs=2),
+            np.tile(np.array([1.0, 5.0, 2.0, 8.0]), 8),
+            [1, 1, 0],
+        ),
+    ],
+)
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_auto_differences_update_with_different_diffs(scaler, x, expected_diffs, dtype):
+    season_length = getattr(scaler, "season_length", 1)
+    rng = np.random.default_rng(0)
+    if season_length == 1:
+        series = [x**2, x + rng.normal(size=x.size), rng.normal(size=x.size)]
+    else:
+        series = [x + np.arange(x.size) ** 2, x, rng.normal(size=x.size)]
+    series = [s.astype(dtype) for s in series]
+    sc = copy.deepcopy(scaler)
+    sc.fit_transform(_ga_from_series(series))
+    np.testing.assert_equal(sc.diffs_, expected_diffs)
+
+    # two updates must match differencing the whole series with the same diffs
+    updates = [
+        [rng.normal(size=n).astype(dtype) for n in sizes]
+        for sizes in ([3, 1, 2], [1, 2, 1])
+    ]
+    for new in updates:
+        expected_sc = copy.deepcopy(sc)
+        series = [np.append(s, n) for s, n in zip(series, new)]
+        full_ga = _ga_from_series(series)
+        expected = full_ga._with_data(
+            expected_sc._transform(full_ga, season_length)
+        )._tails(_ga_from_series(new).indptr)
+        np.testing.assert_allclose(sc.update(_ga_from_series(new)), expected)
+        for actual_tails, expected_tails in zip(sc.tails_, expected_sc.tails_):
+            np.testing.assert_equal(actual_tails, expected_tails)
 
 
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
