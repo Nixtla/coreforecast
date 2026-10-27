@@ -31,8 +31,9 @@ namespace cost {
 inline constexpr double kCopy = 0.5;
 // running sums and extrema, applying scaler stats, undoing differences
 inline constexpr double kScan = 3;
-// robust stats, which sort, box-cox, which takes a pow per element, and the
-// KPSS test, which sweeps each group once per lag
+// robust stats, which sort, box-cox, which takes a pow per element, the KPSS
+// test, which sweeps each group once per lag, and the seasonal rolling updates,
+// which copy each group's window into a new vector
 inline constexpr double kSort = 25;
 // quantiles, which walk a skip list or partition, and the box-cox likelihood
 inline constexpr double kHeavy = 300;
@@ -767,7 +768,7 @@ void BindRolling(py::module_ &roll, py::class_<GroupedArray<T>> &ga,
            const SeasonalWindow sw = SeasonalWindow::Checked(
                season_length, window_size, min_samples, skipna);
            auto out = AllocPerGroup(self);
-           self.Reduce(self.Work(cost::kScan, sw.window.window_size),
+           self.Reduce(self.Work(cost::kSort, sw.window.window_size),
                        seasonal_update, 1, MutableView(out), lag, sw);
            return out;
          },
