@@ -147,15 +147,19 @@ public:
     return out;
   }
 
-  // How long a kernel costing ns_per_element takes over the whole array on one
-  // thread, counting at most `window` elements per group for the updates,
-  // which only read the end of each group.
+  // How long a kernel costing ns_per_element takes over n_elements on one
+  // thread.
+  double WorkOver(double ns_per_element, double n_elements) const {
+    return ns_per_element * n_elements +
+           cost::kGroup * static_cast<double>(NumGroups());
+  }
+  // WorkOver the whole array, counting at most `window` elements per group for
+  // the updates, which only read the end of each group.
   double Work(double ns_per_element,
               index_t window = std::numeric_limits<index_t>::max()) const {
     const auto n_groups = static_cast<double>(NumGroups());
-    return ns_per_element *
-               std::min(static_cast<double>(data_.size()), n_groups * window) +
-           cost::kGroup * n_groups;
+    return WorkOver(ns_per_element, std::min(static_cast<double>(data_.size()),
+                                             n_groups * window));
   }
 
   // The workers only touch raw buffers, never the Python API, so the GIL is
@@ -330,15 +334,17 @@ public:
   py::array_t<T> Head(int k) {
     RequireNonNegative("k", k);
     py::array_t<T> out(k * NumGroups());
-    Reduce(Work(cost::kCopy, k), grouped_array_functions::Head<T>, k,
-           MutableView(out), 0, k);
+    // groups shorter than k are padded, so the output is what gets written
+    Reduce(WorkOver(cost::kCopy, out.size()), grouped_array_functions::Head<T>,
+           k, MutableView(out), 0, k);
     return out;
   }
   py::array_t<T> Tail(int k) {
     RequireNonNegative("k", k);
     py::array_t<T> out(k * NumGroups());
-    Reduce(Work(cost::kCopy, k), grouped_array_functions::Tail<T>, k,
-           MutableView(out), 0, k);
+    // groups shorter than k are padded, so the output is what gets written
+    Reduce(WorkOver(cost::kCopy, out.size()), grouped_array_functions::Tail<T>,
+           k, MutableView(out), 0, k);
     return out;
   }
   std::unique_ptr<GroupedArray<T>> Append(const GroupedArray<T> &other) {
@@ -350,7 +356,7 @@ public:
     std::transform(indptr_.data(), indptr_.data() + indptr_.size(),
                    other.indptr_.data(), out_indptr.mutable_data(),
                    std::plus<index_t>());
-    Zip(Work(cost::kCopy) + other.Work(cost::kCopy),
+    Zip(WorkOver(cost::kCopy, out_data.size()),
         grouped_array_functions::Append<T>, other, View(out_indptr),
         MutableView(out_data));
     return std::make_unique<GroupedArray<T>>(out_data, out_indptr,
@@ -371,8 +377,7 @@ public:
     py::array_t<T> out(offsets[NumGroups()]);
     // each group's tail is as long as its output slot
     VariableReduce(
-        cost::kCopy * static_cast<double>(offsets[NumGroups()]) +
-            cost::kGroup * static_cast<double>(NumGroups()),
+        WorkOver(cost::kCopy, out.size()),
         [](std::span<const T> in, std::span<T> tail) {
           grouped_array_functions::Tail(in, tail, std::ssize(tail));
         },
