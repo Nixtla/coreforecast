@@ -16,7 +16,7 @@ jobs:
           submodules: "true"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@9cfd02964306b527feff5fee75acfd028cce4260 # v6.1.0
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v6.1.0
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
