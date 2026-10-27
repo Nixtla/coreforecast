@@ -462,8 +462,8 @@ class AutoDifferences:
         out = copy.deepcopy(scalers[0])
         out.diffs_ = np.hstack([sc.diffs_ for sc in scalers])
         out.tails_ = [
-            np.hstack([sc.tails_[i] for sc in scalers])
-            for i in range(len(scalers[0].tails_))
+            np.hstack([sc.tails_[i] for sc in scalers if i < len(sc.tails_)])
+            for i in range(max(len(sc.tails_) for sc in scalers))
         ]
         return out
 

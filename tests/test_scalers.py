@@ -1,4 +1,5 @@
 import copy
+import itertools
 import math
 
 import numpy as np
@@ -303,30 +304,30 @@ def _ga_from_series(series):
     return GroupedArray(np.hstack(series), np.append(0, sizes.cumsum()))
 
 
-@pytest.mark.parametrize(
-    "scaler, x, expected_diffs",
-    [
-        (
-            AutoDifferences(max_diffs=2),
-            np.arange(30.0),
-            [2, 1, 0],
-        ),
-        (
-            AutoSeasonalDifferences(season_length=4, max_diffs=2),
-            np.tile(np.array([1.0, 5.0, 2.0, 8.0]), 8),
-            [1, 1, 0],
-        ),
-    ],
-)
-@pytest.mark.parametrize("dtype", [np.float32, np.float64])
-def test_auto_differences_update_with_different_diffs(scaler, x, expected_diffs, dtype):
-    season_length = getattr(scaler, "season_length", 1)
+def _mixed_diffs_series(season_length, dtype):
+    # one series per number of differences, from the maximum down to 0
     rng = np.random.default_rng(0)
     if season_length == 1:
+        x = np.arange(30.0)
         series = [x**2, x + rng.normal(size=x.size), rng.normal(size=x.size)]
     else:
+        x = np.tile(np.array([1.0, 5.0, 2.0, 8.0]), 8)
         series = [x + np.arange(x.size) ** 2, x, rng.normal(size=x.size)]
-    series = [s.astype(dtype) for s in series]
+    return [s.astype(dtype) for s in series]
+
+
+mixed_diffs_scalers = [
+    (AutoDifferences(max_diffs=2), [2, 1, 0]),
+    (AutoSeasonalDifferences(season_length=4, max_diffs=2), [1, 1, 0]),
+]
+
+
+@pytest.mark.parametrize("scaler, expected_diffs", mixed_diffs_scalers)
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_auto_differences_update_with_different_diffs(scaler, expected_diffs, dtype):
+    season_length = getattr(scaler, "season_length", 1)
+    rng = np.random.default_rng(1)
+    series = _mixed_diffs_series(season_length, dtype)
     sc = copy.deepcopy(scaler)
     sc.fit_transform(_ga_from_series(series))
     np.testing.assert_equal(sc.diffs_, expected_diffs)
@@ -346,6 +347,26 @@ def test_auto_differences_update_with_different_diffs(scaler, x, expected_diffs,
         np.testing.assert_allclose(sc.update(_ga_from_series(new)), expected)
         for actual_tails, expected_tails in zip(sc.tails_, expected_sc.tails_):
             np.testing.assert_equal(actual_tails, expected_tails)
+
+
+@pytest.mark.parametrize("scaler, expected_diffs", mixed_diffs_scalers)
+@pytest.mark.parametrize("order", list(itertools.permutations(range(3))))
+def test_auto_differences_stack_with_different_diffs(scaler, expected_diffs, order):
+    series = _mixed_diffs_series(getattr(scaler, "season_length", 1), np.float64)
+    series = [series[i] for i in order]
+    expected = copy.deepcopy(scaler)
+    expected.fit_transform(_ga_from_series(series))
+    np.testing.assert_equal(expected.diffs_, [expected_diffs[i] for i in order])
+    parts = []
+    for s in series:
+        part = copy.deepcopy(scaler)
+        part.fit_transform(_ga_from_series([s]))
+        parts.append(part)
+    stacked = scaler.stack(parts)
+    np.testing.assert_equal(stacked.diffs_, expected.diffs_)
+    assert len(stacked.tails_) == len(expected.tails_)
+    for actual_tails, expected_tails in zip(stacked.tails_, expected.tails_):
+        np.testing.assert_equal(actual_tails, expected_tails)
 
 
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])

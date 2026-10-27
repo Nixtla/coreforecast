@@ -78,6 +78,12 @@
   `fit_transform` only keeps the tails of the series that are differenced in
   each round, but `update` read them as if every series had them. It now uses
   the same layout (#172).
+- `AutoDifferences.stack` and `AutoSeasonalDifferences.stack` took the number
+  of differencing rounds from the first scaler, so stacking scalers whose
+  largest number of differences wasn't the same raised an `IndexError` or
+  silently dropped the later rounds, and the stacked scaler's
+  `inverse_transform` and `update` were wrong for those series. They now keep
+  every round.
 
 ### Performance
 
