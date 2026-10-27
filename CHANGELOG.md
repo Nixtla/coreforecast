@@ -72,6 +72,12 @@
   uses the length of the series being tested, which is one shorter after each
   difference, so the two disagreed for lengths where `trunc(3 * sqrt(n) / 13)`
   changes (19, 76, 169, ...). The lags are now recomputed for each difference.
+- `AutoDifferences.update` and `AutoSeasonalDifferences.update` raised
+  `ValueError: Last element of indptr must be equal to the size of data`
+  whenever the series had been assigned different numbers of differences.
+  `fit_transform` only keeps the tails of the series that are differenced in
+  each round, but `update` read them as if every series had them. It now uses
+  the same layout (#172).
 
 ### Performance
 
