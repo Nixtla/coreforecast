@@ -161,6 +161,20 @@ public:
     return WorkOver(ns_per_element, std::min(static_cast<double>(data_.size()),
                                              n_groups * window));
   }
+  // The seasonal tests return at once for a group shorter than two periods, so
+  // only the groups that hold two count.
+  template <typename Period> double SeasonalTestWork(Period period_of) const {
+    const auto indptr = Indptr();
+    double n_elements = 0;
+    for (index_t i = 0; i < NumGroups(); ++i) {
+      const T period = period_of(i);
+      const index_t size = indptr[i + 1] - indptr[i];
+      if (period > 0 && static_cast<T>(size) >= 2 * period) {
+        n_elements += static_cast<double>(size);
+      }
+    }
+    return WorkOver(cost::kStl, n_elements);
+  }
 
   // The workers only touch raw buffers, never the Python API, so the GIL is
   // released around them; the scheduling itself lives in parallel.h, which
@@ -520,8 +534,9 @@ public:
   py::array_t<T> NumSeasDiffs(int period, int max_d) {
     RequireNonNegative("season_length", period);
     py::array_t<T> out(NumGroups());
-    Reduce(Work(cost::kStl), diff::NumSeasDiffs<T>, 1, MutableView(out), 0,
-           period, max_d);
+    Reduce(
+        SeasonalTestWork([period](index_t) { return static_cast<T>(period); }),
+        diff::NumSeasDiffs<T>, 1, MutableView(out), 0, period, max_d);
     return out;
   }
   py::array_t<T> NumSeasDiffsPeriods(int max_d, const CArray<T> periods) {
@@ -539,7 +554,8 @@ public:
       RequireNonNegative("season_length", periods_view[i]);
       rows[2 * i] = periods_view[i];
     }
-    Reduce(Work(cost::kStl), diff::NumSeasDiffsPeriods<T>, 2, rows, 0, max_d);
+    Reduce(SeasonalTestWork([rows](index_t i) { return rows[2 * i]; }),
+           diff::NumSeasDiffsPeriods<T>, 2, rows, 0, max_d);
     py::array_t<T> out(NumGroups());
     const auto out_view = MutableView(out);
     for (index_t i = 0; i < NumGroups(); ++i) {
