@@ -78,10 +78,11 @@ inline bool KeepSolo(const Progress &progress, index_t next_weight,
 
 // Whether batch_weight more can run before the clock is read again: what fits
 // in half the budget left, so that a rate gone wrong overshoots by at most
-// that half. Before there is a rate, only one chunk runs.
+// that half. Before there is a rate, only one chunk runs, and a clock too
+// coarse to have moved yet gives none.
 inline bool FitsInBatch(const Progress &progress, index_t batch_weight,
                         nanoseconds budget) {
-  return progress.done > 0 &&
+  return progress.elapsed.count() > 0 &&
          2 * progress.Projected(batch_weight) <= budget - progress.elapsed;
 }
 

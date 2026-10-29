@@ -198,6 +198,8 @@ TEST_CASE("the solo phase runs a chunk only when it fits the budget") {
 TEST_CASE("the solo phase reads the clock once per half of the budget left") {
   // no rate yet, so nothing runs alongside the first chunk
   CHECK_FALSE(parallel::FitsInBatch({}, 1, 50us));
+  // chunks done within one tick of the clock don't make the rest free
+  CHECK_FALSE(parallel::FitsInBatch({0us, 100}, 1, 50us));
   // 10 us for 100 so far leaves 40 us, half of it 20 us, which is 200 more
   const parallel::Progress progress{10us, 100};
   CHECK(parallel::FitsInBatch(progress, 200, 50us));
