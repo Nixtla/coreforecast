@@ -35,6 +35,10 @@
 
 ### Bug fixes
 
+- `GroupedArray` kept a reference to the caller's `indptr` when it was already
+  a contiguous int64 array, but only validated it on construction, so modifying
+  that array afterwards made the kernels read out of bounds. It's now copied,
+  and `GroupedArray.indptr` is read-only.
 - `ExpandingMean`, `ExpandingStd`, `ExpandingMin`, `ExpandingMax` and
   `ExponentiallyWeightedMean` ignored `skipna` in `update()`. Every other lag
   transform forwards it to a kernel, but these five carry their accumulator in
@@ -102,8 +106,10 @@
 - Source builds on free-threaded Python for Windows failed to link with
   `cannot open file 'python314.lib'`: CMake looked up Python through pybind11's
   legacy module, which ignores the free-threaded ABI. It now uses CMake's
-  `FindPython`. Wheels are published for 3.14t and 3.15t as well; the extension
-  doesn't declare GIL-free support yet, so importing it re-enables the GIL.
+  `FindPython`. Wheels are published for 3.14t and 3.15t as well.
+- The extension declares that it can run without the GIL, so importing it on
+  free-threaded Python no longer re-enables it. Building from source needs
+  pybind11 2.13 or later.
 - The Eigen submodule is gone; the handful of reductions it backed are plain
   loops now. Source builds no longer need to fetch it. The box-cox lambda
   estimators run about twice as fast because their transform is evaluated once

@@ -68,7 +68,10 @@ public:
 
   GroupedArray(const py::array_t<T> data, const py::array_t<index_t> indptr,
                int num_threads)
-      : data_(data), indptr_(indptr), num_threads_(num_threads) {}
+      : data_(data), indptr_(indptr), num_threads_(num_threads) {
+    // the indptr attribute exposes the offsets, only validated at construction
+    indptr_.attr("setflags")("write"_a = false);
+  }
 
   index_t NumGroups() const noexcept { return indptr_.size() - 1; }
 
@@ -133,8 +136,9 @@ public:
   // is still held since it comes out of a pybind11 array.
   template <typename Func> void ForEach(Func f) const {
     const auto indptr = Indptr();
+    const int num_threads = num_threads_;
     py::gil_scoped_release release;
-    parallel::ForEach(indptr, num_threads_, f);
+    parallel::ForEach(indptr, num_threads, f);
   }
 
   // One row of n_out results per group, from the group minus its leading NaN
@@ -543,19 +547,22 @@ public:
 // Validates indptr at the Python boundary. Every entry is used as an offset
 // into data, so all of them have to describe a non-decreasing range, not just
 // the last one. Takes py::object so that lists, tuples and Series keep
-// working, which py::array would reject.
+// working, which py::array would reject. The offsets are only validated here,
+// so they're copied to keep the caller from modifying them afterwards.
 inline py::array_t<index_t> CheckedIndptr(const py::object &indptr,
                                           py::ssize_t data_size) {
-  auto out = CArray<index_t>::ensure(indptr);
-  if (!out) {
+  const auto arg = CArray<index_t>::ensure(indptr);
+  if (!arg) {
     throw std::invalid_argument("indptr must be an integer array");
   }
-  if (out.ndim() != 1) {
+  if (arg.ndim() != 1) {
     throw std::invalid_argument("indptr must be a 1d array");
   }
-  if (out.size() < 1) {
+  if (arg.size() < 1) {
     throw std::invalid_argument("indptr must have at least one element");
   }
+  py::array_t<index_t> out(arg.size());
+  std::ranges::copy(View(arg), out.mutable_data());
   const auto values = View(out);
   RequireOffsets(values);
   if (data_size != values.back()) {
@@ -978,7 +985,7 @@ template <typename T> void BindSeasonal(py::module_ &m) {
 // Everything is registered for double before float: a non-float input matches
 // no overload without conversion, so pybind11 converts it to the first one
 // registered, and that has to be float64 (see test_dtype_coercion.py).
-PYBIND11_MODULE(_lib, m) {
+PYBIND11_MODULE(_lib, m, py::mod_gil_not_used()) {
   py::module_ ga_mod = m.def_submodule("grouped_array");
   py::module_ roll = m.def_submodule("rolling");
   py::module_ exp = m.def_submodule("expanding");
