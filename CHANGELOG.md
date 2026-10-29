@@ -38,10 +38,6 @@
 
 ### Bug fixes
 
-- `GroupedArray` kept a reference to the caller's `indptr` when it was already
-  a contiguous int64 array, but only validated it on construction, so modifying
-  that array afterwards made the kernels read out of bounds. It's now copied,
-  and `GroupedArray.indptr` is read-only.
 - `ExpandingMean`, `ExpandingStd`, `ExpandingMin`, `ExpandingMax` and
   `ExponentiallyWeightedMean` ignored `skipna` in `update()`. Every other lag
   transform forwards it to a kernel, but these five carry their accumulator in

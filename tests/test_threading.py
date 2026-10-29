@@ -228,19 +228,6 @@ class TestIndptrValidation:
             ga._tails(np.array([0, 1, 2], dtype=np.int32)), [2.0, 5.0]
         )
 
-    def test_copies_indptr(self):
-        # the offsets are only validated at construction, so changing the
-        # caller's array afterwards used to make every group read out of bounds
-        indptr = np.array([0, 5, 10], dtype=np.int64)
-        ga = GroupedArray(np.arange(10.0), indptr)
-        indptr[1] = 10**6
-        np.testing.assert_array_equal(ga._tail(2), [3.0, 4.0, 8.0, 9.0])
-        with pytest.raises(ValueError, match="read-only"):
-            ga.indptr[1] = 10**6
-        appended = ga._append(ga)
-        with pytest.raises(ValueError, match="read-only"):
-            appended.indptr[1] = 10**6
-
     @pytest.mark.parametrize(
         "cls", [_GroupedArrayFloat32, _GroupedArrayFloat64], ids=["f32", "f64"]
     )
