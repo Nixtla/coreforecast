@@ -109,9 +109,10 @@
 - Source builds on free-threaded Python for Windows failed to link with
   `cannot open file 'python314.lib'`: CMake looked up Python through pybind11's
   legacy module, which ignores the free-threaded ABI. It now uses CMake's
-  `FindPython`, which needs CMake 3.31 or later to build for free-threaded
-  Python on Windows; scikit-build-core downloads it if the installed one is
-  older. Wheels are published for 3.14t and 3.15t as well.
+  `FindPython`. Wheels are published for 3.14t and 3.15t as well. Source builds
+  need CMake 3.31 or later, the first version whose `FindPython` builds for
+  free-threaded Python on Windows; scikit-build-core downloads it if the
+  installed one is older.
 - The extension declares that it can run without the GIL, so importing it on
   free-threaded Python no longer re-enables it. Building from source needs
   pybind11 2.13 or later.
