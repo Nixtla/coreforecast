@@ -64,7 +64,7 @@ template <typename T> class GroupedArray {
 public:
   const py::array_t<T> data_;
   const py::array_t<index_t> indptr_;
-  int num_threads_;
+  const int num_threads_;
 
   GroupedArray(const py::array_t<T> data, const py::array_t<index_t> indptr,
                int num_threads)
@@ -136,9 +136,8 @@ public:
   // is still held since it comes out of a pybind11 array.
   template <typename Func> void ForEach(Func f) const {
     const auto indptr = Indptr();
-    const int num_threads = num_threads_;
     py::gil_scoped_release release;
-    parallel::ForEach(indptr, num_threads, f);
+    parallel::ForEach(indptr, num_threads_, f);
   }
 
   // One row of n_out results per group, from the group minus its leading NaN
@@ -583,7 +582,7 @@ py::class_<GroupedArray<T>> BindGroupedArray(py::module_ &m,
           }))
       .def_readonly("data", &GroupedArray<T>::data_)
       .def_readonly("indptr", &GroupedArray<T>::indptr_)
-      .def_readwrite("num_threads", &GroupedArray<T>::num_threads_)
+      .def_readonly("num_threads", &GroupedArray<T>::num_threads_)
       .def("__getitem__", &GroupedArray<T>::operator[])
       .def("__len__", &GroupedArray<T>::NumGroups)
       .def("_with_data", &GroupedArray<T>::WithData)

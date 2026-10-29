@@ -100,12 +100,14 @@ def test_worker_exception_surfaces_as_python_exception(grouped, num_threads):
     assert np.isfinite(ga._rolling_mean(0, 3, 1)).any()
 
 
-def test_num_threads_is_mutable_at_runtime(grouped):
+def test_num_threads_is_read_only(grouped):
+    # kernels read it after releasing the GIL, so setting it from another
+    # thread raced with them
     data, indptr = grouped
-    ga = GroupedArray(data, indptr, num_threads=1)
-    expected = ga._rolling_mean(1, 5, 2)
-    ga.num_threads = 4
-    np.testing.assert_array_equal(ga._rolling_mean(1, 5, 2), expected)
+    ga = GroupedArray(data, indptr, num_threads=4)
+    with pytest.raises(AttributeError):
+        ga.num_threads = 1
+    assert ga.num_threads == 4
 
 
 @pytest.mark.parametrize("num_threads", [1, 2])
