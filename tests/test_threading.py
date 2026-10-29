@@ -3,7 +3,8 @@
 Groups are handed out to threads in chunks, so results must not depend on how
 many are used or on how uneven the groups are, and a failure inside a worker
 must surface as a Python exception rather than taking the interpreter down with
-it.
+it. A call starts threads only once it has run longer than a budget on the
+calling thread, which these arrays never do, so every thread is started here.
 """
 
 import numpy as np
@@ -13,7 +14,26 @@ from coreforecast._lib.grouped_array import (
     _GroupedArrayFloat32,
     _GroupedArrayFloat64,
 )
-from coreforecast.grouped_array import GroupedArray
+from coreforecast.grouped_array import (
+    GroupedArray,
+    get_start_all_threads,
+    set_start_all_threads,
+)
+
+
+@pytest.fixture(autouse=True)
+def threads_from_the_start():
+    previous = set_start_all_threads(True)
+    yield
+    set_start_all_threads(previous)
+
+
+def test_start_all_threads_round_trip():
+    assert set_start_all_threads(False)
+    assert not get_start_all_threads()
+    assert not set_start_all_threads(True)
+    assert get_start_all_threads()
+
 
 thread_counts = [2, 3, 8]
 
@@ -77,7 +97,9 @@ def test_degenerate_thread_counts(num_threads):
     indptr = np.array([0, 3, 6], dtype=np.int32)
     ga = GroupedArray(data, indptr, num_threads=num_threads)
     # min_samples=1, so each group's first element is its own mean
-    np.testing.assert_allclose(ga._rolling_mean(0, 2, 1), [0.0, 0.5, 1.5, 3.0, 3.5, 4.5])
+    np.testing.assert_allclose(
+        ga._rolling_mean(0, 2, 1), [0.0, 0.5, 1.5, 3.0, 3.5, 4.5]
+    )
 
 
 @pytest.mark.parametrize("num_threads", [1, 4])

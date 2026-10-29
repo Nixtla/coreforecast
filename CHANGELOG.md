@@ -82,9 +82,6 @@
   no such branch. About 3x faster on random data, 2.6 to 3.9 ns per element
   instead of 9.5 on a Neoverse N1, and the same on monotonic data. Results are
   unchanged.
-
-### Performance
-
 - Threads take groups off a shared counter in chunks as they finish instead of
   being handed an equal share of the group count up front, and the chunks go
   out heaviest first so the longest groups are started while there is still
@@ -96,6 +93,21 @@
   output whichever thread runs it. A single group is never split across
   threads, so one holding half the elements caps the speedup at 2x however
   many threads are used.
+- `num_threads` is now the most threads a grouped call uses, not how many it
+  starts. The calling thread first works through the lightest groups alone for
+  up to 10 us, and only starts more threads, one per 50 us of work it projects
+  is left, if the call is still running by then. Starting and joining threads
+  costs tens of microseconds, so small arrays used to run several times slower
+  with threads than without: a rolling mean over 4,000 elements took 10x
+  longer on four threads. Those calls now run at close to serial speed on any
+  CPU, since the decision rests on how long the call actually takes rather
+  than on an estimate per kernel. Larger calls keep their speedups. Fewer
+  groups than about 16 per thread lose some of theirs, because the first group
+  has to run alone before the rest can be timed: eight equal groups on four
+  threads go about 1.9x instead of 3x on a Neoverse N1, and 1.65-2.1x instead
+  of 2.1-2.8x on GitHub's x86 runners. Results are unchanged.
+  `coreforecast.grouped_array.set_start_all_threads(True)` starts every thread
+  asked for, as before.
 
 ### Build
 

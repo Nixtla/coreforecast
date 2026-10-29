@@ -1025,4 +1025,14 @@ PYBIND11_MODULE(_lib, m) {
         }
       },
       "data"_a, "indptr"_a, "num_threads"_a = 1);
+  ga_mod.def(
+      "_set_start_all_threads",
+      [](bool start_all) {
+        return parallel::SetSoloBudget(start_all ? parallel::nanoseconds{0}
+                                                 : parallel::kSoloBudget)
+                   .count() == 0;
+      },
+      "start_all"_a);
+  ga_mod.def("_start_all_threads",
+             [] { return parallel::SoloBudget().count() == 0; });
 }
