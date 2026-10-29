@@ -46,6 +46,8 @@ build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
 build-dir = "build"
+# FindPython defines Py_GIL_DISABLED for free-threaded Windows builds from 3.31
+cmake.version = ">=3.31"
 build.verbose = true
 logging.level = "INFO"
 # doctest only serves tests/cpp, which is excluded too
