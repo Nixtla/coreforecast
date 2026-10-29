@@ -107,7 +107,10 @@
   than on an estimate per kernel. Larger calls keep their speedups. Fewer
   groups than about 16 per thread lose some of theirs, because the first group
   has to run alone before the rest can be timed: eight equal groups on four
-  threads go about 1.9x instead of 3x. Results are unchanged.
+  threads go about 1.9x instead of 3x on a Neoverse N1, and 1.65-2.1x instead
+  of 2.1-2.8x on GitHub's x86 runners. Results are unchanged.
+  `coreforecast.grouped_array.set_start_all_threads(True)` starts every thread
+  asked for, as before.
 
 ### Build
 

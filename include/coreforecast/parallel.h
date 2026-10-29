@@ -36,8 +36,9 @@ inline constexpr nanoseconds kWorkPerThread{50'000};
 // a call which does need threads loses little by starting them this late.
 inline constexpr nanoseconds kSoloBudget{10'000};
 
-// The budget ForEach uses when it isn't given one. Process-wide so that the
-// tests can set it to zero for every array they build, derived ones included.
+// The budget ForEach uses when it isn't given one. Process-wide so that setting
+// it to zero starts every thread asked for in every array, derived ones
+// included.
 inline std::atomic<index_t> solo_budget_ns{kSoloBudget.count()};
 
 inline nanoseconds SoloBudget() {
