@@ -3,7 +3,7 @@ project(coreforecast LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(PYBIND11_NEWPYTHON ON)
+set(PYBIND11_FINDPYTHON ON)
 
 find_package(pybind11 CONFIG REQUIRED)
 # the scheduler in parallel.h spawns std::threads in both targets
