@@ -22,6 +22,12 @@ using namespace pybind11::literals;
 // type has to be hidden too; internal linkage is the portable way to say it.
 namespace {
 
+// Only where the array is created: GroupedArrays share their indptr, so
+// setting it later races with the threads reading it.
+inline void SetReadOnly(py::array &array) {
+  array.attr("setflags")("write"_a = false);
+}
+
 // Entries used as offsets into a buffer: a negative one makes a slice start
 // before it and a decreasing one makes a slice run backwards.
 template <typename T> inline void RequireOffsets(std::span<const T> values) {
@@ -68,10 +74,7 @@ public:
 
   GroupedArray(const py::array_t<T> data, const py::array_t<index_t> indptr,
                int num_threads)
-      : data_(data), indptr_(indptr), num_threads_(num_threads) {
-    // the indptr attribute exposes the offsets, only validated at construction
-    indptr_.attr("setflags")("write"_a = false);
-  }
+      : data_(data), indptr_(indptr), num_threads_(num_threads) {}
 
   index_t NumGroups() const noexcept { return indptr_.size() - 1; }
 
@@ -314,6 +317,7 @@ public:
                    std::plus<index_t>());
     Zip(grouped_array_functions::Append<T>, other, View(out_indptr),
         MutableView(out_data));
+    SetReadOnly(out_indptr);
     return std::make_unique<GroupedArray<T>>(out_data, out_indptr,
                                              num_threads_);
   }
@@ -562,6 +566,7 @@ inline py::array_t<index_t> CheckedIndptr(const py::object &indptr,
   }
   py::array_t<index_t> out(arg.size());
   std::ranges::copy(View(arg), out.mutable_data());
+  SetReadOnly(out);
   const auto values = View(out);
   RequireOffsets(values);
   if (data_size != values.back()) {
