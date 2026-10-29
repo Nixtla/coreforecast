@@ -64,7 +64,7 @@ template <typename T> class GroupedArray {
 public:
   const py::array_t<T> data_;
   const py::array_t<index_t> indptr_;
-  int num_threads_;
+  const int num_threads_;
 
   GroupedArray(const py::array_t<T> data, const py::array_t<index_t> indptr,
                int num_threads)
@@ -576,7 +576,7 @@ py::class_<GroupedArray<T>> BindGroupedArray(py::module_ &m,
           }))
       .def_readonly("data", &GroupedArray<T>::data_)
       .def_readonly("indptr", &GroupedArray<T>::indptr_)
-      .def_readwrite("num_threads", &GroupedArray<T>::num_threads_)
+      .def_readonly("num_threads", &GroupedArray<T>::num_threads_)
       .def("__getitem__", &GroupedArray<T>::operator[])
       .def("__len__", &GroupedArray<T>::NumGroups)
       .def("_with_data", &GroupedArray<T>::WithData)
@@ -978,7 +978,7 @@ template <typename T> void BindSeasonal(py::module_ &m) {
 // Everything is registered for double before float: a non-float input matches
 // no overload without conversion, so pybind11 converts it to the first one
 // registered, and that has to be float64 (see test_dtype_coercion.py).
-PYBIND11_MODULE(_lib, m) {
+PYBIND11_MODULE(_lib, m, py::mod_gil_not_used()) {
   py::module_ ga_mod = m.def_submodule("grouped_array");
   py::module_ roll = m.def_submodule("rolling");
   py::module_ exp = m.def_submodule("expanding");

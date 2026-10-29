@@ -6,6 +6,11 @@ must surface as a Python exception rather than taking the interpreter down with
 it.
 """
 
+import sys
+import sysconfig
+import threading
+from concurrent.futures import ThreadPoolExecutor
+
 import numpy as np
 import pytest
 
@@ -37,15 +42,13 @@ operations = [
 ]
 
 
-@pytest.fixture
-def grouped(rng):
+def _grouped(rng):
     lengths = rng.integers(low=40, high=90, size=50)
     indptr = np.append(0, lengths.cumsum()).astype(np.int32)
     return rng.normal(size=indptr[-1]), indptr
 
 
-@pytest.fixture
-def skewed(rng):
+def _skewed(rng):
     # short groups, a run of empty ones, and last a group holding half the
     # elements: an even split by group count leaves one thread with half the
     # work and another with none of it, and the heaviest chunk is the one the
@@ -56,14 +59,19 @@ def skewed(rng):
     return rng.normal(size=indptr[-1]), indptr
 
 
-@pytest.mark.parametrize("shape", ["grouped", "skewed"])
+@pytest.fixture
+def grouped(rng):
+    return _grouped(rng)
+
+
+# built in the test rather than with request.getfixturevalue, which isn't
+# thread-safe under pytest-run-parallel
+@pytest.mark.parametrize("shape", [_grouped, _skewed], ids=["grouped", "skewed"])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 @pytest.mark.parametrize("num_threads", thread_counts)
 @pytest.mark.parametrize("name,op", operations, ids=[o[0] for o in operations])
-def test_results_do_not_depend_on_thread_count(
-    name, op, num_threads, dtype, shape, request
-):
-    data, indptr = request.getfixturevalue(shape)
+def test_results_do_not_depend_on_thread_count(name, op, num_threads, dtype, shape):
+    data, indptr = shape(np.random.default_rng(seed=0))
     data = data.astype(dtype)
     serial = op(GroupedArray(data, indptr, num_threads=1))
     parallel = op(GroupedArray(data, indptr, num_threads=num_threads))
@@ -92,12 +100,43 @@ def test_worker_exception_surfaces_as_python_exception(grouped, num_threads):
     assert np.isfinite(ga._rolling_mean(0, 3, 1)).any()
 
 
-def test_num_threads_is_mutable_at_runtime(grouped):
+def test_num_threads_is_read_only(grouped):
+    # kernels read it after releasing the GIL, so setting it from another
+    # thread raced with them
     data, indptr = grouped
-    ga = GroupedArray(data, indptr, num_threads=1)
-    expected = ga._rolling_mean(1, 5, 2)
-    ga.num_threads = 4
-    np.testing.assert_array_equal(ga._rolling_mean(1, 5, 2), expected)
+    ga = GroupedArray(data, indptr, num_threads=4)
+    with pytest.raises(AttributeError):
+        ga.num_threads = 1
+    assert ga.num_threads == 4
+
+
+@pytest.mark.parametrize("num_threads", [1, 2])
+def test_shared_grouped_array_across_threads(grouped, num_threads):
+    data, indptr = grouped
+    ga = GroupedArray(data, indptr, num_threads=num_threads)
+    expected = [op(ga) for _, op in operations]
+    barrier = threading.Barrier(4)
+
+    def run(_):
+        barrier.wait()
+        return [op(ga) for _, op in operations]
+
+    with ThreadPoolExecutor(4) as executor:
+        for results in executor.map(run, range(4)):
+            for res, exp in zip(results, expected):
+                np.testing.assert_array_equal(res, exp)
+
+
+@pytest.mark.skipif(
+    not sysconfig.get_config_var("Py_GIL_DISABLED"),
+    reason="only free-threaded builds can run without the GIL",
+)
+def test_import_keeps_the_gil_disabled():
+    # the interpreter re-enables the GIL when it imports an extension that
+    # doesn't declare it can run without it
+    import coreforecast._lib  # noqa: F401
+
+    assert not sys._is_gil_enabled()
 
 
 class TestIndptrValidation:

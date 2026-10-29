@@ -47,6 +47,36 @@ jobs:
           CIBW_BEFORE_TEST: uv sync --group dev --active
           CIBW_TEST_COMMAND: uv run pytest {project}/tests -k "not efficiency"
 
+  # The t jobs above import the extension without PYTHON_GIL=0, so they fail if
+  # it stops declaring GIL-free support. This one runs every test from several
+  # threads at once to catch state shared between calls.
+  free_threading:
+    name: Run tests in parallel threads on free-threaded Python
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: "true"
+
+      - name: Setup Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14t"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install dependencies
+        run: uv sync --group dev --python 3.14t
+
+      - name: Run tests
+        run: uv run --no-sync pytest tests -k "not efficiency" --parallel-threads=4 -W error::RuntimeWarning
+
   warnings:
     name: Build with -Werror on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}

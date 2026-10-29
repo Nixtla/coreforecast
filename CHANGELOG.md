@@ -26,6 +26,9 @@
   update reads the value that isn't in the array yet, so there is nothing for
   it to consume. A negative `max_season_length` is a `ValueError` like the
   other counts rather than a `TypeError` from the binding.
+- `GroupedArray.num_threads` is read-only. Kernels read it after releasing the
+  GIL, so setting it while another thread ran one was a data race. Pass the
+  thread count when building the `GroupedArray` instead.
 - `GroupedArray.indptr` is stored and returned as `int64` instead of `int32`,
   so arrays are no longer limited to `2**31` elements. Any integer dtype is
   still accepted as input; the values that used to be rejected as "not
@@ -102,8 +105,13 @@
 - Source builds on free-threaded Python for Windows failed to link with
   `cannot open file 'python314.lib'`: CMake looked up Python through pybind11's
   legacy module, which ignores the free-threaded ABI. It now uses CMake's
-  `FindPython`. Wheels are published for 3.14t and 3.15t as well; the extension
-  doesn't declare GIL-free support yet, so importing it re-enables the GIL.
+  `FindPython`. Wheels are published for 3.14t and 3.15t as well. Source builds
+  need CMake 3.31 or later, the first version whose `FindPython` builds for
+  free-threaded Python on Windows; scikit-build-core downloads it if the
+  installed one is older.
+- The extension declares that it can run without the GIL, so importing it on
+  free-threaded Python no longer re-enables it. Building from source needs
+  pybind11 2.13 or later.
 - The Eigen submodule is gone; the handful of reductions it backed are plain
   loops now. Source builds no longer need to fetch it. The box-cox lambda
   estimators run about twice as fast because their transform is evaluated once
