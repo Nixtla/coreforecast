@@ -96,6 +96,18 @@
   output whichever thread runs it. A single group is never split across
   threads, so one holding half the elements caps the speedup at 2x however
   many threads are used.
+- `num_threads` is now the most threads a grouped call uses, not how many it
+  starts. The calling thread first works through the lightest groups alone for
+  up to 10 us, and only starts more threads, one per 50 us of work it projects
+  is left, if the call is still running by then. Starting and joining threads
+  costs tens of microseconds, so small arrays used to run several times slower
+  with threads than without: a rolling mean over 4,000 elements took 10x
+  longer on four threads. Those calls now run at close to serial speed on any
+  CPU, since the decision rests on how long the call actually takes rather
+  than on an estimate per kernel. Larger calls keep their speedups. Fewer
+  groups than about 16 per thread lose some of theirs, because the first group
+  has to run alone before the rest can be timed: eight equal groups on four
+  threads go about 1.9x instead of 3x. Results are unchanged.
 
 ### Build
 

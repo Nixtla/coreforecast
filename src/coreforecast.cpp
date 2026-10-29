@@ -1025,4 +1025,11 @@ PYBIND11_MODULE(_lib, m) {
         }
       },
       "data"_a, "indptr"_a, "num_threads"_a = 1);
+  // for the tests: zero starts the threads at once, whatever the work
+  ga_mod.def(
+      "_set_solo_budget_ns",
+      [](index_t ns) {
+        return parallel::SetSoloBudget(parallel::nanoseconds{ns}).count();
+      },
+      "ns"_a);
 }

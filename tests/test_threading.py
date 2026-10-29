@@ -3,7 +3,8 @@
 Groups are handed out to threads in chunks, so results must not depend on how
 many are used or on how uneven the groups are, and a failure inside a worker
 must surface as a Python exception rather than taking the interpreter down with
-it.
+it. A call starts threads only once it has run longer than a budget on the
+calling thread, which these arrays never do, so the budget is zeroed here.
 """
 
 import numpy as np
@@ -12,8 +13,16 @@ import pytest
 from coreforecast._lib.grouped_array import (
     _GroupedArrayFloat32,
     _GroupedArrayFloat64,
+    _set_solo_budget_ns,
 )
 from coreforecast.grouped_array import GroupedArray
+
+
+@pytest.fixture(autouse=True)
+def threads_from_the_start():
+    previous = _set_solo_budget_ns(0)
+    yield
+    _set_solo_budget_ns(previous)
 
 thread_counts = [2, 3, 8]
 

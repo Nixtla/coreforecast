@@ -44,6 +44,13 @@ void operator delete(void *p, std::size_t) noexcept { std::free(p); }
 
 namespace {
 
+using namespace std::chrono_literals;
+
+// These groups take far less than the solo budget, so with it every call would
+// run on the calling thread alone; the tests that check the solo phase pass
+// their budget explicitly.
+[[maybe_unused]] const auto default_budget = parallel::SetSoloBudget(0ns);
+
 // n_groups groups of one element each, which makes every chunk weigh the same.
 std::vector<index_t> FlatIndptr(index_t n_groups) {
   std::vector<index_t> indptr(n_groups + 1);
@@ -131,6 +138,82 @@ TEST_CASE("the calling thread is one of the workers") {
   });
   CHECK(ids.size() == kThreads);
   CHECK(ids.count(std::this_thread::get_id()) == 1);
+}
+
+TEST_CASE("a call that fits in the solo budget never starts a thread") {
+  const auto indptr = FlatIndptr(1000);
+  std::set<std::thread::id> ids;
+  std::vector<int> visits(1000);
+  parallel::ForEach(
+      indptr, 8,
+      [&ids, &visits](index_t start_group, index_t end_group) {
+        ids.insert(std::this_thread::get_id());
+        for (index_t i = start_group; i < end_group; ++i) {
+          ++visits[i];
+        }
+      },
+      std::chrono::seconds(30));
+  CHECK(ids == std::set<std::thread::id>{std::this_thread::get_id()});
+  CHECK(std::all_of(visits.begin(), visits.end(),
+                    [](int count) { return count == 1; }));
+}
+
+TEST_CASE("a call that outlasts the solo budget starts helpers") {
+  constexpr index_t kGroups = 64;
+  constexpr int kThreads = 4;
+  const auto indptr = FlatIndptr(kGroups);
+  std::vector<std::thread::id> ids(kGroups);
+  std::vector<std::atomic<int>> visits(kGroups);
+  // each chunk takes 1 ms against a 1 us budget, so the rest is projected to
+  // need every thread asked for
+  parallel::ForEach(
+      indptr, kThreads,
+      [&ids, &visits](index_t start_group, index_t end_group) {
+        const auto until =
+            std::chrono::steady_clock::now() + std::chrono::milliseconds(1);
+        while (std::chrono::steady_clock::now() < until) {
+        }
+        for (index_t i = start_group; i < end_group; ++i) {
+          ids[i] = std::this_thread::get_id();
+          visits[i].fetch_add(1);
+        }
+      },
+      1us);
+  CHECK(std::set<std::thread::id>(ids.begin(), ids.end()).size() > 1);
+  CHECK(std::all_of(visits.begin(), visits.end(),
+                    [](const std::atomic<int> &count) { return count == 1; }));
+}
+
+TEST_CASE("the solo phase runs a chunk only when it fits the budget") {
+  // nothing has run yet, so there is no rate and the first chunk always runs
+  CHECK(parallel::KeepSolo({}, 1'000'000, 50us));
+  // 10 us for 100 so far, so 300 more takes 30 us: 40 us fits, 60 us doesn't
+  const parallel::Progress progress{10us, 100};
+  CHECK(progress.Projected(300) == 30us);
+  CHECK(parallel::KeepSolo(progress, 300, 50us));
+  CHECK_FALSE(parallel::KeepSolo(progress, 500, 50us));
+  CHECK_FALSE(parallel::KeepSolo({60us, 100}, 1, 50us));
+}
+
+TEST_CASE("the solo phase reads the clock once per half of the budget left") {
+  // no rate yet, so nothing runs alongside the first chunk
+  CHECK_FALSE(parallel::FitsInBatch({}, 1, 50us));
+  // 10 us for 100 so far leaves 40 us, half of it 20 us, which is 200 more
+  const parallel::Progress progress{10us, 100};
+  CHECK(parallel::FitsInBatch(progress, 200, 50us));
+  CHECK_FALSE(parallel::FitsInBatch(progress, 201, 50us));
+  CHECK_FALSE(parallel::FitsInBatch({60us, 100}, 1, 50us));
+}
+
+TEST_CASE("the work left gets one thread per budget of it") {
+  // too little for a second thread, however many were asked for
+  CHECK(parallel::ThreadsForRemaining(8, 0us, 100, 50us) == 1);
+  CHECK(parallel::ThreadsForRemaining(8, 99us, 100, 50us) == 1);
+  CHECK(parallel::ThreadsForRemaining(8, 175us, 100, 50us) == 3);
+  // no more than were asked for, nor than there are chunks left to hand out
+  CHECK(parallel::ThreadsForRemaining(4, 1s, 100, 50us) == 4);
+  CHECK(parallel::ThreadsForRemaining(8, 1s, 2, 50us) == 2);
+  CHECK(parallel::ThreadsForRemaining(8, 1s, 0, 50us) == 1);
 }
 
 TEST_CASE("equal chunks keep their index order") {
