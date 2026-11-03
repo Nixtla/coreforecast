@@ -48,8 +48,9 @@ jobs:
           CIBW_TEST_COMMAND: uv run pytest {project}/tests -k "not efficiency"
 
   # The t jobs above run the suite on one thread. This one runs every test from
-  # several threads at once to catch state shared between calls, on macOS too
-  # since arm64's weaker memory ordering exposes races that x86 hides.
+  # several threads at once to catch state shared between calls, on arm64 too
+  # since its weaker memory ordering exposes races that x86 hides, with both
+  # gcc and AppleClang because they can compile the same race differently.
   free_threading:
     name: Run tests in parallel threads on ${{ matrix.os }} ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
@@ -57,7 +58,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
         python-version: ["3.14t", "3.15t"]
     steps:
       - name: Clone repo
