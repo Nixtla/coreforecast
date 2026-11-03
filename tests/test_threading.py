@@ -6,6 +6,8 @@ must surface as a Python exception rather than taking the interpreter down with
 it.
 """
 
+import os
+import subprocess
 import sys
 import sysconfig
 import threading
@@ -133,10 +135,11 @@ def test_shared_grouped_array_across_threads(grouped, num_threads):
 )
 def test_import_keeps_the_gil_disabled():
     # the interpreter re-enables the GIL when it imports an extension that
-    # doesn't declare it can run without it
-    import coreforecast._lib  # noqa: F401
-
-    assert not sys._is_gil_enabled()
+    # doesn't declare it can run without it, unless PYTHON_GIL=0 forces it off.
+    # A fresh interpreter so nothing imported before can have enabled it either
+    env = {k: v for k, v in os.environ.items() if k != "PYTHON_GIL"}
+    code = "import sys, coreforecast._lib; assert not sys._is_gil_enabled()"
+    subprocess.run([sys.executable, "-c", code], env=env, check=True)
 
 
 class TestIndptrValidation:
