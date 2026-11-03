@@ -62,6 +62,8 @@
   representable with 32-bit integers" are now checked like every other offset.
   It is signed rather than unsigned so that arithmetic mixing it with numpy's
   default integer stays integral instead of promoting to float64.
+- Python 3.10 is no longer supported; the minimum is now 3.11. Wheels are
+  published for Python 3.15 (#167).
 
 ### Bug fixes
 
