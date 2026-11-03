@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <atomic>
 #include <limits>
 #include <memory>
 #include <span>
@@ -64,7 +65,7 @@ template <typename T> class GroupedArray {
 public:
   const py::array_t<T> data_;
   const py::array_t<index_t> indptr_;
-  const int num_threads_;
+  std::atomic<int> num_threads_;
 
   GroupedArray(const py::array_t<T> data, const py::array_t<index_t> indptr,
                int num_threads)
@@ -576,7 +577,12 @@ py::class_<GroupedArray<T>> BindGroupedArray(py::module_ &m,
           }))
       .def_readonly("data", &GroupedArray<T>::data_)
       .def_readonly("indptr", &GroupedArray<T>::indptr_)
-      .def_readonly("num_threads", &GroupedArray<T>::num_threads_)
+      .def_property(
+          "num_threads",
+          [](const GroupedArray<T> &ga) { return ga.num_threads_.load(); },
+          [](GroupedArray<T> &ga, int num_threads) {
+            ga.num_threads_ = num_threads;
+          })
       .def("__getitem__", &GroupedArray<T>::operator[])
       .def("__len__", &GroupedArray<T>::NumGroups)
       .def("_with_data", &GroupedArray<T>::WithData)

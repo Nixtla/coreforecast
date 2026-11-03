@@ -102,26 +102,31 @@ def test_worker_exception_surfaces_as_python_exception(grouped, num_threads):
     assert np.isfinite(ga._rolling_mean(0, 3, 1)).any()
 
 
-def test_num_threads_is_read_only(grouped):
-    # kernels read it after releasing the GIL, so setting it from another
-    # thread raced with them
+def test_num_threads_is_mutable_at_runtime(grouped):
     data, indptr = grouped
-    ga = GroupedArray(data, indptr, num_threads=4)
-    with pytest.raises(AttributeError):
-        ga.num_threads = 1
+    ga = GroupedArray(data, indptr, num_threads=1)
+    expected = ga._rolling_mean(1, 5, 2)
+    ga.num_threads = 4
     assert ga.num_threads == 4
+    np.testing.assert_array_equal(ga._rolling_mean(1, 5, 2), expected)
 
 
+@pytest.mark.parametrize("set_num_threads", [False, True])
 @pytest.mark.parametrize("num_threads", [1, 2])
-def test_shared_grouped_array_across_threads(grouped, num_threads):
+def test_shared_grouped_array_across_threads(grouped, num_threads, set_num_threads):
     data, indptr = grouped
     ga = GroupedArray(data, indptr, num_threads=num_threads)
     expected = [op(ga) for _, op in operations]
     barrier = threading.Barrier(4)
 
-    def run(_):
+    def run(i):
         barrier.wait()
-        return [op(ga) for _, op in operations]
+        results = []
+        for _, op in operations:
+            if set_num_threads:
+                ga.num_threads = 1 + (i + len(results)) % 3
+            results.append(op(ga))
+        return results
 
     with ThreadPoolExecutor(4) as executor:
         for results in executor.map(run, range(4)):
