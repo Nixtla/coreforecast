@@ -2,3 +2,48 @@
 title: Grouped Array
 description: Group arrays by a categorical variable
 ---
+
+##
+
+### `set_start_all_threads`
+
+```python
+set_start_all_threads(start_all)
+```
+
+Choose whether grouped calls start every thread they're given.
+
+`num_threads` is the most threads a grouped call uses. By default the
+calling thread first works alone for a few microseconds and starts more
+threads only for the work it projects is left, so small calls don't pay
+for threads they can't use. Passing True makes every call start
+`min(num_threads, n_groups)` threads at once, which suits calls known to be
+large, such as a few long series. The setting is process-wide, so it is
+meant for applications rather than libraries, and it applies to calls that
+start after it returns.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`start_all` | <code>[bool](#bool)</code> | Whether every grouped call starts all of its threads. | *required*
+
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`bool` | <code>[bool](#bool)</code> | The setting it replaces, to restore it with.
+
+### `get_start_all_threads`
+
+```python
+get_start_all_threads()
+```
+
+Whether grouped calls start every thread they're given.
+
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`bool` | <code>[bool](#bool)</code> | The value last passed to `set_start_all_threads`, False by default.
