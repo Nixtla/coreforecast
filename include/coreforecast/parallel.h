@@ -25,38 +25,26 @@ using std::chrono::nanoseconds;
 // next to the groups they hand out.
 inline constexpr index_t kChunksPerThread = 16;
 
-// How much work each thread has to be left for starting it to pay off.
-// Starting and joining a thread costs about 20 us on both a Neoverse N1 and
-// GitHub's x86 runners, and a call only broke even on two threads once it held
-// about 70 us of work.
+// Starting and joining a thread costs about 20 us, and a call only broke even
+// on two threads once it held about 70 us of work.
 inline constexpr nanoseconds kWorkPerThread{50'000};
 
-// How long the calling thread works alone to measure how fast the call goes.
-// Long enough for a few chunks next to a ~30 ns clock read, short enough that
-// a call which does need threads loses little by starting them this late.
 inline constexpr nanoseconds kSoloBudget{10'000};
 
-// The budget ForEach uses when it isn't given one. Process-wide so that setting
-// it to zero starts every thread asked for in every array, derived ones
-// included.
 inline std::atomic<index_t> solo_budget_ns{kSoloBudget.count()};
 
 inline nanoseconds SoloBudget() {
   return nanoseconds{solo_budget_ns.load(std::memory_order_relaxed)};
 }
 
-// Returns the budget it replaces.
 inline nanoseconds SetSoloBudget(nanoseconds budget) {
   return nanoseconds{solo_budget_ns.exchange(budget.count())};
 }
 
-// How long the chunks run so far took, and how much they weighed.
 struct Progress {
   nanoseconds elapsed{0};
   index_t done = 0;
 
-  // How long `weight` more takes at the rate so far, or zero before anything
-  // has run.
   nanoseconds Projected(index_t weight) const {
     if (done == 0) {
       return nanoseconds{0};
@@ -68,27 +56,19 @@ struct Progress {
   }
 };
 
-// Whether the calling thread can take a chunk of next_weight alone and still
-// finish it within the budget. The first chunk has no rate to go by, so it
-// always runs.
 inline bool KeepSolo(const Progress &progress, index_t next_weight,
                      nanoseconds budget) {
   return progress.elapsed + progress.Projected(next_weight) <= budget;
 }
 
-// Whether batch_weight more can run before the clock is read again: what fits
-// in half the budget left, so that a rate gone wrong overshoots by at most
-// that half. Before there is a rate, only one chunk runs, and a clock too
-// coarse to have moved yet gives none.
+// Half the budget left, so a wrong rate overshoots by at most that half. A
+// clock that hasn't moved yet gives no rate.
 inline bool FitsInBatch(const Progress &progress, index_t batch_weight,
                         nanoseconds budget) {
   return progress.elapsed.count() > 0 &&
          2 * progress.Projected(batch_weight) <= budget - progress.elapsed;
 }
 
-// How many threads the work left after the solo phase keeps busy: one per
-// per_thread of it, but no more than requested or than there are chunks, and
-// at least one.
 inline int ThreadsForRemaining(int requested, nanoseconds remaining,
                                index_t remaining_chunks,
                                nanoseconds per_thread) {
@@ -136,15 +116,9 @@ inline std::vector<index_t> ChunkStarts(std::span<const index_t> indptr,
 }
 
 // Calls f(start_group, end_group) over the chunks of [0, n_groups) until they
-// run out, on at most n_threads threads.
-//
-// Starting a thread costs more than a small call's work, and what that work
-// costs depends on the kernel, its parameters and the CPU, so it is measured
-// rather than predicted: the calling thread first runs the lightest chunks
-// alone for up to solo_budget, and a call that finishes inside it never starts
-// a thread. Otherwise the rest gets one thread per kWorkPerThread it is
-// projected to take at the rate measured so far. A budget of zero skips the
-// solo phase and starts every thread asked for.
+// run out, on at most n_threads threads. The calling thread first runs the
+// lightest chunks alone for up to solo_budget, then starts one thread per
+// kWorkPerThread of work it projects is left; a zero budget starts them all.
 //
 // Chunks then go out off a shared counter in the order ChunkStarts puts them
 // in, so a thread that drew short groups takes more of them instead of idling
@@ -176,14 +150,12 @@ inline void ForEach(std::span<const index_t> indptr, int n_threads, Func f,
     const index_t end = end_of(start);
     return indptr[end] - indptr[start] + end - start;
   };
-  // starts[0, n_chunks) are the chunks still to run
   size_t n_chunks = starts.size();
   if (solo_budget.count() > 0) {
     const auto solo_start = std::chrono::steady_clock::now();
     Progress progress;
     while (n_chunks > 0 &&
            KeepSolo(progress, weight(starts[n_chunks - 1]), solo_budget)) {
-      // reading the clock after every chunk costs more than a tiny call's work
       index_t batch = 0;
       do {
         const index_t start = starts[--n_chunks];
