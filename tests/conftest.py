@@ -2,6 +2,11 @@ import numpy as np
 import pytest
 
 
+def pytest_configure(config):
+    # pytest-run-parallel registers it, but is only installed on 3.13+
+    config.addinivalue_line("markers", "thread_unsafe: run on a single thread")
+
+
 @pytest.fixture
 def rng():
     return np.random.default_rng(seed=0)

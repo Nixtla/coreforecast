@@ -28,6 +28,8 @@ def threads_from_the_start():
     set_start_all_threads(previous)
 
 
+# the setting is process-wide, so copies of this test running in parallel race
+@pytest.mark.thread_unsafe
 def test_start_all_threads_round_trip():
     assert set_start_all_threads(False)
     assert not get_start_all_threads()
