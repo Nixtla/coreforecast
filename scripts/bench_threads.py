@@ -64,13 +64,31 @@ def tiny(rng):
     return build(rng, np.full(200, 20))
 
 
-# Only the uniform case is checked. The other two are what the rest
-# of the threading plan is about: handing work out dynamically so one huge
-# group doesn't pin a thread, and not spawning at all for an array this small.
+def small(rng):
+    return build(rng, np.full(2_000, 20))
+
+
+def medium(rng):
+    return build(rng, np.full(20_000, 20))
+
+
+def few_long_groups(rng):
+    return build(rng, np.full(8, 2_000))
+
+
+# Only the uniform case is checked. The others are what the rest of the
+# threading plan is about: handing work out dynamically so one huge group
+# doesn't pin a thread, and starting only the threads a call's work pays for.
+# small and medium sit around that threshold for the cheap kernels, and with
+# fewer groups than chunks the calling thread has to run a whole group alone
+# before it can tell whether to start more.
 DATASETS = [
     ("uniform", uniform, 5, True),
     ("one huge group", huge_group, 5, False),
     ("tiny", tiny, 200, False),
+    ("small", small, 50, False),
+    ("medium", medium, 20, False),
+    ("few long groups", few_long_groups, 20, False),
 ]
 
 
