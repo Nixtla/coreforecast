@@ -63,7 +63,8 @@ def boxcox_lambda(
         x (np.ndarray): Array with data to transform.
         method (str): Method to use. Valid options are 'guerrero' and 'loglik'.
             'guerrero' minimizes the coefficient of variation for subseries of `x` and supports negative values.
-            'loglik' maximizes the log-likelihood function.
+            'loglik' fits on the non-missing observations and returns NaN
+            if there are fewer than two distinct observed values.
         season_length (int, optional): Length of the seasonal period.
             Only required if method='guerrero'.
         lower (float): Lower bound for the lambda.
@@ -235,7 +236,8 @@ class LocalBoxCoxScaler(_BaseLocalScaler):
         upper (float): Upper bound for the lambda.
         method (str): Method to use. Valid options are 'guerrero' and 'loglik'.
             'guerrero' minimizes the coefficient of variation for subseries of `x` and supports negative values.
-            'loglik' maximizes the log-likelihood function."""
+            'loglik' fits on the non-missing observations and returns NaN
+            if there are fewer than two distinct observed values."""
 
     def __init__(
         self,

@@ -4,6 +4,10 @@
 
 ### Bug fixes
 
+- Box-Cox profile likelihood now uses the observed values when a series has
+  missing observations. The fitted lambda is NaN when fewer than two distinct
+  values are observed.
+
 - `AutoDifferences.update` and `AutoSeasonalDifferences.update` raised
   `ValueError: Last element of indptr must be equal to the size of data`
   whenever the series had been assigned different numbers of differences.

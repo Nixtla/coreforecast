@@ -229,6 +229,17 @@ template <typename T>
 void BoxCoxLambdaLogLik(std::span<const T> x, std::span<T> out, T lower,
                         T upper) {
   T tol = std::pow(std::numeric_limits<T>::epsilon(), 0.25);
-  out[0] = Brent(BoxCoxLogLik<T>, lower, upper, tol, x);
+  const bool has_nan =
+      std::ranges::any_of(x, [](T v) { return std::isnan(v); });
+  WithSkipNA(x, out, has_nan,
+             [&](std::span<const T> valid, std::span<T> result) {
+               if (valid.size() < 2 || std::ranges::all_of(valid, [&](T v) {
+                     return v == valid.front();
+                   })) {
+                 result[0] = kNaN<T>;
+                 return;
+               }
+               result[0] = Brent(BoxCoxLogLik<T>, lower, upper, tol, valid);
+             });
 }
 } // namespace scalers
