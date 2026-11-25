@@ -47,6 +47,20 @@ def test_boxcox_stats_second_column_is_deterministic_padding(data, indptr, metho
     np.testing.assert_array_equal(first, second)
 
 
+@pytest.mark.parametrize("dtype", dtypes)
+def test_boxcox_loglik_missing(dtype):
+    x = np.array([np.nan, 2, 3, 5, np.nan, 11, 18, 26, np.nan], dtype=dtype)
+    expected = boxcox_lambda(x[~np.isnan(x)], "loglik")
+    np.testing.assert_allclose(boxcox_lambda(x, "loglik"), expected)
+    data = np.concatenate([x, [3, np.nan, 3], [np.nan, np.nan]]).astype(dtype)
+    ga = GroupedArray(data, np.array([0, x.size, x.size + 3, x.size + 5], dtype=np.int32))
+    scaler = LocalBoxCoxScaler(method="loglik")
+    transformed = scaler.fit_transform(ga)
+    np.testing.assert_allclose(scaler.stats_[:, 0], [expected, np.nan, np.nan])
+    restored = scaler.inverse_transform(GroupedArray(transformed, ga.indptr))
+    np.testing.assert_allclose(restored[:x.size], x, rtol=1e-5)
+
+
 @pytest.mark.parametrize("scaler_name", scalers)
 @pytest.mark.parametrize("dtype", dtypes)
 def test_correctness(data, indptr, scaler_name, dtype):
